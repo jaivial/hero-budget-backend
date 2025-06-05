@@ -66,8 +66,8 @@ start_service() {
         return 1
     fi
     
-    # Compilar y ejecutar en background
-    nohup go run main.go > "/tmp/${service_name}.log" 2>&1 &
+    # Compilar y ejecutar en background con ruta completa de Go
+    nohup /usr/local/go/bin/go run main.go > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"

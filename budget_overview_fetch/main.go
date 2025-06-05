@@ -180,6 +180,7 @@ func main() {
 	http.HandleFunc("/transactions/history", corsMiddleware(handleTransactionHistory))
 	http.HandleFunc("/transactions/upcoming-bills", corsMiddleware(handleUpcomingBills))
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
+	http.HandleFunc("/budget-overview/health", corsMiddleware(handleBudgetOverviewHealth))
 
 	// Start server on port 8098
 	port := "8098"
@@ -1403,4 +1404,25 @@ func fetchUnpaidBillsAmount(userID, period, date string) (float64, float64, erro
 
 	log.Printf("⏳ Unpaid bills for %s %s: Bank=%.2f, Cash=%.2f", period, date, bankAmount, cashAmount)
 	return bankAmount, cashAmount, nil
+}
+
+func handleBudgetOverviewHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		log.Printf("Health check failed - database connection error: %v", err)
+		sendErrorResponse(w, "Database connection failed", http.StatusInternalServerError)
+		return
+	}
+
+	sendSuccessResponse(w, "Budget Overview service is healthy", map[string]string{
+		"service":   "budget_overview_fetch",
+		"status":    "healthy",
+		"port":      "8098",
+		"timestamp": fmt.Sprintf("%d", time.Now().Unix()),
+	})
 }
