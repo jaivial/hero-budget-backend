@@ -30,3 +30,4 @@ Se realizaron pruebas exhaustivas con los siguientes resultados:
 3. Documentar el uso exclusivo de las tablas *_cash_bank_balance para futuras referencias.
 4. Revisar y actualizar los demás periodos (semiannual, annual) si es necesario.
 
+mini cambio
