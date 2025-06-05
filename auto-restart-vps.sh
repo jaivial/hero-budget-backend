@@ -195,6 +195,17 @@ EOF
 start_webhook_server() {
     log_message "INFO" "🌐 Iniciando servidor webhook en puerto $WEBHOOK_PORT..."
     
+    # Verificar si el puerto está ocupado y liberarlo
+    local port_pid=$(lsof -ti:$WEBHOOK_PORT 2>/dev/null)
+    if [ ! -z "$port_pid" ]; then
+        log_message "WARN" "⚠️ Puerto $WEBHOOK_PORT ocupado por PID $port_pid, liberando..."
+        kill -9 $port_pid 2>/dev/null
+        sleep 1
+    fi
+    
+    # Limpiar procesos Python residuales del webhook
+    pkill -f webhook_server.py 2>/dev/null
+    
     # Crear el script del servidor Python
     create_webhook_server
     
@@ -206,30 +217,66 @@ start_webhook_server() {
     nohup python3 /tmp/webhook_server.py "$WEBHOOK_PORT" > "$LOG_FILE" 2>&1 &
     local webhook_pid=$!
     
-    echo $webhook_pid > "$PID_FILE"
+    # Esperar un momento para verificar que se inició correctamente
+    sleep 2
     
-    log_message "INFO" "✅ Servidor webhook iniciado (PID: $webhook_pid)"
-    log_message "INFO" "📡 Endpoint webhook: http://tu-vps-ip:$WEBHOOK_PORT/webhook"
-    log_message "INFO" "🏥 Health check: http://tu-vps-ip:$WEBHOOK_PORT/health"
-    
-    return 0
+    # Verificar que el proceso sigue ejecutándose
+    if kill -0 "$webhook_pid" 2>/dev/null; then
+        echo $webhook_pid > "$PID_FILE"
+        log_message "INFO" "✅ Servidor webhook iniciado exitosamente (PID: $webhook_pid)"
+        log_message "INFO" "📡 Endpoint webhook: http://tu-vps-ip:$WEBHOOK_PORT/webhook"
+        log_message "INFO" "🏥 Health check: http://tu-vps-ip:$WEBHOOK_PORT/health"
+        
+        # Verificar que el puerto está realmente escuchando
+        if lsof -i:$WEBHOOK_PORT > /dev/null 2>&1; then
+            log_message "INFO" "🔌 Puerto $WEBHOOK_PORT confirmado como activo"
+        else
+            log_message "ERROR" "❌ Puerto $WEBHOOK_PORT no está escuchando, revisar logs"
+            return 1
+        fi
+        
+        return 0
+    else
+        log_message "ERROR" "❌ El proceso del webhook falló al iniciarse, revisar logs"
+        rm -f "$PID_FILE"
+        return 1
+    fi
 }
 
 # Función para detener el servidor webhook
 stop_webhook_server() {
+    log_message "INFO" "🛑 Deteniendo servidor webhook..."
+    
+    # Detener por PID file si existe
     if [ -f "$PID_FILE" ]; then
         local pid=$(cat "$PID_FILE")
         if kill -0 "$pid" 2>/dev/null; then
             log_message "INFO" "🛑 Deteniendo servidor webhook (PID: $pid)"
             kill "$pid"
-            rm -f "$PID_FILE"
-            log_message "INFO" "✅ Servidor webhook detenido"
-        else
-            log_message "WARN" "⚠️ PID $pid no encontrado, limpiando archivo PID"
-            rm -f "$PID_FILE"
+            sleep 1
+            # Si no se detuvo, forzar
+            if kill -0 "$pid" 2>/dev/null; then
+                kill -9 "$pid" 2>/dev/null
+            fi
         fi
+        rm -f "$PID_FILE"
+    fi
+    
+    # Limpiar todos los procesos del webhook por si acaso
+    local port_pid=$(lsof -ti:$WEBHOOK_PORT 2>/dev/null)
+    if [ ! -z "$port_pid" ]; then
+        log_message "WARN" "⚠️ Proceso adicional encontrado en puerto $WEBHOOK_PORT (PID: $port_pid), eliminando..."
+        kill -9 $port_pid 2>/dev/null
+    fi
+    
+    # Limpiar procesos Python del webhook
+    pkill -f webhook_server.py 2>/dev/null
+    
+    # Verificar que el puerto quedó libre
+    if ! lsof -i:$WEBHOOK_PORT > /dev/null 2>&1; then
+        log_message "INFO" "✅ Servidor webhook detenido correctamente"
     else
-        log_message "WARN" "⚠️ No se encontró archivo PID del servidor webhook"
+        log_message "WARN" "⚠️ Puerto $WEBHOOK_PORT aún ocupado, puede requerir intervención manual"
     fi
 }
 
