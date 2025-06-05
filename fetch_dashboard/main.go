@@ -104,13 +104,30 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 }
 
 func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "GET" {
+	if r.Method != "GET" && r.Method != "POST" {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Get user ID from query parameter
-	userID := r.URL.Query().Get("id")
+	var userID string
+
+	// Get user ID from query parameter (GET) or request body (POST)
+	if r.Method == "GET" {
+		userID = r.URL.Query().Get("id")
+	} else { // POST
+		var requestBody map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			log.Printf("Error parsing request body: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if uid, ok := requestBody["user_id"].(string); ok {
+			userID = uid
+		}
+	}
+
 	if userID == "" || userID == "null" {
 		log.Printf("Error: User ID is empty or 'null' in request")
 		http.Error(w, "Valid user ID is required", http.StatusBadRequest)
