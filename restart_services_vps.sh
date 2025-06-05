@@ -66,8 +66,19 @@ start_service() {
         return 1
     fi
     
-    # Compilar y ejecutar en background con ruta completa de Go
-    nohup /usr/local/go/bin/go run main.go > "/tmp/${service_name}.log" 2>&1 &
+    # Descargar dependencias primero
+    echo -e "${YELLOW}    📦 Descargando dependencias para $service_name...${NC}"
+    /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
+    
+    if [ $? -ne 0 ]; then
+        echo -e "${RED}    ❌ Error descargando dependencias para $service_name${NC}"
+        cd "$BASE_PATH"
+        return 1
+    fi
+    
+    # Compilar y ejecutar en background con CGO habilitado
+    echo -e "${YELLOW}    🔨 Compilando y ejecutando $service_name...${NC}"
+    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run main.go > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"
@@ -174,6 +185,14 @@ verify_service "Income Management" 8093 "/incomes?user_id=1"
 verify_service "Expense Management" 8094 "/expenses?user_id=1"
 verify_service "Budget Overview" 8098 "/health"
 verify_service "Bills Management" 8091 "/bills?user_id=1"
+
+# Verificar servicios de autenticación
+echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS DE AUTENTICACIÓN:${NC}"
+
+verify_service "Google Auth" 8081 "/health"
+verify_service "Signin" 8084 "/health"
+verify_service "Signup" 8082 "/health" 
+verify_service "Reset Password" 8086 "/health"
 
 echo -e "\n${WHITE}"
 echo "============================================================================="

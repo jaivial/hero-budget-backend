@@ -1,5 +1,5 @@
-2025/06/05 16:44:39 Registering routes:
-2025/06/05 16:44:39 - POST /auth/google
-2025/06/05 16:44:39 - POST /update/locale
-2025/06/05 16:44:39 - GET /health
-2025/06/05 16:44:39 Server started on :8081
+2025/06/05 17:39:59 Registering routes:
+2025/06/05 17:39:59 - POST /auth/google
+2025/06/05 17:39:59 - POST /update/locale
+2025/06/05 17:39:59 - GET /health
+2025/06/05 17:39:59 Server started on :8081
