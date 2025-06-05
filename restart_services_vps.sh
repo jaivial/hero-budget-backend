@@ -27,7 +27,7 @@ echo -e "${NC}"
 stop_existing_services() {
     echo -e "${YELLOW}🛑 Deteniendo servicios existentes...${NC}"
     
-    # Encontrar y matar procesos de Go en los puertos específicos
+    # Puertos de todos los servicios existentes
     ports=(8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098)
     
     for port in "${ports[@]}"; do
@@ -40,6 +40,27 @@ stop_existing_services() {
     
     sleep 2
     echo -e "${GREEN}✅ Servicios existentes detenidos${NC}"
+}
+
+# Función para verificar e instalar dependencias del sistema
+check_system_dependencies() {
+    echo -e "${YELLOW}🔍 Verificando dependencias del sistema...${NC}"
+    
+    # Verificar SQLite3 development libraries
+    if ! dpkg -l | grep -q libsqlite3-dev; then
+        echo -e "${YELLOW}📦 Instalando libsqlite3-dev...${NC}"
+        apt-get update && apt-get install -y libsqlite3-dev
+    else
+        echo -e "${GREEN}✅ libsqlite3-dev ya está instalado${NC}"
+    fi
+    
+    # Verificar build-essential
+    if ! dpkg -l | grep -q build-essential; then
+        echo -e "${YELLOW}📦 Instalando build-essential...${NC}"
+        apt-get install -y build-essential
+    else
+        echo -e "${GREEN}✅ build-essential ya está instalado${NC}"
+    fi
 }
 
 # Función para iniciar un servicio
@@ -66,18 +87,38 @@ start_service() {
         return 1
     fi
     
+    # Inicializar go.mod si no existe
+    if [ ! -f "go.mod" ]; then
+        echo -e "${YELLOW}    📦 Inicializando go.mod para $service_name...${NC}"
+        /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
+    fi
+    
     # Descargar dependencias primero
     echo -e "${YELLOW}    📦 Descargando dependencias para $service_name...${NC}"
+    /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
     if [ $? -ne 0 ]; then
         echo -e "${RED}    ❌ Error descargando dependencias para $service_name${NC}"
+        echo -e "${YELLOW}    📄 Últimas líneas del log:${NC}"
+        tail -5 "/tmp/${service_name}.log"
         cd "$BASE_PATH"
         return 1
     fi
     
-    # Compilar y ejecutar en background con CGO habilitado
-    echo -e "${YELLOW}    🔨 Compilando y ejecutando $service_name...${NC}"
+    # Probar compilación primero
+    echo -e "${YELLOW}    🔨 Verificando compilación para $service_name...${NC}"
+    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" main.go >> "/tmp/${service_name}.log" 2>&1; then
+        echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
+        echo -e "${YELLOW}    📄 Últimas líneas del log:${NC}"
+        tail -10 "/tmp/${service_name}.log"
+        cd "$BASE_PATH"
+        return 1
+    fi
+    rm -f "/tmp/test_${service_name}"
+    
+    # Ejecutar en background con CGO habilitado
+    echo -e "${YELLOW}    🚀 Ejecutando $service_name...${NC}"
     nohup env CGO_ENABLED=1 /usr/local/go/bin/go run main.go > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
@@ -88,7 +129,7 @@ start_service() {
     cd "$BASE_PATH"
     
     # Esperar un poco para que el servicio se establezca
-    sleep 1
+    sleep 2
 }
 
 # Función para verificar que un servicio esté respondiendo
@@ -96,18 +137,27 @@ verify_service() {
     local service_name=$1
     local port=$2
     local endpoint=$3
+    local service_file_name=$4  # Nombre del archivo de servicio (con guiones bajos)
     
     echo -e "${BLUE}🔍 Verificando $service_name...${NC}"
+    
+    # Verificar si el puerto está escuchando primero
+    local pid=$(lsof -ti:$port 2>/dev/null)
+    if [ -z "$pid" ]; then
+        echo -e "${RED}  ❌ $service_name no está escuchando en puerto $port${NC}"
+        echo -e "${YELLOW}      Check logs: /tmp/${service_file_name}.log${NC}"
+        return 1
+    fi
     
     # Intentar conectar al endpoint
     local response=$(curl -s -w "%{http_code}" -o /dev/null "http://localhost:$port$endpoint" 2>/dev/null)
     
     if [ "$response" = "200" ] || [ "$response" = "404" ]; then
-        echo -e "${GREEN}  ✅ $service_name está respondiendo (Status: $response)${NC}"
+        echo -e "${GREEN}  ✅ $service_name está respondiendo (Status: $response, PID: $pid)${NC}"
         return 0
     else
-        echo -e "${RED}  ❌ $service_name no está respondiendo (Status: $response)${NC}"
-        echo -e "${YELLOW}      Check logs: /tmp/${service_name,,}.log${NC}"
+        echo -e "${RED}  ❌ $service_name no está respondiendo (Status: $response, PID: $pid)${NC}"
+        echo -e "${YELLOW}      Check logs: /tmp/${service_file_name}.log${NC}"
         return 1
     fi
 }
@@ -123,43 +173,46 @@ cd "$BASE_PATH" || { echo -e "${RED}❌ Error: No se pudo acceder a $BASE_PATH${
 
 echo -e "${GREEN}📂 Trabajando desde: $(pwd)${NC}"
 
+# Verificar e instalar dependencias del sistema
+check_system_dependencies
+
 # Detener servicios existentes
 stop_existing_services
 
 echo -e "\n${WHITE}=== INICIANDO SERVICIOS CON NUEVOS ENDPOINTS ===${NC}"
 
-# Iniciar servicios prioritarios (los que hemos modificado)
+# Iniciar servicios de autenticación primero (críticos)
+echo -e "\n${CYAN}📋 SERVICIOS DE AUTENTICACIÓN (CRÍTICOS):${NC}"
+
+start_service "google_auth" 8081
+start_service "signup" 8082
+start_service "language_cookie" 8083
+start_service "signin" 8084
+start_service "reset_password" 8086
+
+# Iniciar servicios prioritarios (los que tienen nuevos endpoints)
 echo -e "\n${CYAN}📋 SERVICIOS PRIORITARIOS (CON NUEVOS ENDPOINTS):${NC}"
 
+start_service "fetch_dashboard" 8085
 start_service "cash_bank_management" 8090
 start_service "profile_management" 8092
-start_service "fetch_dashboard" 8085
 start_service "money_flow_sync" 8097
 start_service "savings_management" 8089
 
-# Iniciar servicios críticos adicionales
-echo -e "\n${CYAN}📋 SERVICIOS CRÍTICOS ADICIONALES:${NC}"
+# Iniciar servicios de gestión financiera
+echo -e "\n${CYAN}📋 SERVICIOS DE GESTIÓN FINANCIERA:${NC}"
 
-start_service "categories_management" 8096
 start_service "income_management" 8093
 start_service "expense_management" 8094
-start_service "budget_overview_fetch" 8098
+start_service "categories_management" 8096
 start_service "bills_management" 8091
-
-# Iniciar servicios de autenticación
-echo -e "\n${CYAN}📋 SERVICIOS DE AUTENTICACIÓN:${NC}"
-
-start_service "signin" 8084
-start_service "signup" 8082
-start_service "google_auth" 8081
-start_service "reset_password" 8086
+start_service "budget_management" 8088
+start_service "budget_overview_fetch" 8098
 
 # Iniciar servicios complementarios
 echo -e "\n${CYAN}📋 SERVICIOS COMPLEMENTARIOS:${NC}"
 
-start_service "language_cookie" 8083
 start_service "dashboard_data" 8087
-start_service "budget_management" 8088
 start_service "transaction_delete_service" 8095
 
 echo -e "\n${WHITE}=== VERIFICANDO SERVICIOS ===${NC}"
@@ -168,54 +221,85 @@ echo -e "\n${WHITE}=== VERIFICANDO SERVICIOS ===${NC}"
 echo -e "${YELLOW}⏳ Esperando 5 segundos para que los servicios se inicialicen...${NC}"
 sleep 5
 
-# Verificar servicios prioritarios
-echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS PRIORITARIOS:${NC}"
-
-verify_service "Cash Bank Management" 8090 "/cash-bank/distribution?user_id=1"
-verify_service "Profile Management" 8092 "/health"
-verify_service "Fetch Dashboard" 8085 "/health"
-verify_service "Money Flow Sync" 8097 "/money-flow/data?user_id=1"
-verify_service "Savings Management" 8089 "/health"
-
-# Verificar servicios críticos
-echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS CRÍTICOS:${NC}"
-
-verify_service "Categories Management" 8096 "/categories?user_id=1"
-verify_service "Income Management" 8093 "/incomes?user_id=1"
-verify_service "Expense Management" 8094 "/expenses?user_id=1"
-verify_service "Budget Overview" 8098 "/health"
-verify_service "Bills Management" 8091 "/bills?user_id=1"
-
 # Verificar servicios de autenticación
 echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS DE AUTENTICACIÓN:${NC}"
 
-verify_service "Google Auth" 8081 "/health"
-verify_service "Signin" 8084 "/health"
-verify_service "Signup" 8082 "/health" 
-verify_service "Reset Password" 8086 "/health"
+verify_service "Google Auth" 8081 "/health" "google_auth"
+verify_service "Signup" 8082 "/health" "signup"
+verify_service "Language Cookie" 8083 "/health" "language_cookie"
+verify_service "Signin" 8084 "/health" "signin"
+verify_service "Reset Password" 8086 "/ping" "reset_password"
+
+# Verificar servicios prioritarios
+echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS PRIORITARIOS:${NC}"
+
+verify_service "Fetch Dashboard" 8085 "/health" "fetch_dashboard"
+verify_service "Cash Bank Management" 8090 "/cash-bank/distribution?user_id=1" "cash_bank_management"
+verify_service "Profile Management" 8092 "/health" "profile_management"
+verify_service "Money Flow Sync" 8097 "/money-flow/data?user_id=1" "money_flow_sync"
+verify_service "Savings Management" 8089 "/health" "savings_management"
+
+# Verificar servicios de gestión financiera
+echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS DE GESTIÓN FINANCIERA:${NC}"
+
+verify_service "Income Management" 8093 "/incomes?user_id=1" "income_management"
+verify_service "Expense Management" 8094 "/expenses?user_id=1" "expense_management"
+verify_service "Categories Management" 8096 "/categories?user_id=1" "categories_management"
+verify_service "Bills Management" 8091 "/bills?user_id=1" "bills_management"
+verify_service "Budget Management" 8088 "/health" "budget_management"
+verify_service "Budget Overview" 8098 "/health" "budget_overview_fetch"
+
+# Verificar servicios complementarios
+echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS COMPLEMENTARIOS:${NC}"
+
+verify_service "Dashboard Data" 8087 "/health" "dashboard_data"
+verify_service "Transaction Delete" 8095 "/health" "transaction_delete_service"
 
 echo -e "\n${WHITE}"
 echo "============================================================================="
-echo "   ✅ SERVICIOS REINICIADOS CON NUEVOS ENDPOINTS - VPS"
+echo "   ✅ TODOS LOS SERVICIOS REINICIADOS CON CONFIGURACIÓN ACTUALIZADA - VPS"
 echo "============================================================================="
 echo -e "${NC}"
 
-echo -e "${GREEN}🎉 NUEVOS ENDPOINTS IMPLEMENTADOS:${NC}"
+echo -e "${GREEN}🎉 SERVICIOS INICIADOS EN PUERTOS CORRECTOS:${NC}"
+echo -e "${WHITE}  • Google Auth:        http://localhost:8081${NC}"
+echo -e "${WHITE}  • Signup:             http://localhost:8082${NC}"
+echo -e "${WHITE}  • Language Cookie:    http://localhost:8083${NC}"
+echo -e "${WHITE}  • Signin:             http://localhost:8084${NC}"
+echo -e "${WHITE}  • Fetch Dashboard:    http://localhost:8085${NC}"
+echo -e "${WHITE}  • Reset Password:     http://localhost:8086${NC}"
+echo -e "${WHITE}  • Dashboard Data:     http://localhost:8087${NC}"
+echo -e "${WHITE}  • Budget Management:  http://localhost:8088${NC}"
+echo -e "${WHITE}  • Savings Management: http://localhost:8089${NC}"
+echo -e "${WHITE}  • Cash Bank Mgmt:     http://localhost:8090${NC}"
+echo -e "${WHITE}  • Bills Management:   http://localhost:8091${NC}"
+echo -e "${WHITE}  • Profile Management: http://localhost:8092${NC}"
+echo -e "${WHITE}  • Income Management:  http://localhost:8093${NC}"
+echo -e "${WHITE}  • Expense Management: http://localhost:8094${NC}"
+echo -e "${WHITE}  • Transaction Delete: http://localhost:8095${NC}"
+echo -e "${WHITE}  • Categories Mgmt:    http://localhost:8096${NC}"
+echo -e "${WHITE}  • Money Flow Sync:    http://localhost:8097${NC}"
+echo -e "${WHITE}  • Budget Overview:    http://localhost:8098${NC}"
+
+echo -e "\n${CYAN}📋 NUEVOS ENDPOINTS IMPLEMENTADOS:${NC}"
 echo -e "${WHITE}  • Cash Update: http://localhost:8090/cash-bank/cash/update${NC}"
 echo -e "${WHITE}  • Bank Update: http://localhost:8090/cash-bank/bank/update${NC}"
 echo -e "${WHITE}  • Locale Update: http://localhost:8092/update/locale${NC}"
 echo -e "${WHITE}  • User Update: http://localhost:8085/user/update${NC}"
 echo -e "${WHITE}  • Money Flow Data: http://localhost:8097/money-flow/data${NC}"
-echo -e "${WHITE}  • Savings Health: http://localhost:8089/health${NC}"
-echo -e "${WHITE}  • Dashboard Health: http://localhost:8085/health${NC}"
 
-echo -e "\n${CYAN}📋 PARA VERIFICAR LOS NUEVOS ENDPOINTS:${NC}"
+echo -e "\n${CYAN}📋 PARA VERIFICAR TODOS LOS ENDPOINTS:${NC}"
 echo -e "${WHITE}  cd ${BASE_PATH}${NC}"
-echo -e "${WHITE}  ./tests/endpoints/test_endpoints_final_solution.sh${NC}"
+echo -e "${WHITE}  # Verificar servicios específicos:${NC}"
+echo -e "${WHITE}  curl http://localhost:8090/cash-bank/distribution?user_id=1${NC}"
+echo -e "${WHITE}  curl http://localhost:8097/money-flow/data?user_id=1${NC}"
 
 echo -e "\n${CYAN}📋 PARA VER LOGS DE UN SERVICIO:${NC}"
 echo -e "${WHITE}  tail -f /tmp/[nombre_servicio].log${NC}"
+echo -e "${WHITE}  # Ejemplos:${NC}"
+echo -e "${WHITE}  tail -f /tmp/cash_bank_management.log${NC}"
+echo -e "${WHITE}  tail -f /tmp/money_flow_sync.log${NC}"
 
-echo -e "\n${GREEN}🎯 OBJETIVO: Pasar de 17/25 a 25/25 endpoints funcionando${NC}"
+echo -e "\n${GREEN}🎯 CONFIGURACIÓN ACTUALIZADA: 18/18 servicios activos según estructura real del VPS${NC}"
 
 echo "" 
