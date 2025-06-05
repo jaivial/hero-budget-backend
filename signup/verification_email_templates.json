@@ -1,0 +1,116 @@
+{
+    "templates": {
+        "en": {
+            "subject": "Hero Budget - Verify Your Email",
+            "greeting": "Hello {{.UserName}},",
+            "message": "Thank you for signing up with Hero Budget. To complete your registration, please enter the verification code below in the app:",
+            "code_label": "Your verification code:",
+            "expiry_notice": "This code will expire in 24 hours.",
+            "footer": "If you did not create an account with Hero Budget, please ignore this email."
+        },
+        "es": {
+            "subject": "Hero Budget - Verifica tu Correo Electrónico",
+            "greeting": "Hola {{.UserName}},",
+            "message": "Gracias por registrarte en Hero Budget. Para completar tu registro, por favor ingresa el código de verificación de abajo en la aplicación:",
+            "code_label": "Tu código de verificación:",
+            "expiry_notice": "Este código expirará en 24 horas.",
+            "footer": "Si no creaste una cuenta con Hero Budget, por favor ignora este correo."
+        },
+        "fr": {
+            "subject": "Hero Budget - Vérifiez votre adresse e-mail",
+            "greeting": "Bonjour {{.UserName}},",
+            "message": "Merci de vous être inscrit sur Hero Budget. Pour compléter votre inscription, veuillez saisir le code de vérification ci-dessous dans l'application :",
+            "code_label": "Votre code de vérification :",
+            "expiry_notice": "Ce code expirera dans 24 heures.",
+            "footer": "Si vous n'avez pas créé de compte avec Hero Budget, veuillez ignorer cet e-mail."
+        },
+        "de": {
+            "subject": "Hero Budget - Bestätigen Sie Ihre E-Mail-Adresse",
+            "greeting": "Hallo {{.UserName}},",
+            "message": "Vielen Dank für Ihre Anmeldung bei Hero Budget. Um Ihre Registrierung abzuschließen, geben Sie bitte den unten stehenden Bestätigungscode in der App ein:",
+            "code_label": "Ihr Bestätigungscode:",
+            "expiry_notice": "Dieser Code läuft in 24 Stunden ab.",
+            "footer": "Falls Sie kein Konto bei Hero Budget erstellt haben, ignorieren Sie diese E-Mail bitte."
+        },
+        "pt": {
+            "subject": "Hero Budget - Verifique seu e-mail",
+            "greeting": "Olá {{.UserName}},",
+            "message": "Obrigado por se cadastrar no Hero Budget. Para completar seu registro, digite o código de verificação abaixo no aplicativo:",
+            "code_label": "Seu código de verificação:",
+            "expiry_notice": "Este código expirará em 24 horas.",
+            "footer": "Se você não criou uma conta no Hero Budget, ignore este e-mail."
+        },
+        "it": {
+            "subject": "Hero Budget - Verifica la tua email",
+            "greeting": "Ciao {{.UserName}},",
+            "message": "Grazie per esserti iscritto a Hero Budget. Per completare la registrazione, inserisci il codice di verifica qui sotto nell'app:",
+            "code_label": "Il tuo codice di verifica:",
+            "expiry_notice": "Questo codice scadrà tra 24 ore.",
+            "footer": "Se non hai creato un account con Hero Budget, ignora questa email."
+        },
+        "ru": {
+            "subject": "Hero Budget - Подтвердите ваш email",
+            "greeting": "Привет {{.UserName}},",
+            "message": "Спасибо за регистрацию в Hero Budget. Чтобы завершить регистрацию, введите код подтверждения ниже в приложении:",
+            "code_label": "Ваш код подтверждения:",
+            "expiry_notice": "Этот код истечет через 24 часа.",
+            "footer": "Если вы не создавали аккаунт в Hero Budget, проигнорируйте это письмо."
+        },
+        "ja": {
+            "subject": "Hero Budget - メールアドレスを確認してください",
+            "greeting": "こんにちは{{.UserName}}さん、",
+            "message": "Hero Budgetにご登録いただきありがとうございます。登録を完了するために、下記の確認コードをアプリに入力してください：",
+            "code_label": "確認コード：",
+            "expiry_notice": "このコードは24時間で期限切れになります。",
+            "footer": "Hero Budgetでアカウントを作成していない場合は、このメールを無視してください。"
+        },
+        "zh": {
+            "subject": "Hero Budget - 验证您的邮箱",
+            "greeting": "您好{{.UserName}}，",
+            "message": "感谢您注册Hero Budget。要完成注册，请在应用中输入下方的验证码：",
+            "code_label": "您的验证码：",
+            "expiry_notice": "此验证码将在24小时后过期。",
+            "footer": "如果您没有创建Hero Budget账户，请忽略此邮件。"
+        },
+        "nl": {
+            "subject": "Hero Budget - Verifieer je e-mailadres",
+            "greeting": "Hallo {{.UserName}},",
+            "message": "Bedankt voor je registratie bij Hero Budget. Om je registratie te voltooien, voer de onderstaande verificatiecode in de app in:",
+            "code_label": "Je verificatiecode:",
+            "expiry_notice": "Deze code verloopt over 24 uur.",
+            "footer": "Als je geen account hebt aangemaakt bij Hero Budget, negeer dan deze e-mail."
+        },
+        "da": {
+            "subject": "Hero Budget - Bekræft din e-mail",
+            "greeting": "Hej {{.UserName}},",
+            "message": "Tak for at tilmelde dig Hero Budget. For at fuldføre din registrering skal du indtaste bekræftelseskoden nedenfor i appen:",
+            "code_label": "Din bekræftelseskode:",
+            "expiry_notice": "Denne kode udløber om 24 timer.",
+            "footer": "Hvis du ikke har oprettet en konto hos Hero Budget, skal du ignorere denne e-mail."
+        },
+        "el": {
+            "subject": "Hero Budget - Επιβεβαιώστε το email σας",
+            "greeting": "Γεια σας {{.UserName}},",
+            "message": "Σας ευχαριστούμε που εγγραφήκατε στο Hero Budget. Για να ολοκληρώσετε την εγγραφή σας, εισάγετε τον κωδικό επιβεβαίωσης παρακάτω στην εφαρμογή:",
+            "code_label": "Ο κωδικός επιβεβαίωσής σας:",
+            "expiry_notice": "Αυτός ο κωδικός θα λήξει σε 24 ώρες.",
+            "footer": "Εάν δεν δημιουργήσατε λογαριασμό στο Hero Budget, παρακαλούμε αγνοήστε αυτό το email."
+        },
+        "gsw": {
+            "subject": "Hero Budget - Bestätige dini E-Mail",
+            "greeting": "Hoi {{.UserName}},",
+            "message": "Merci dass du dich bi Hero Budget aamäldet hesch. Um dini Registrierig abzschliesse, gib de Bestätigungscode undedra i de App ii:",
+            "code_label": "Din Bestätigungscode:",
+            "expiry_notice": "Dä Code lauft i 24 Stunde ab.",
+            "footer": "Falls du keis Konto bi Hero Budget erstellt hesch, ignorier das E-Mail."
+        },
+        "hi": {
+            "subject": "Hero Budget - अपना ईमेल सत्यापित करें",
+            "greeting": "नमस्ते {{.UserName}},",
+            "message": "Hero Budget के साथ साइन अप करने के लिए धन्यवाद। अपना पंजीकरण पूरा करने के लिए, कृपया नीचे दिया गया सत्यापन कोड ऐप में दर्ज करें:",
+            "code_label": "आपका सत्यापन कोड:",
+            "expiry_notice": "यह कोड 24 घंटे में समाप्त हो जाएगा।",
+            "footer": "यदि आपने Hero Budget के साथ खाता नहीं बनाया है, तो कृपया इस ईमेल को नज़रअंदाज़ करें।"
+        }
+    }
+}

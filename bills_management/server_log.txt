@@ -1,0 +1,12 @@
+2025/05/21 23:53:58 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/05/21 23:53:58 Database connection established successfully
+2025/05/21 23:53:58 Bills Management service started on :8091
+2025/05/21 23:54:04 Updated projection in monthly_cash_bank_balance for bill 19
+2025/05/21 23:54:04 Updated projection in daily_cash_bank_balance for bill 19
+2025/05/21 23:54:09 Bill 19 paid with cash: $300.00
+2025/05/21 23:54:09 Successfully recalculated all balances for user test_user from date 2025-05-21
+2025/05/21 23:54:09 Creating expense directly in database for bill amount: 300.00
+2025/05/21 23:54:09 Opening database at path: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/05/21 23:54:09 Successfully created expense with ID 22 from bill payment
+2025/05/21 23:54:09 Bill 19 successfully converted to expense
+2025/05/21 23:54:09 Re-fetched bill 19 with paid status: true

@@ -1,0 +1,2100 @@
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"net/http"
+	"os"
+	"path/filepath"
+	"strconv"
+	"time"
+
+	_ "github.com/mattn/go-sqlite3"
+)
+
+// Definición de estructuras de datos
+type Income struct {
+	ID            int     `json:"id"`
+	UserID        string  `json:"user_id"`
+	Amount        float64 `json:"amount"`
+	Date          string  `json:"date"`
+	Category      string  `json:"category"`
+	PaymentMethod string  `json:"payment_method"` // "cash" o "bank"
+	Description   string  `json:"description,omitempty"`
+	CreatedAt     string  `json:"created_at,omitempty"`
+	UpdatedAt     string  `json:"updated_at,omitempty"`
+}
+
+type AddIncomeRequest struct {
+	UserID        string  `json:"user_id"`
+	Amount        float64 `json:"amount"`
+	Date          string  `json:"date"`
+	Category      string  `json:"category"`
+	PaymentMethod string  `json:"payment_method"`
+	Description   string  `json:"description,omitempty"`
+}
+
+type UpdateIncomeRequest struct {
+	UserID        string  `json:"user_id"`
+	IncomeID      int     `json:"income_id"`
+	Amount        float64 `json:"amount,omitempty"`
+	Date          string  `json:"date,omitempty"`
+	Category      string  `json:"category,omitempty"`
+	PaymentMethod string  `json:"payment_method,omitempty"`
+	Description   string  `json:"description,omitempty"`
+}
+
+type DeleteIncomeRequest struct {
+	UserID   string `json:"user_id"`
+	IncomeID int    `json:"income_id"`
+}
+
+type ApiResponse struct {
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
+var (
+	db *sql.DB
+)
+
+func init() {
+	var err error
+
+	// Get the current working directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("Failed to get current directory: %v", err)
+	}
+
+	// Construct absolute path to the database file
+	dbPath := filepath.Join(cwd, "..", "google_auth", "users.db")
+	log.Printf("Using database at: %s", dbPath)
+
+	// Open the database connection
+	db, err = sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Fatalf("Failed to open database: %v", err)
+	}
+
+	// Test the connection
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	// Create tables if they don't exist
+	createTablesIfNotExist()
+
+	// Función para añadir columnas de forma segura a una tabla existente
+	alterTableSafely := func(tableName, columnName, columnType string) {
+		// Comprobar si la columna ya existe
+		var exists bool
+		query := fmt.Sprintf("PRAGMA table_info(%s)", tableName)
+		rows, err := db.Query(query)
+		if err != nil {
+			log.Printf("Error checking table schema: %v", err)
+			return
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var cid int
+			var name string
+			var dataType string
+			var notnull int
+			var dflt_value interface{}
+			var pk int
+			if err := rows.Scan(&cid, &name, &dataType, &notnull, &dflt_value, &pk); err != nil {
+				log.Printf("Error scanning row: %v", err)
+				return
+			}
+			if name == columnName {
+				exists = true
+				break
+			}
+		}
+
+		// Si la columna no existe, añadirla
+		if !exists {
+			alterQuery := fmt.Sprintf("ALTER TABLE %s ADD COLUMN %s %s DEFAULT 0", tableName, columnName, columnType)
+			_, err := db.Exec(alterQuery)
+			if err != nil {
+				log.Printf("Error adding column %s to %s: %v", columnName, tableName, err)
+				return
+			}
+			log.Printf("Added column %s to %s", columnName, tableName)
+		}
+	}
+
+	// Función para añadir columnas cash_amount y bank_amount a todas las tablas de balance
+	addCashBankColumnsToAllTables := func() {
+		tables := []string{
+			"daily_balance",
+			"weekly_balance",
+			"monthly_balance",
+			"quarterly_balance",
+			"semiannual_balance",
+			"annual_balance",
+		}
+
+		for _, table := range tables {
+			// Añadir columna cash_amount
+			alterTableSafely(table, "cash_amount", "REAL")
+			// Añadir columna bank_amount
+			alterTableSafely(table, "bank_amount", "REAL")
+			// Añadir columna previous_cash_amount
+			alterTableSafely(table, "previous_cash_amount", "REAL")
+			// Añadir columna previous_bank_amount
+			alterTableSafely(table, "previous_bank_amount", "REAL")
+			// Añadir columna balance_cash_amount
+			alterTableSafely(table, "balance_cash_amount", "REAL")
+			// Añadir columna balance_bank_amount
+			alterTableSafely(table, "balance_bank_amount", "REAL")
+		}
+	}
+
+	addCashBankColumnsToAllTables()
+
+	log.Println("Database connection established successfully")
+}
+
+func createTablesIfNotExist() {
+	// Create incomes table
+	_, err := db.Exec(`
+		CREATE TABLE IF NOT EXISTS incomes (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			amount REAL NOT NULL,
+			date TEXT NOT NULL,
+			category TEXT NOT NULL,
+			payment_method TEXT NOT NULL,
+			description TEXT,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create incomes table: %v", err)
+	}
+
+	// Create daily_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS daily_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			date TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create daily_balance table: %v", err)
+	}
+
+	// Create indices for daily_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_daily_balance_user ON daily_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on daily_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_daily_balance_date ON daily_balance(date)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on daily_balance: %v", err)
+	}
+
+	// Create weekly_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS weekly_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			year_week TEXT NOT NULL,
+			start_date TEXT NOT NULL,
+			end_date TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create weekly_balance table: %v", err)
+	}
+
+	// Create indices for weekly_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_weekly_balance_user ON weekly_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on weekly_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_weekly_balance_week ON weekly_balance(year_week)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on weekly_balance: %v", err)
+	}
+
+	// Create monthly_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS monthly_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			year_month TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create monthly_balance table: %v", err)
+	}
+
+	// Create indices for monthly_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_user ON monthly_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on monthly_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_month ON monthly_balance(year_month)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on monthly_balance: %v", err)
+	}
+
+	// Create quarterly_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS quarterly_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			year_quarter TEXT NOT NULL,
+			start_date TEXT NOT NULL,
+			end_date TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create quarterly_balance table: %v", err)
+	}
+
+	// Create indices for quarterly_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_quarterly_balance_user ON quarterly_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on quarterly_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_quarterly_balance_quarter ON quarterly_balance(year_quarter)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on quarterly_balance: %v", err)
+	}
+
+	// Create semiannual_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS semiannual_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			year_half TEXT NOT NULL,
+			start_date TEXT NOT NULL,
+			end_date TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create semiannual_balance table: %v", err)
+	}
+
+	// Create indices for semiannual_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_semiannual_balance_user ON semiannual_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on semiannual_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_semiannual_balance_half ON semiannual_balance(year_half)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on semiannual_balance: %v", err)
+	}
+
+	// Create annual_balance table
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS annual_balance (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id TEXT NOT NULL,
+			year TEXT NOT NULL,
+			income_amount REAL NOT NULL DEFAULT 0,
+			expense_amount REAL NOT NULL DEFAULT 0,
+			bills_amount REAL NOT NULL DEFAULT 0,
+			balance REAL NOT NULL DEFAULT 0,
+			previous_balance REAL NOT NULL DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create annual_balance table: %v", err)
+	}
+
+	// Create indices for annual_balance
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_annual_balance_user ON annual_balance(user_id)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on annual_balance: %v", err)
+	}
+	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_annual_balance_year ON annual_balance(year)`)
+	if err != nil {
+		log.Fatalf("Failed to create index on annual_balance: %v", err)
+	}
+}
+
+func main() {
+	// Set up CORS middleware and routes
+	http.HandleFunc("/incomes", corsMiddleware(handleFetchIncomes))
+	http.HandleFunc("/incomes/add", corsMiddleware(handleAddIncome))
+	http.HandleFunc("/incomes/update", corsMiddleware(handleUpdateIncome))
+	http.HandleFunc("/incomes/delete", corsMiddleware(handleDeleteIncome))
+
+	port := 8093 // Nuevo puerto para el servicio de ingresos
+	log.Printf("Income Management service started on :%d", port)
+	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// Set headers
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+
+		// If it's OPTIONS, return with just the headers (preflight request)
+		if r.Method == "OPTIONS" {
+			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Call the next handler
+		next(w, r)
+	}
+}
+
+func handleFetchIncomes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Get user ID from query parameter
+	userID := r.URL.Query().Get("user_id")
+	if userID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get incomes from database
+	incomes, err := fetchIncomes(userID)
+	if err != nil {
+		log.Printf("Error fetching incomes: %v", err)
+		sendErrorResponse(w, "Error fetching incomes", http.StatusInternalServerError)
+		return
+	}
+
+	// Return incomes as JSON
+	sendSuccessResponse(w, "Incomes fetched successfully", incomes)
+}
+
+func handleAddIncome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var addRequest AddIncomeRequest
+	err := json.NewDecoder(r.Body).Decode(&addRequest)
+	if err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the request
+	if addRequest.UserID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if addRequest.Amount <= 0 {
+		sendErrorResponse(w, "Amount must be greater than 0", http.StatusBadRequest)
+		return
+	}
+
+	if addRequest.Date == "" {
+		// Use current date if not provided
+		addRequest.Date = time.Now().Format("2006-01-02")
+	}
+
+	if addRequest.Category == "" {
+		sendErrorResponse(w, "Category is required", http.StatusBadRequest)
+		return
+	}
+
+	if addRequest.PaymentMethod == "" || (addRequest.PaymentMethod != "cash" && addRequest.PaymentMethod != "bank") {
+		sendErrorResponse(w, "Valid payment method (cash or bank) is required", http.StatusBadRequest)
+		return
+	}
+
+	// Create an income object
+	income := Income{
+		UserID:        addRequest.UserID,
+		Amount:        addRequest.Amount,
+		Date:          addRequest.Date,
+		Category:      addRequest.Category,
+		PaymentMethod: addRequest.PaymentMethod,
+		Description:   addRequest.Description,
+	}
+
+	// Add the income to the database
+	incomeID, err := addIncome(income)
+	if err != nil {
+		log.Printf("Error adding income: %v", err)
+		sendErrorResponse(w, "Error adding income", http.StatusInternalServerError)
+		return
+	}
+
+	// Set the ID of the newly added income
+	income.ID = incomeID
+
+	// Update cash or bank balance based on payment method
+	if err := updateBalance(income.UserID, income.Amount, income.PaymentMethod); err != nil {
+		log.Printf("Error updating balance: %v", err)
+		// Don't fail the entire request, just log the error
+	}
+
+	// Actualizar los balances por periodos
+	if err := updateTimeBalances(income.UserID, income.Amount, income.Date); err != nil {
+		log.Printf("Error updating time balances: %v", err)
+		// Don't fail the entire request, just log the error
+	}
+
+	// Recalcular todos los balances en cascada
+	if err := recalculateAllBalances(income.UserID, income.Date); err != nil {
+		log.Printf("Error recalculating balances: %v", err)
+		// Don't fail the entire request, just log the error
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Income added successfully", income)
+}
+
+func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var updateRequest UpdateIncomeRequest
+	err := json.NewDecoder(r.Body).Decode(&updateRequest)
+	if err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the request
+	if updateRequest.UserID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if updateRequest.IncomeID <= 0 {
+		sendErrorResponse(w, "Valid income ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if the income exists
+	oldIncome, err := fetchIncomeByID(updateRequest.IncomeID, updateRequest.UserID)
+	if err != nil {
+		log.Printf("Error fetching income: %v", err)
+		sendErrorResponse(w, "Error fetching income", http.StatusInternalServerError)
+		return
+	}
+
+	if oldIncome == nil {
+		sendErrorResponse(w, "Income not found", http.StatusNotFound)
+		return
+	}
+
+	// Keep track of the old payment method and amount for balance adjustment
+	oldAmount := oldIncome.Amount
+	oldPaymentMethod := oldIncome.PaymentMethod
+	oldDate := oldIncome.Date
+
+	// Update the income with the provided values
+	if updateRequest.Amount > 0 {
+		oldIncome.Amount = updateRequest.Amount
+	}
+
+	if updateRequest.Date != "" {
+		oldIncome.Date = updateRequest.Date
+	}
+
+	if updateRequest.Category != "" {
+		oldIncome.Category = updateRequest.Category
+	}
+
+	if updateRequest.PaymentMethod != "" {
+		if updateRequest.PaymentMethod != "cash" && updateRequest.PaymentMethod != "bank" {
+			sendErrorResponse(w, "Valid payment method (cash or bank) is required", http.StatusBadRequest)
+			return
+		}
+		oldIncome.PaymentMethod = updateRequest.PaymentMethod
+	}
+
+	if updateRequest.Description != "" {
+		oldIncome.Description = updateRequest.Description
+	}
+
+	// Update the income in the database
+	err = updateIncome(*oldIncome)
+	if err != nil {
+		log.Printf("Error updating income: %v", err)
+		sendErrorResponse(w, "Error updating income", http.StatusInternalServerError)
+		return
+	}
+
+	// Adjust balances if amount or payment method changed
+	if oldAmount != oldIncome.Amount || oldPaymentMethod != oldIncome.PaymentMethod {
+		// Remove the old amount from the old payment method
+		if err := updateBalance(oldIncome.UserID, -oldAmount, oldPaymentMethod); err != nil {
+			log.Printf("Error updating old balance: %v", err)
+		}
+
+		// Add the new amount to the new payment method
+		if err := updateBalance(oldIncome.UserID, oldIncome.Amount, oldIncome.PaymentMethod); err != nil {
+			log.Printf("Error updating new balance: %v", err)
+		}
+	}
+
+	// Recalcular todos los balances para la fecha antigua y la nueva, si cambió
+	if err := recalculateAllBalances(oldIncome.UserID, oldDate); err != nil {
+		log.Printf("Error recalculating balances for old date: %v", err)
+	}
+
+	if oldDate != oldIncome.Date {
+		if err := recalculateAllBalances(oldIncome.UserID, oldIncome.Date); err != nil {
+			log.Printf("Error recalculating balances for new date: %v", err)
+		}
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Income updated successfully", oldIncome)
+}
+
+func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var deleteRequest DeleteIncomeRequest
+	err := json.NewDecoder(r.Body).Decode(&deleteRequest)
+	if err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the request
+	if deleteRequest.UserID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if deleteRequest.IncomeID <= 0 {
+		sendErrorResponse(w, "Valid income ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if the income exists and get its details for balance adjustment
+	income, err := fetchIncomeByID(deleteRequest.IncomeID, deleteRequest.UserID)
+	if err != nil {
+		log.Printf("Error fetching income: %v", err)
+		sendErrorResponse(w, "Error fetching income", http.StatusInternalServerError)
+		return
+	}
+
+	if income == nil {
+		sendErrorResponse(w, "Income not found", http.StatusNotFound)
+		return
+	}
+
+	// Guardar la fecha antes de eliminar
+	incomeDate := income.Date
+
+	// Delete the income from the database
+	err = deleteIncome(deleteRequest.IncomeID, deleteRequest.UserID)
+	if err != nil {
+		log.Printf("Error deleting income: %v", err)
+		sendErrorResponse(w, "Error deleting income", http.StatusInternalServerError)
+		return
+	}
+
+	// Adjust the balance (subtract the amount)
+	if err := updateBalance(income.UserID, -income.Amount, income.PaymentMethod); err != nil {
+		log.Printf("Error updating balance: %v", err)
+		// Don't fail the entire request, just log the error
+	}
+
+	// Recalcular todos los balances en cascada
+	if err := recalculateAllBalances(income.UserID, incomeDate); err != nil {
+		log.Printf("Error recalculating balances: %v", err)
+		// Don't fail the entire request, just log the error
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Income deleted successfully", nil)
+}
+
+func fetchIncomes(userID string) ([]Income, error) {
+	// Query to get all incomes for the given user
+	query := `
+		SELECT id, user_id, amount, date, category, payment_method, description, created_at, updated_at
+		FROM incomes
+		WHERE user_id = ?
+		ORDER BY date DESC
+	`
+
+	rows, err := db.Query(query, userID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var incomes []Income
+
+	for rows.Next() {
+		var income Income
+		if err := rows.Scan(
+			&income.ID,
+			&income.UserID,
+			&income.Amount,
+			&income.Date,
+			&income.Category,
+			&income.PaymentMethod,
+			&income.Description,
+			&income.CreatedAt,
+			&income.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+
+		incomes = append(incomes, income)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return incomes, nil
+}
+
+func fetchIncomeByID(incomeID int, userID string) (*Income, error) {
+	// Query to get a specific income
+	query := `
+		SELECT id, user_id, amount, date, category, payment_method, description, created_at, updated_at
+		FROM incomes
+		WHERE id = ? AND user_id = ?
+	`
+
+	var income Income
+	err := db.QueryRow(query, incomeID, userID).Scan(
+		&income.ID,
+		&income.UserID,
+		&income.Amount,
+		&income.Date,
+		&income.Category,
+		&income.PaymentMethod,
+		&income.Description,
+		&income.CreatedAt,
+		&income.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil // No income found
+	} else if err != nil {
+		return nil, err
+	}
+
+	return &income, nil
+}
+
+func addIncome(income Income) (int, error) {
+	// Insert income into the database
+	query := `
+		INSERT INTO incomes (
+			user_id, amount, date, category, payment_method, description
+		) VALUES (?, ?, ?, ?, ?, ?)
+	`
+
+	result, err := db.Exec(
+		query,
+		income.UserID,
+		income.Amount,
+		income.Date,
+		income.Category,
+		income.PaymentMethod,
+		income.Description,
+	)
+
+	if err != nil {
+		return 0, err
+	}
+
+	// Get the last inserted ID
+	id, err := result.LastInsertId()
+	if err != nil {
+		return 0, err
+	}
+
+	return int(id), nil
+}
+
+func updateIncome(income Income) error {
+	// Update income in the database
+	query := `
+		UPDATE incomes
+		SET amount = ?, date = ?, category = ?, payment_method = ?, description = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ? AND user_id = ?
+	`
+
+	_, err := db.Exec(
+		query,
+		income.Amount,
+		income.Date,
+		income.Category,
+		income.PaymentMethod,
+		income.Description,
+		income.ID,
+		income.UserID,
+	)
+
+	return err
+}
+
+func deleteIncome(incomeID int, userID string) error {
+	// Delete income from the database
+	query := `
+		DELETE FROM incomes
+		WHERE id = ? AND user_id = ?
+	`
+
+	_, err := db.Exec(query, incomeID, userID)
+	return err
+}
+
+func updateBalance(userID string, amount float64, paymentMethod string) error {
+	// Get current month in format YYYY-MM
+	currentMonth := time.Now().Format("2006-01")
+
+	// Fetch current cash-bank distribution
+	var distribution struct {
+		CashAmount   float64
+		BankAmount   float64
+		MonthlyTotal float64
+		Exists       bool
+	}
+
+	// Check if a record exists for the current month
+	checkQuery := `
+		SELECT 1
+		FROM cash_bank
+		WHERE user_id = ? AND month = ?
+	`
+	var exists bool
+	err := db.QueryRow(checkQuery, userID, currentMonth).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	distribution.Exists = err != sql.ErrNoRows
+
+	if distribution.Exists {
+		// Get current values
+		getQuery := `
+			SELECT cash_amount, bank_amount, monthly_total
+			FROM cash_bank
+			WHERE user_id = ? AND month = ?
+		`
+		err := db.QueryRow(getQuery, userID, currentMonth).Scan(
+			&distribution.CashAmount,
+			&distribution.BankAmount,
+			&distribution.MonthlyTotal,
+		)
+		if err != nil {
+			return err
+		}
+
+		// Update the appropriate amount based on payment method
+		if paymentMethod == "cash" {
+			distribution.CashAmount += amount
+		} else if paymentMethod == "bank" {
+			distribution.BankAmount += amount
+		}
+
+		distribution.MonthlyTotal = distribution.CashAmount + distribution.BankAmount
+
+		// Calculate percentages
+		var cashPercent, bankPercent float64
+		if distribution.MonthlyTotal > 0 {
+			cashPercent = (distribution.CashAmount / distribution.MonthlyTotal) * 100
+			bankPercent = (distribution.BankAmount / distribution.MonthlyTotal) * 100
+		}
+
+		// Update the record
+		updateQuery := `
+			UPDATE cash_bank
+			SET cash_amount = ?, cash_percent = ?, bank_amount = ?, bank_percent = ?, monthly_total = ?, updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND month = ?
+		`
+		_, err = db.Exec(
+			updateQuery,
+			distribution.CashAmount,
+			cashPercent,
+			distribution.BankAmount,
+			bankPercent,
+			distribution.MonthlyTotal,
+			userID,
+			currentMonth,
+		)
+		if err != nil {
+			return err
+		}
+	} else {
+		// Create a new record with initial values
+		if paymentMethod == "cash" {
+			distribution.CashAmount = amount
+			distribution.BankAmount = 0
+		} else if paymentMethod == "bank" {
+			distribution.CashAmount = 0
+			distribution.BankAmount = amount
+		}
+
+		distribution.MonthlyTotal = distribution.CashAmount + distribution.BankAmount
+
+		// Calculate percentages
+		var cashPercent, bankPercent float64
+		if distribution.MonthlyTotal > 0 {
+			cashPercent = (distribution.CashAmount / distribution.MonthlyTotal) * 100
+			bankPercent = (distribution.BankAmount / distribution.MonthlyTotal) * 100
+		}
+
+		// Insert the new record
+		insertQuery := `
+			INSERT INTO cash_bank (user_id, month, cash_amount, cash_percent, bank_amount, bank_percent, monthly_total)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`
+		_, err = db.Exec(
+			insertQuery,
+			userID,
+			currentMonth,
+			distribution.CashAmount,
+			cashPercent,
+			distribution.BankAmount,
+			bankPercent,
+			distribution.MonthlyTotal,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Add transaction record if it's an addition (positive amount)
+	if amount > 0 {
+		// Add a transaction record
+		transactionQuery := `
+			INSERT INTO cash_bank_transactions (user_id, transaction_type, amount, date)
+			VALUES (?, ?, ?, ?)
+		`
+		transactionType := "income_" + paymentMethod
+		_, err = db.Exec(
+			transactionQuery,
+			userID,
+			transactionType,
+			amount,
+			time.Now().Format("2006-01-02"),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// Función para actualizar los balances por periodos al añadir un ingreso
+func updateTimeBalances(userID string, amount float64, dateStr string) error {
+	// Parse la fecha del ingreso
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return fmt.Errorf("error parsing date: %v", err)
+	}
+
+	// Obtener la información del ingreso para determinar si fue cash o bank
+	var paymentMethod string
+	err = db.QueryRow(`
+		SELECT payment_method FROM incomes
+		WHERE user_id = ? AND date = ? AND amount = ?
+		ORDER BY created_at DESC LIMIT 1
+	`, userID, dateStr, amount).Scan(&paymentMethod)
+
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error fetching payment method: %v", err)
+	}
+
+	if err == sql.ErrNoRows {
+		// Si no se encuentra, asumimos bank por defecto
+		paymentMethod = "bank"
+	}
+
+	// Calculamos los montos de cash y bank según el método de pago
+	var cashAmount, bankAmount float64
+	if paymentMethod == "cash" {
+		cashAmount = amount
+		bankAmount = 0
+	} else {
+		cashAmount = 0
+		bankAmount = amount
+	}
+
+	// Actualizar balance diario
+	if err := updateDailyBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating daily balance: %v", err)
+	}
+
+	// Actualizar balance semanal
+	if err := updateWeeklyBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating weekly balance: %v", err)
+	}
+
+	// Actualizar balance mensual
+	if err := updateMonthlyBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating monthly balance: %v", err)
+	}
+
+	// Actualizar balance trimestral
+	if err := updateQuarterlyBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating quarterly balance: %v", err)
+	}
+
+	// Actualizar balance semestral
+	if err := updateSemiannualBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating semiannual balance: %v", err)
+	}
+
+	// Actualizar balance anual
+	if err := updateAnnualBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating annual balance: %v", err)
+	}
+
+	return nil
+}
+
+func updateDailyBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	dateStr := date.Format("2006-01-02")
+
+	// Obtener el balance del día anterior para calcular el balance previo
+	prevDate := date.AddDate(0, 0, -1)
+	prevDateStr := prevDate.Format("2006-01-02")
+
+	var previousBalance float64
+
+	// Buscar el balance del día anterior
+	err := db.QueryRow(`
+		SELECT balance FROM daily_balance 
+		WHERE user_id = ? AND date = ?
+	`, userID, prevDateStr).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro del día anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para esta fecha
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM daily_balance
+		WHERE user_id = ? AND date = ?
+	`, userID, dateStr).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// El balance se calcula como el balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO daily_balance (user_id, date, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, userID, dateStr, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Calcular el balance como el balance previo + total de ingresos - total de gastos - total de facturas
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE daily_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND date = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, dateStr)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todos los días posteriores en cascada
+	return updateSubsequentDailyBalances(userID, date.AddDate(0, 0, 1))
+}
+
+// Nueva función para actualizar días posteriores en cascada
+func updateSubsequentDailyBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a un año para evitar bucles infinitos
+	endDate := startDate.AddDate(1, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		currentDateStr := currentDate.Format("2006-01-02")
+
+		// Verificar si existe un registro para esta fecha
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount FROM daily_balance
+			WHERE user_id = ? AND date = ?
+		`, userID, currentDateStr).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance del día anterior
+		prevDate := currentDate.AddDate(0, 0, -1)
+		prevDateStr := prevDate.Format("2006-01-02")
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM daily_balance 
+			WHERE user_id = ? AND date = ?
+		`, userID, prevDateStr).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay un día inmediatamente anterior, buscar el último día anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM daily_balance 
+				WHERE user_id = ? AND date < ?
+				ORDER BY date DESC LIMIT 1
+			`, userID, currentDateStr).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ningún día anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE daily_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND date = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentDateStr)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar al siguiente día
+		currentDate = currentDate.AddDate(0, 0, 1)
+	}
+
+	return nil
+}
+
+func updateWeeklyBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	// Calcular el año e ISO semana
+	year, week := date.ISOWeek()
+	yearWeek := fmt.Sprintf("%d-W%02d", year, week)
+
+	// Calcular fecha de inicio y fin de la semana
+	// El día 0 de una semana es domingo, necesitamos ajustar para obtener lunes (día 1)
+	dayOfWeek := int(date.Weekday())
+	if dayOfWeek == 0 {
+		dayOfWeek = 7 // Convertir domingo (0) a 7 para restar correctamente
+	}
+	startDate := date.AddDate(0, 0, -(dayOfWeek - 1))
+	endDate := startDate.AddDate(0, 0, 6)
+
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	// Calcular la semana anterior
+	prevWeekStart := startDate.AddDate(0, 0, -7)
+	prevYearWeek := fmt.Sprintf("%d-W%02d", prevWeekStart.Year(), func() int {
+		year, week := prevWeekStart.ISOWeek()
+		if prevWeekStart.Year() != year {
+			// Ajustar para casos especiales al final/inicio de año
+			return 53 // Última semana del año anterior
+		}
+		return week
+	}())
+
+	var previousBalance float64
+
+	// Buscar el balance de la semana anterior
+	err := db.QueryRow(`
+		SELECT balance FROM weekly_balance 
+		WHERE user_id = ? AND year_week = ?
+	`, userID, prevYearWeek).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro de la semana anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para esta semana
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM weekly_balance
+		WHERE user_id = ? AND year_week = ?
+	`, userID, yearWeek).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// Calcular el balance como: balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO weekly_balance (user_id, year_week, start_date, end_date, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, userID, yearWeek, startDateStr, endDateStr, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Actualizar los montos sumando los nuevos valores
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE weekly_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_week = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, yearWeek)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todas las semanas posteriores en cascada
+	return updateSubsequentWeeklyBalances(userID, startDate.AddDate(0, 0, 7))
+}
+
+// Nueva función para actualizar semanas posteriores en cascada
+func updateSubsequentWeeklyBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a un año para evitar bucles infinitos
+	endDate := startDate.AddDate(1, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		year, week := currentDate.ISOWeek()
+		currentYearWeek := fmt.Sprintf("%d-W%02d", year, week)
+
+		// Verificar si existe un registro para esta semana
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount FROM weekly_balance
+			WHERE user_id = ? AND year_week = ?
+		`, userID, currentYearWeek).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance de la semana anterior
+		prevWeekStart := currentDate.AddDate(0, 0, -7)
+		prevYear, prevWeek := prevWeekStart.ISOWeek()
+		prevYearWeek := fmt.Sprintf("%d-W%02d", prevYear, prevWeek)
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM weekly_balance 
+			WHERE user_id = ? AND year_week = ?
+		`, userID, prevYearWeek).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay una semana inmediatamente anterior, buscar la última semana anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM weekly_balance 
+				WHERE user_id = ? AND year_week < ?
+				ORDER BY year_week DESC LIMIT 1
+			`, userID, currentYearWeek).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ninguna semana anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE weekly_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_week = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentYearWeek)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar a la siguiente semana
+		currentDate = currentDate.AddDate(0, 0, 7)
+	}
+
+	return nil
+}
+
+func updateMonthlyBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	// Calcular el año y mes
+	yearMonth := date.Format("2006-01")
+
+	// Calcular el mes anterior
+	prevMonth := date.AddDate(0, -1, 0)
+	prevYearMonth := prevMonth.Format("2006-01")
+
+	var previousBalance float64
+
+	// Buscar el balance del mes anterior
+	err := db.QueryRow(`
+		SELECT balance FROM monthly_balance 
+		WHERE user_id = ? AND year_month = ?
+	`, userID, prevYearMonth).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro del mes anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para este mes
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM monthly_balance
+		WHERE user_id = ? AND year_month = ?
+	`, userID, yearMonth).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// Calcular el balance como balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO monthly_balance (user_id, year_month, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, userID, yearMonth, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Actualizar los montos sumando los nuevos valores
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE monthly_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, yearMonth)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todos los meses posteriores en cascada
+	return updateSubsequentMonthlyBalances(userID, date.AddDate(0, 1, 0))
+}
+
+// Nueva función para actualizar meses posteriores en cascada
+func updateSubsequentMonthlyBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a 5 años para evitar bucles infinitos
+	endDate := startDate.AddDate(5, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		currentYearMonth := currentDate.Format("2006-01")
+
+		// Verificar si existe un registro para este mes
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount 
+			FROM monthly_balance
+			WHERE user_id = ? AND year_month = ?
+		`, userID, currentYearMonth).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance del mes anterior
+		prevDate := currentDate.AddDate(0, -1, 0)
+		prevYearMonth := prevDate.Format("2006-01")
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM monthly_balance 
+			WHERE user_id = ? AND year_month = ?
+		`, userID, prevYearMonth).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay un mes inmediatamente anterior, buscar el último mes anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM monthly_balance 
+				WHERE user_id = ? AND year_month < ?
+				ORDER BY year_month DESC LIMIT 1
+			`, userID, currentYearMonth).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ningún mes anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE monthly_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentYearMonth)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar al siguiente mes
+		currentDate = currentDate.AddDate(0, 1, 0)
+	}
+
+	return nil
+}
+
+func updateQuarterlyBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	// Calcular el trimestre (1-4)
+	quarter := (int(date.Month())-1)/3 + 1
+	yearQuarter := fmt.Sprintf("%d-Q%d", date.Year(), quarter)
+
+	// Calcular fecha de inicio y fin del trimestre
+	startMonth := (quarter-1)*3 + 1
+	startDate := time.Date(date.Year(), time.Month(startMonth), 1, 0, 0, 0, 0, date.Location())
+	endDate := startDate.AddDate(0, 3, -1)
+
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	// Calcular el trimestre anterior
+	prevQuarterDate := startDate.AddDate(0, -3, 0)
+	prevQuarter := (int(prevQuarterDate.Month())-1)/3 + 1
+	prevYearQuarter := fmt.Sprintf("%d-Q%d", prevQuarterDate.Year(), prevQuarter)
+
+	var previousBalance float64
+
+	// Buscar el balance del trimestre anterior
+	err := db.QueryRow(`
+		SELECT balance FROM quarterly_balance 
+		WHERE user_id = ? AND year_quarter = ?
+	`, userID, prevYearQuarter).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro del trimestre anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para este trimestre
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM quarterly_balance
+		WHERE user_id = ? AND year_quarter = ?
+	`, userID, yearQuarter).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// Calcular el balance como: balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO quarterly_balance (user_id, year_quarter, start_date, end_date, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, userID, yearQuarter, startDateStr, endDateStr, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Actualizar los montos sumando los nuevos valores
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE quarterly_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_quarter = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, yearQuarter)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todos los trimestres posteriores en cascada
+	nextQuarterDate := startDate.AddDate(0, 3, 0)
+	return updateSubsequentQuarterlyBalances(userID, nextQuarterDate)
+}
+
+// Nueva función para actualizar trimestres posteriores en cascada
+func updateSubsequentQuarterlyBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a 5 años para evitar bucles infinitos
+	endDate := startDate.AddDate(5, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		// Determinar el trimestre actual
+		quarter := (int(currentDate.Month())-1)/3 + 1
+		currentYearQuarter := fmt.Sprintf("%d-Q%d", currentDate.Year(), quarter)
+
+		// Verificar si existe un registro para este trimestre
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount FROM quarterly_balance
+			WHERE user_id = ? AND year_quarter = ?
+		`, userID, currentYearQuarter).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance del trimestre anterior
+		prevQuarterDate := currentDate.AddDate(0, -3, 0)
+		prevQuarter := (int(prevQuarterDate.Month())-1)/3 + 1
+		prevYearQuarter := fmt.Sprintf("%d-Q%d", prevQuarterDate.Year(), prevQuarter)
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM quarterly_balance 
+			WHERE user_id = ? AND year_quarter = ?
+		`, userID, prevYearQuarter).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay un trimestre inmediatamente anterior, buscar el último trimestre anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM quarterly_balance 
+				WHERE user_id = ? AND year_quarter < ?
+				ORDER BY year_quarter DESC LIMIT 1
+			`, userID, currentYearQuarter).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ningún trimestre anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE quarterly_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_quarter = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentYearQuarter)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar al siguiente trimestre
+		currentDate = currentDate.AddDate(0, 3, 0)
+	}
+
+	return nil
+}
+
+func updateSemiannualBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	// Calcular el semestre (1-2)
+	half := (int(date.Month())-1)/6 + 1
+	yearHalf := fmt.Sprintf("%d-H%d", date.Year(), half)
+
+	// Calcular fecha de inicio y fin del semestre
+	startMonth := (half-1)*6 + 1
+	startDate := time.Date(date.Year(), time.Month(startMonth), 1, 0, 0, 0, 0, date.Location())
+	endDate := startDate.AddDate(0, 6, -1)
+
+	startDateStr := startDate.Format("2006-01-02")
+	endDateStr := endDate.Format("2006-01-02")
+
+	// Calcular el semestre anterior
+	prevHalfDate := startDate.AddDate(0, -6, 0)
+	prevHalf := (int(prevHalfDate.Month())-1)/6 + 1
+	prevYearHalf := fmt.Sprintf("%d-H%d", prevHalfDate.Year(), prevHalf)
+
+	var previousBalance float64
+
+	// Buscar el balance del semestre anterior
+	err := db.QueryRow(`
+		SELECT balance FROM semiannual_balance 
+		WHERE user_id = ? AND year_half = ?
+	`, userID, prevYearHalf).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro del semestre anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para este semestre
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM semiannual_balance
+		WHERE user_id = ? AND year_half = ?
+	`, userID, yearHalf).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// Calcular el balance como: balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO semiannual_balance (user_id, year_half, start_date, end_date, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+		`, userID, yearHalf, startDateStr, endDateStr, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Actualizar los montos sumando los nuevos valores
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE semiannual_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_half = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, yearHalf)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todos los semestres posteriores en cascada
+	nextHalfDate := startDate.AddDate(0, 6, 0)
+	return updateSubsequentSemiannualBalances(userID, nextHalfDate)
+}
+
+// Nueva función para actualizar semestres posteriores en cascada
+func updateSubsequentSemiannualBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a 5 años para evitar bucles infinitos
+	endDate := startDate.AddDate(5, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		// Determinar el semestre actual
+		half := (int(currentDate.Month())-1)/6 + 1
+		currentYearHalf := fmt.Sprintf("%d-H%d", currentDate.Year(), half)
+
+		// Verificar si existe un registro para este semestre
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount FROM semiannual_balance
+			WHERE user_id = ? AND year_half = ?
+		`, userID, currentYearHalf).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance del semestre anterior
+		prevHalfDate := currentDate.AddDate(0, -6, 0)
+		prevHalf := (int(prevHalfDate.Month())-1)/6 + 1
+		prevYearHalf := fmt.Sprintf("%d-H%d", prevHalfDate.Year(), prevHalf)
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM semiannual_balance 
+			WHERE user_id = ? AND year_half = ?
+		`, userID, prevYearHalf).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay un semestre inmediatamente anterior, buscar el último semestre anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM semiannual_balance 
+				WHERE user_id = ? AND year_half < ?
+				ORDER BY year_half DESC LIMIT 1
+			`, userID, currentYearHalf).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ningún semestre anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE semiannual_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_half = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentYearHalf)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar al siguiente semestre
+		currentDate = currentDate.AddDate(0, 6, 0)
+	}
+
+	return nil
+}
+
+func updateAnnualBalance(userID string, incomeAmount, expenseAmount, billsAmount float64, cashAmount, bankAmount float64, date time.Time) error {
+	// Calcular el año
+	year := strconv.Itoa(date.Year())
+
+	// Calcular el año anterior
+	prevYear := strconv.Itoa(date.Year() - 1)
+
+	var previousBalance float64
+
+	// Buscar el balance del año anterior
+	err := db.QueryRow(`
+		SELECT balance FROM annual_balance 
+		WHERE user_id = ? AND year = ?
+	`, userID, prevYear).Scan(&previousBalance)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+	// Si no existe registro del año anterior, el balance previo es 0
+
+	// Verificar si ya existe un registro para este año
+	var exists bool
+	var existingIncome, existingExpense, existingBills float64
+	err = db.QueryRow(`
+		SELECT 1, income_amount, expense_amount, bills_amount FROM annual_balance
+		WHERE user_id = ? AND year = ?
+	`, userID, year).Scan(&exists, &existingIncome, &existingExpense, &existingBills)
+
+	if err != nil && err != sql.ErrNoRows {
+		return err
+	}
+
+	if err == sql.ErrNoRows {
+		// No existe registro, insertar uno nuevo
+		// Calcular el balance como: balance previo + ingresos - gastos - facturas
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		_, err = db.Exec(`
+			INSERT INTO annual_balance (user_id, year, income_amount, expense_amount, bills_amount, balance, previous_balance)
+			VALUES (?, ?, ?, ?, ?, ?, ?)
+		`, userID, year, incomeAmount, expenseAmount, billsAmount, balance, previousBalance)
+	} else {
+		// Actualizar registro existente
+		// Actualizar los montos sumando los nuevos valores
+		newIncome := existingIncome + incomeAmount
+		newExpense := existingExpense + expenseAmount
+		newBills := existingBills + billsAmount
+		balance := previousBalance + newIncome - newExpense - newBills
+
+		_, err = db.Exec(`
+			UPDATE annual_balance
+			SET income_amount = ?,
+				expense_amount = ?,
+				bills_amount = ?,
+				previous_balance = ?,
+				balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year = ?
+		`, newIncome, newExpense, newBills, previousBalance, balance, userID, year)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	// Actualizar todos los años posteriores en cascada
+	nextYear := date.Year() + 1
+	nextYearDate := time.Date(nextYear, 1, 1, 0, 0, 0, 0, date.Location())
+	return updateSubsequentAnnualBalances(userID, nextYearDate)
+}
+
+// Nueva función para actualizar años posteriores en cascada
+func updateSubsequentAnnualBalances(userID string, startDate time.Time) error {
+	// Limitar el proceso a 20 años para evitar bucles infinitos
+	endDate := startDate.AddDate(20, 0, 0)
+	currentDate := startDate
+
+	for currentDate.Before(endDate) {
+		currentYear := strconv.Itoa(currentDate.Year())
+
+		// Verificar si existe un registro para este año
+		var exists bool
+		var incomeAmount, expenseAmount, billsAmount, cashAmount, bankAmount float64
+		err := db.QueryRow(`
+			SELECT 1, income_amount, expense_amount, bills_amount, cash_amount, bank_amount FROM annual_balance
+			WHERE user_id = ? AND year = ?
+		`, userID, currentYear).Scan(&exists, &incomeAmount, &expenseAmount, &billsAmount, &cashAmount, &bankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// No hay más registros para actualizar
+			break
+		}
+
+		// Obtener el balance del año anterior
+		prevYear := strconv.Itoa(currentDate.Year() - 1)
+
+		var previousBalance float64
+		var prevCashAmount, prevBankAmount float64
+		err = db.QueryRow(`
+			SELECT balance, cash_amount, bank_amount FROM annual_balance 
+			WHERE user_id = ? AND year = ?
+		`, userID, prevYear).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+		if err != nil && err != sql.ErrNoRows {
+			return err
+		}
+
+		if err == sql.ErrNoRows {
+			// Si no hay un año inmediatamente anterior, buscar el último año anterior disponible
+			err = db.QueryRow(`
+				SELECT balance, cash_amount, bank_amount FROM annual_balance 
+				WHERE user_id = ? AND year < ?
+				ORDER BY year DESC LIMIT 1
+			`, userID, currentYear).Scan(&previousBalance, &prevCashAmount, &prevBankAmount)
+
+			if err != nil && err != sql.ErrNoRows {
+				return err
+			}
+
+			// Si no se encuentra ningún año anterior, usar valores en cero
+			if err == sql.ErrNoRows {
+				previousBalance = 0
+				prevCashAmount = 0
+				prevBankAmount = 0
+			}
+		}
+
+		// Actualizar el balance con el nuevo balance previo
+		balance := previousBalance + incomeAmount - expenseAmount - billsAmount
+
+		// Calcular balance_bank_amount
+		balanceBankAmount := prevBankAmount + bankAmount
+
+		// Actualizar todos los campos
+		_, err = db.Exec(`
+			UPDATE annual_balance
+			SET previous_balance = ?,
+				balance = ?,
+				previous_bank_amount = ?,
+				balance_bank_amount = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year = ?
+		`, previousBalance, balance, prevBankAmount, balanceBankAmount, userID, currentYear)
+
+		if err != nil {
+			return err
+		}
+
+		// Pasar al siguiente año
+		currentDate = currentDate.AddDate(1, 0, 0)
+	}
+
+	return nil
+}
+
+// Función para recalcular todos los balances en cascada
+func recalculateAllBalances(userID string, dateStr string) error {
+	// Parse la fecha de la transacción
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		return fmt.Errorf("error parsing date: %v", err)
+	}
+
+	// Recalcular balances diarios en cascada desde la fecha de la transacción
+	if err := updateSubsequentDailyBalances(userID, date); err != nil {
+		return fmt.Errorf("error updating daily balances: %v", err)
+	}
+
+	// Calcular el inicio de la semana que contiene la fecha
+	dayOfWeek := int(date.Weekday())
+	if dayOfWeek == 0 {
+		dayOfWeek = 7 // Convertir domingo (0) a 7
+	}
+	startOfWeek := date.AddDate(0, 0, -(dayOfWeek - 1))
+
+	// Recalcular balances semanales en cascada desde la semana que contiene la transacción
+	if err := updateSubsequentWeeklyBalances(userID, startOfWeek); err != nil {
+		return fmt.Errorf("error updating weekly balances: %v", err)
+	}
+
+	// Calcular el inicio del mes que contiene la fecha
+	startOfMonth := time.Date(date.Year(), date.Month(), 1, 0, 0, 0, 0, time.UTC)
+
+	// Recalcular balances mensuales en cascada desde el mes que contiene la transacción
+	if err := updateSubsequentMonthlyBalances(userID, startOfMonth); err != nil {
+		return fmt.Errorf("error updating monthly balances: %v", err)
+	}
+
+	// Calcular el inicio del trimestre que contiene la fecha
+	quarter := (int(date.Month()) - 1) / 3
+	startOfQuarter := time.Date(date.Year(), time.Month(quarter*3+1), 1, 0, 0, 0, 0, time.UTC)
+
+	// Recalcular balances trimestrales en cascada desde el trimestre que contiene la transacción
+	if err := updateSubsequentQuarterlyBalances(userID, startOfQuarter); err != nil {
+		return fmt.Errorf("error updating quarterly balances: %v", err)
+	}
+
+	// Calcular el inicio del semestre que contiene la fecha
+	halfYear := (int(date.Month()) - 1) / 6
+	startOfHalfYear := time.Date(date.Year(), time.Month(halfYear*6+1), 1, 0, 0, 0, 0, time.UTC)
+
+	// Recalcular balances semestrales en cascada desde el semestre que contiene la transacción
+	if err := updateSubsequentSemiannualBalances(userID, startOfHalfYear); err != nil {
+		return fmt.Errorf("error updating semiannual balances: %v", err)
+	}
+
+	// Calcular el inicio del año que contiene la fecha
+	startOfYear := time.Date(date.Year(), 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Recalcular balances anuales en cascada desde el año que contiene la transacción
+	if err := updateSubsequentAnnualBalances(userID, startOfYear); err != nil {
+		return fmt.Errorf("error updating annual balances: %v", err)
+	}
+
+	return nil
+}
+
+func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
+	response := ApiResponse{
+		Success: true,
+		Message: message,
+		Data:    data,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	response := ApiResponse{
+		Success: false,
+		Message: message,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(response)
+}

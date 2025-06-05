@@ -1,0 +1,47 @@
+[Unit]
+Description=Hero Budget Webhook Server
+Documentation=https://github.com/jaivial/herobudget-backend
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+
+# Directorio de trabajo
+WorkingDirectory=/opt/hero_budget/webhook
+
+# Comando para ejecutar
+ExecStart=/usr/local/go/bin/go run webhook_server.go
+ExecReload=/bin/kill -HUP $MAINPID
+
+# Reiniciar automáticamente si falla
+Restart=always
+RestartSec=10
+
+# Variables de entorno
+Environment=PATH=/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+Environment=GITHUB_WEBHOOK_SECRET=
+
+# Logs
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=herobudget-webhook
+
+# Límites de recursos
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Seguridad
+NoNewPrivileges=false
+PrivateTmp=false
+ProtectSystem=false
+ProtectHome=false
+
+# Timeout
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target 

@@ -1,0 +1,4 @@
+2025/06/03 09:26:47 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/03 09:26:47 Checking and adding cash/bank columns to balance tables...
+2025/06/03 09:26:47 Database connection established successfully
+2025/06/03 09:26:47 Bills Management service started on :8091

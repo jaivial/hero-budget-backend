@@ -1,0 +1,13 @@
+{
+    "smtp": {
+        "host": "smtp.gmail.com",
+        "port": 587,
+        "username": "jaimebillanueba99@gmail.com",
+        "password": "mdcg gsrs xyhs fsnj",
+        "from_email": "jaimebillanueba99@gmail.com"
+    },
+    "app": {
+        "base_url": "http://localhost:3000",
+        "reset_page": "/reset-password"
+    }
+}
