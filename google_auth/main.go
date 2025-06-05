@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -41,6 +42,12 @@ type User struct {
 	UpdatedAt     time.Time `json:"updated_at"`
 }
 
+type ApiResponse struct {
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 func init() {
 	var err error
 	db, err = sql.Open("sqlite3", "./users.db")
@@ -72,11 +79,13 @@ func init() {
 func main() {
 	http.HandleFunc("/auth/google", handleGoogleAuth)
 	http.HandleFunc("/update/locale", handleUpdateLocale)
+	http.HandleFunc("/health", handleHealth)
 
 	// Registro de rutas y puertos
 	log.Println("Registering routes:")
 	log.Println("- POST /auth/google")
 	log.Println("- POST /update/locale")
+	log.Println("- GET /health")
 	log.Println("Server started on :8081")
 
 	log.Fatal(http.ListenAndServe(":8081", nil))
@@ -195,4 +204,45 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 	// Return user information
 	json.NewEncoder(w).Encode(user)
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		log.Printf("Health check failed - database connection error: %v", err)
+		sendErrorResponse(w, "Database connection failed", http.StatusInternalServerError)
+		return
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Google Auth service is healthy", map[string]string{
+		"status":    "healthy",
+		"service":   "google_auth",
+		"port":      "8081",
+		"timestamp": fmt.Sprintf("%d", time.Now().Unix()),
+	})
+}
+
+func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ApiResponse{
+		Success: true,
+		Message: message,
+		Data:    data,
+	})
+}
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(ApiResponse{
+		Success: false,
+		Message: message,
+	})
 }

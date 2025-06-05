@@ -59,12 +59,27 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Return success response
-	sendSuccessResponse(w, "Main service is healthy", map[string]string{
+	// Return general system health
+	sendSuccessResponse(w, "HeroBudget system is healthy", map[string]interface{}{
 		"status":    "healthy",
 		"service":   "main",
 		"port":      "8083",
 		"timestamp": fmt.Sprintf("%d", time.Now().Unix()),
+		"system":    "HeroBudget Backend",
+		"version":   "1.0.0",
+		"services": map[string]string{
+			"language":        "8083",
+			"savings":         "8089",
+			"budget_overview": "8098",
+			"google_auth":     "8081",
+			"dashboard":       "8085",
+			"profile":         "8092",
+			"bills":           "8091",
+			"income":          "8093",
+			"expense":         "8094",
+			"cash_bank":       "8090",
+			"categories":      "8096",
+		},
 	})
 }
 

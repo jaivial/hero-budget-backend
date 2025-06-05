@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
+	"time"
 )
 
 type LanguageRequest struct {
@@ -15,10 +17,17 @@ type LanguageResponse struct {
 	Locale  string `json:"locale"`
 }
 
+type ApiResponse struct {
+	Success bool        `json:"success"`
+	Message string      `json:"message,omitempty"`
+	Data    interface{} `json:"data,omitempty"`
+}
+
 func main() {
 	// Set up CORS middleware
 	http.HandleFunc("/language/set", corsMiddleware(handleSetLanguage))
 	http.HandleFunc("/language/get", corsMiddleware(handleGetLanguage))
+	http.HandleFunc("/health", corsMiddleware(handleHealth))
 
 	log.Println("Language service started on :8083")
 	log.Fatal(http.ListenAndServe(":8083", nil))
@@ -98,5 +107,39 @@ func handleGetLanguage(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(LanguageResponse{
 		Success: locale != "",
 		Locale:  locale,
+	})
+}
+
+func handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Language service is healthy", map[string]string{
+		"status":    "healthy",
+		"service":   "language_cookie",
+		"port":      "8083",
+		"timestamp": fmt.Sprintf("%d", time.Now().Unix()),
+	})
+}
+
+func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(ApiResponse{
+		Success: true,
+		Message: message,
+		Data:    data,
+	})
+}
+
+func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+	json.NewEncoder(w).Encode(ApiResponse{
+		Success: false,
+		Message: message,
 	})
 }
