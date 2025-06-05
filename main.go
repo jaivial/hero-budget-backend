@@ -19,6 +19,7 @@ func main() {
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
 	http.HandleFunc("/language/get", corsMiddleware(handleLanguageGet))
 	http.HandleFunc("/language/set", corsMiddleware(handleLanguageSet))
+	http.HandleFunc("/update/locale", corsMiddleware(handleUpdateLocale))
 
 	port := 8083
 	fmt.Printf("Main Hero Budget service started on port %d\n", port)
@@ -130,6 +131,38 @@ func handleLanguageSet(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response
 	sendSuccessResponse(w, "Language updated successfully", map[string]string{
+		"user_id": userID,
+		"locale":  locale,
+	})
+}
+
+func handleUpdateLocale(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var request map[string]interface{}
+	err := json.NewDecoder(r.Body).Decode(&request)
+	if err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	userID, ok := request["user_id"].(string)
+	if !ok || userID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+
+	locale, ok := request["locale"].(string)
+	if !ok || locale == "" {
+		sendErrorResponse(w, "Locale is required", http.StatusBadRequest)
+		return
+	}
+
+	// Return success response
+	sendSuccessResponse(w, "Locale updated successfully", map[string]string{
 		"user_id": userID,
 		"locale":  locale,
 	})

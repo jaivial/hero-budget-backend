@@ -13,6 +13,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 
@@ -101,6 +102,8 @@ func main() {
 	http.HandleFunc("/profile/test-image-update", corsMiddleware(handleTestImageUpdate))
 	http.HandleFunc("/update/locale", corsMiddleware(handleLocaleUpdate))
 	http.HandleFunc("/profile/delete-account", corsMiddleware(handleDeleteAccount))
+	http.HandleFunc("/user/info", corsMiddleware(handleGetUserInfo))
+	http.HandleFunc("/user/update", corsMiddleware(handleUpdateUser))
 
 	port := 8092 // Asignamos el puerto 8092 para el servicio de profile_management
 	log.Printf("Profile Management service started on :%d", port)
@@ -819,4 +822,139 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// UserUpdateRequest structure for user update requests
+type UserUpdateRequest struct {
+	ID         string `json:"id"`
+	Name       string `json:"name,omitempty"`
+	Email      string `json:"email,omitempty"`
+	GivenName  string `json:"given_name,omitempty"`
+	FamilyName string `json:"family_name,omitempty"`
+}
+
+// handleGetUserInfo handles GET requests for user information
+func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" && r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var userID string
+
+	// Get user ID from query parameter (GET) or request body (POST)
+	if r.Method == "GET" {
+		userID = r.URL.Query().Get("user_id")
+		if userID == "" {
+			userID = r.URL.Query().Get("id")
+		}
+	} else { // POST
+		var requestBody map[string]interface{}
+		err := json.NewDecoder(r.Body).Decode(&requestBody)
+		if err != nil {
+			log.Printf("Error parsing request body: %v", err)
+			http.Error(w, "Invalid request body", http.StatusBadRequest)
+			return
+		}
+
+		if uid, ok := requestBody["user_id"].(string); ok {
+			userID = uid
+		}
+	}
+
+	if userID == "" || userID == "null" {
+		log.Printf("Error: User ID is empty or 'null' in request")
+		http.Error(w, "Valid user ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Convert string userID to int
+	userIDInt, err := strconv.Atoi(userID)
+	if err != nil {
+		log.Printf("Error converting user ID to int: %v", err)
+		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Log for debugging
+	log.Printf("Getting user info for user ID: %s", userID)
+
+	// Get user info from database
+	var user User
+	if err := getUserById(userIDInt, &user); err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("User not found for ID: %s", userID)
+			http.Error(w, "User not found", http.StatusNotFound)
+			return
+		}
+		log.Printf("Database error for user ID %s: %v", userID, err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	log.Printf("Successfully retrieved user %s: %s (%s)", userID, user.Name, user.Email)
+
+	// Return user info as JSON
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(user)
+}
+
+// handleUpdateUser handles POST requests for updating user information
+func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body
+	var updateRequest UserUpdateRequest
+	err := json.NewDecoder(r.Body).Decode(&updateRequest)
+	if err != nil {
+		log.Printf("Error decoding request body: %v", err)
+		http.Error(w, "Invalid request format", http.StatusBadRequest)
+		return
+	}
+
+	// Convert string ID to int
+	userIDInt, err := strconv.Atoi(updateRequest.ID)
+	if err != nil {
+		log.Printf("Error converting user ID to int: %v", err)
+		http.Error(w, "Invalid user ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Log for debugging
+	log.Printf("Updating user info: %+v", updateRequest)
+
+	// Update user info in database
+	result, err := db.Exec(`
+		UPDATE users 
+		SET name = ?, email = ?, given_name = ?, family_name = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`, updateRequest.Name, updateRequest.Email, updateRequest.GivenName, updateRequest.FamilyName, userIDInt)
+
+	if err != nil {
+		log.Printf("Database error for user ID %s: %v", updateRequest.ID, err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("User not found for ID: %s", updateRequest.ID)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	log.Printf("Successfully updated user %s", updateRequest.ID)
+
+	// Return success response
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(ApiResponse{Success: true, Message: "User updated successfully"})
 }

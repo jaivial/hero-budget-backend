@@ -220,16 +220,28 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 
 // handleBudgetOverview handles the budget overview requests
 func handleBudgetOverview(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var request BudgetOverviewRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		log.Printf("Error decoding request: %v", err)
-		sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
-		return
+
+	// Handle both GET and POST methods
+	if r.Method == http.MethodGet {
+		// Get parameters from query string
+		request.UserID = r.URL.Query().Get("user_id")
+		request.Period = r.URL.Query().Get("period")
+		request.Date = r.URL.Query().Get("date")
+		request.StartDate = r.URL.Query().Get("start_date")
+		request.EndDate = r.URL.Query().Get("end_date")
+	} else {
+		// POST method - decode JSON body
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			log.Printf("Error decoding request: %v", err)
+			sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Validate required fields
@@ -879,16 +891,48 @@ func findLastAvailablePeriod(tableName, userID, originalDate, period string) (*B
 
 // handleTransactionHistory handles requests for transaction history
 func handleTransactionHistory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var request TransactionRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		log.Printf("Error decoding transaction request: %v", err)
-		sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
-		return
+
+	// Handle both GET and POST methods
+	if r.Method == http.MethodGet {
+		// Get parameters from query string
+		request.UserID = r.URL.Query().Get("user_id")
+		request.Period = r.URL.Query().Get("period")
+		request.Date = r.URL.Query().Get("date")
+		request.StartDate = r.URL.Query().Get("start_date")
+		request.EndDate = r.URL.Query().Get("end_date")
+
+		// Parse arrays from comma-separated values
+		if transactionTypes := r.URL.Query().Get("transaction_types"); transactionTypes != "" {
+			request.TransactionTypes = strings.Split(transactionTypes, ",")
+		}
+		if paymentMethods := r.URL.Query().Get("payment_methods"); paymentMethods != "" {
+			request.PaymentMethods = strings.Split(paymentMethods, ",")
+		}
+
+		// Parse integers
+		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+			if limit, err := strconv.Atoi(limitStr); err == nil {
+				request.Limit = limit
+			}
+		}
+		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+			if offset, err := strconv.Atoi(offsetStr); err == nil {
+				request.Offset = offset
+			}
+		}
+	} else {
+		// POST method - decode JSON body
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			log.Printf("Error decoding transaction request: %v", err)
+			sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Validate required fields
