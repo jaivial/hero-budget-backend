@@ -1,0 +1,26 @@
+[Unit]
+Description=Hero Budget Webhook Auto-Restart Service
+After=network.target
+Wants=network.target
+
+[Service]
+Type=forking
+User=root
+Group=root
+WorkingDirectory=/opt/hero_budget/backend
+ExecStart=/opt/hero_budget/backend/auto-restart-vps.sh start
+ExecStop=/opt/hero_budget/backend/auto-restart-vps.sh stop
+ExecReload=/opt/hero_budget/backend/auto-restart-vps.sh restart
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Variables de entorno
+Environment=BASE_PATH=/opt/hero_budget/backend
+Environment=WEBHOOK_PORT=9000
+Environment=LOG_FILE=/var/log/hero-budget-webhook.log
+Environment=PID_FILE=/var/run/hero-budget-webhook.pid
+
+[Install]
+WantedBy=multi-user.target 

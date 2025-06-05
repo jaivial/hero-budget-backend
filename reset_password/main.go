@@ -250,6 +250,24 @@ func init() {
 	dbPath := filepath.Join(cwd, "..", "google_auth", "users.db")
 	log.Printf("Using database at: %s", dbPath)
 
+	// Check if database file exists, if not create it
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		log.Printf("Database file doesn't exist, creating at: %s", dbPath)
+
+		// Ensure the directory exists
+		dbDir := filepath.Dir(dbPath)
+		if err := os.MkdirAll(dbDir, 0755); err != nil {
+			log.Fatalf("Failed to create database directory: %v", err)
+		}
+
+		// Create database file
+		file, err := os.Create(dbPath)
+		if err != nil {
+			log.Fatalf("Failed to create database file: %v", err)
+		}
+		file.Close()
+	}
+
 	// Open the database connection
 	db, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
@@ -259,6 +277,30 @@ func init() {
 	// Test the connection
 	if err = db.Ping(); err != nil {
 		log.Fatalf("Failed to ping database: %v", err)
+	}
+
+	// Create users table if it doesn't exist
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS users (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			google_id TEXT UNIQUE,
+			email TEXT UNIQUE,
+			password TEXT,
+			name TEXT,
+			given_name TEXT,
+			family_name TEXT,
+			picture TEXT,
+			profile_image_blob TEXT,
+			locale TEXT,
+			verified_email BOOLEAN,
+			reset_token TEXT,
+			reset_expires DATETIME,
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		log.Fatalf("Failed to create users table: %v", err)
 	}
 
 	// Check if the reset_token and reset_expires columns exist, if not add them
