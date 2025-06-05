@@ -1,5 +1,5 @@
-2025/06/05 17:40:14 Configuration loaded successfully
-2025/06/05 17:40:14 Verification email templates loaded for 14 languages
-2025/06/05 17:40:14 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/05 17:40:14 Database connection established successfully
-2025/06/05 17:40:14 Signup service started on :8082
+2025/06/05 20:47:42 Configuration loaded successfully
+2025/06/05 20:47:42 Verification email templates loaded for 14 languages
+2025/06/05 20:47:42 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/05 20:47:42 Database connection established successfully
+2025/06/05 20:47:42 Signup service started on :8082

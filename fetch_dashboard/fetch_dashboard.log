@@ -1,5 +1,12 @@
-2025/06/05 17:40:05 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/05 17:40:05 Database connection established successfully
-2025/06/05 17:40:05 Fetch Dashboard service started on :8085
-2025/06/05 19:23:16 Getting user info for user ID: 2
-2025/06/05 19:23:16 User not found for ID: 2
+2025/06/05 20:47:34 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/05 20:47:34 Database connection established successfully
+2025/06/05 20:47:34 Fetch Dashboard service started on :8085
+2025/06/05 20:48:12 Getting user info for user ID: 1
+2025/06/05 20:48:12 Using Google profile picture URL for user 1
+2025/06/05 20:48:12 Successfully retrieved user 1: Jaime Billanueba (jaimebillanueba99@gmail.com)
+2025/06/05 20:54:02 Getting user info for user ID: 1
+2025/06/05 20:54:02 Using Google profile picture URL for user 1
+2025/06/05 20:54:02 Successfully retrieved user 1: Jaime Billanueba (jaimebillanueba99@gmail.com)
+2025/06/05 20:56:10 Getting user info for user ID: 1
+2025/06/05 20:56:10 Using Google profile picture URL for user 1
+2025/06/05 20:56:10 Successfully retrieved user 1: Jaime Billanueba (jaimebillanueba99@gmail.com)

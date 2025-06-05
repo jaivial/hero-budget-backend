@@ -36,17 +36,20 @@ func TestRun(t *testing.T) {
 
 	// 1. Create a test bill
 	testBill := Bill{
-		UserID:        "test_user",
-		Name:          "Test Bill for Fixes",
-		Amount:        50.00,
-		DueDate:       time.Now().Format("2006-01-02"),
-		Paid:          false,
-		Overdue:       false,
-		OverdueDays:   0,
-		Recurring:     false,
-		Category:      "Test",
-		Icon:          "test",
-		PaymentMethod: "bank",
+		UserID:         "test_user",
+		Name:           "Test Bill for Fixes",
+		Amount:         50.00,
+		DueDate:        time.Now().Format("2006-01-02"),
+		PaymentDay:     15,
+		DurationMonths: 3,
+		Regularity:     "monthly",
+		Paid:           false,
+		Overdue:        false,
+		OverdueDays:    0,
+		Recurring:      true,
+		Category:       "Test",
+		Icon:           "💳",
+		PaymentMethod:  "bank",
 	}
 
 	// Insert the test bill
