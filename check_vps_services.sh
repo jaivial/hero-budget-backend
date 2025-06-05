@@ -20,6 +20,7 @@ echo -e "${WHITE}"
 echo "============================================================================="
 echo "   🖥️  VERIFICACIÓN DE SERVICIOS VPS - HERO BUDGET"
 echo "   🌐 IP: $VPS_IP"
+echo "   📊 Verificando 9 servicios críticos (incluye User Locale)"
 echo "============================================================================="
 echo -e "${NC}"
 
@@ -52,6 +53,7 @@ CRITICAL_SERVICES=(
     "8085:fetch_dashboard_service"
     "8092:profile_service"
     "8098:budget_overview_service"
+    "8099:user_locale_service"
 )
 
 echo -e "${CYAN}🔍 Verificando servicios críticos...${NC}"
@@ -154,5 +156,9 @@ echo -e "${WHITE}ssh $VPS_USER@$VPS_IP 'journalctl -u herobudget -f'${NC}"
 echo -e "\n${CYAN}4. TESTS INMEDIATOS POST-CORRECCIÓN:${NC}"
 echo -e "${WHITE}bash test_nginx_fixes.sh${NC}"
 echo -e "${WHITE}bash test_production_endpoints.sh${NC}"
+
+echo -e "\n${CYAN}5. VERIFICAR NUEVO SERVICIO USER LOCALE:${NC}"
+echo -e "${WHITE}ssh $VPS_USER@$VPS_IP 'curl http://localhost:8099/health'${NC}"
+echo -e "${WHITE}ssh $VPS_USER@$VPS_IP 'curl http://localhost:8099/user_locale/get?user_id=2'${NC}"
 
 echo -e "\n${GREEN}📋 EJECUTAR ESTOS COMANDOS EN SECUENCIA PARA SOLUCIONAR${NC}" 

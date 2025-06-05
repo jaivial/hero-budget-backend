@@ -16,6 +16,7 @@ NC='\033[0m'
 echo -e "${WHITE}"
 echo "============================================================================="
 echo "   🔍 DIAGNÓSTICO DE SERVICIOS FALLIDOS - VPS"
+echo "   📊 Analizando 19 servicios (incluye User Locale)"
 echo "============================================================================="
 echo -e "${NC}"
 
@@ -39,6 +40,7 @@ declare -A SERVICES=(
     ["categories_management"]="8096"
     ["money_flow_sync"]="8097"
     ["budget_overview_fetch"]="8098"
+    ["user_locale"]="8099"
 )
 
 # Función para verificar si un puerto está en uso

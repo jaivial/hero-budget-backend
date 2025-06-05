@@ -28,7 +28,7 @@ stop_existing_services() {
     echo -e "${YELLOW}🛑 Deteniendo servicios existentes...${NC}"
     
     # Puertos de todos los servicios existentes
-    ports=(8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098)
+    ports=(8081 8082 8083 8084 8085 8086 8087 8088 8089 8090 8091 8092 8093 8094 8095 8096 8097 8098 8099)
     
     for port in "${ports[@]}"; do
         PID=$(lsof -ti:$port 2>/dev/null)
@@ -214,6 +214,7 @@ echo -e "\n${CYAN}📋 SERVICIOS COMPLEMENTARIOS:${NC}"
 
 start_service "dashboard_data" 8087
 start_service "transaction_delete_service" 8095
+start_service "user_locale" 8099
 
 echo -e "\n${WHITE}=== VERIFICANDO SERVICIOS ===${NC}"
 
@@ -254,10 +255,12 @@ echo -e "\n${CYAN}🔍 VERIFICANDO SERVICIOS COMPLEMENTARIOS:${NC}"
 
 verify_service "Dashboard Data" 8087 "/health" "dashboard_data"
 verify_service "Transaction Delete" 8095 "/health" "transaction_delete_service"
+verify_service "User Locale" 8099 "/health" "user_locale"
 
 echo -e "\n${WHITE}"
 echo "============================================================================="
 echo "   ✅ TODOS LOS SERVICIOS REINICIADOS CON CONFIGURACIÓN ACTUALIZADA - VPS"
+echo "   📊 Total de servicios: 19 (incluyendo User Locale)"
 echo "============================================================================="
 echo -e "${NC}"
 
@@ -280,6 +283,7 @@ echo -e "${WHITE}  • Transaction Delete: http://localhost:8095${NC}"
 echo -e "${WHITE}  • Categories Mgmt:    http://localhost:8096${NC}"
 echo -e "${WHITE}  • Money Flow Sync:    http://localhost:8097${NC}"
 echo -e "${WHITE}  • Budget Overview:    http://localhost:8098${NC}"
+echo -e "${WHITE}  • User Locale:        http://localhost:8099${NC}"
 
 echo -e "\n${CYAN}📋 NUEVOS ENDPOINTS IMPLEMENTADOS:${NC}"
 echo -e "${WHITE}  • Cash Update: http://localhost:8090/cash-bank/cash/update${NC}"
@@ -287,19 +291,22 @@ echo -e "${WHITE}  • Bank Update: http://localhost:8090/cash-bank/bank/update$
 echo -e "${WHITE}  • Locale Update: http://localhost:8092/update/locale${NC}"
 echo -e "${WHITE}  • User Update: http://localhost:8085/user/update${NC}"
 echo -e "${WHITE}  • Money Flow Data: http://localhost:8097/money-flow/data${NC}"
+echo -e "${WHITE}  • User Locale Get: http://localhost:8099/user_locale/get${NC}"
 
 echo -e "\n${CYAN}📋 PARA VERIFICAR TODOS LOS ENDPOINTS:${NC}"
 echo -e "${WHITE}  cd ${BASE_PATH}${NC}"
 echo -e "${WHITE}  # Verificar servicios específicos:${NC}"
 echo -e "${WHITE}  curl http://localhost:8090/cash-bank/distribution?user_id=1${NC}"
 echo -e "${WHITE}  curl http://localhost:8097/money-flow/data?user_id=1${NC}"
+echo -e "${WHITE}  curl http://localhost:8099/user_locale/get?user_id=1${NC}"
 
 echo -e "\n${CYAN}📋 PARA VER LOGS DE UN SERVICIO:${NC}"
 echo -e "${WHITE}  tail -f /tmp/[nombre_servicio].log${NC}"
 echo -e "${WHITE}  # Ejemplos:${NC}"
 echo -e "${WHITE}  tail -f /tmp/cash_bank_management.log${NC}"
 echo -e "${WHITE}  tail -f /tmp/money_flow_sync.log${NC}"
+echo -e "${WHITE}  tail -f /tmp/user_locale.log${NC}"
 
-echo -e "\n${GREEN}🎯 CONFIGURACIÓN ACTUALIZADA: 18/18 servicios activos según estructura real del VPS${NC}"
+echo -e "\n${GREEN}🎯 CONFIGURACIÓN ACTUALIZADA: 19/19 servicios activos según estructura real del VPS${NC}"
 
 echo "" 
