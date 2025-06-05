@@ -440,7 +440,7 @@ func getUpcomingBillsAmount(userID, startDate, endDate string) (float64, error) 
 		SELECT COALESCE(SUM(b.amount), 0)
 		FROM bills b
 		INNER JOIN bill_payments bp ON b.id = bp.bill_id
-		WHERE bp.user_id = ? 
+		WHERE b.user_id = ? 
 		AND bp.year_month = ? 
 		AND bp.paid = 0
 	`
