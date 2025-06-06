@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -15,17 +16,8 @@ import (
 )
 
 var (
-	googleOauthConfig = &oauth2.Config{
-		ClientID:     "204913639838-4m6soe15a1e1tssnfupuj1mcbd6arj82.apps.googleusercontent.com",
-		ClientSecret: "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",
-		RedirectURL:  "http://localhost:8081/auth/google/callback",
-		Scopes: []string{
-			"https://www.googleapis.com/auth/userinfo.email",
-			"https://www.googleapis.com/auth/userinfo.profile",
-		},
-		Endpoint: google.Endpoint,
-	}
-	db *sql.DB
+	googleOauthConfig *oauth2.Config
+	db                *sql.DB
 )
 
 type User struct {
@@ -49,6 +41,26 @@ type ApiResponse struct {
 }
 
 func init() {
+	// Initialize OAuth config with environment variables
+	googleOauthConfig = &oauth2.Config{
+		ClientID:     getEnvOrDefault("GOOGLE_CLIENT_ID", ""),
+		ClientSecret: getEnvOrDefault("GOOGLE_CLIENT_SECRET", ""),
+		RedirectURL:  getEnvOrDefault("GOOGLE_REDIRECT_URL", "http://localhost:8081/auth/google/callback"),
+		Scopes: []string{
+			"https://www.googleapis.com/auth/userinfo.email",
+			"https://www.googleapis.com/auth/userinfo.profile",
+		},
+		Endpoint: google.Endpoint,
+	}
+
+	// Validate required environment variables
+	if googleOauthConfig.ClientID == "" {
+		log.Fatal("GOOGLE_CLIENT_ID environment variable is required")
+	}
+	if googleOauthConfig.ClientSecret == "" {
+		log.Fatal("GOOGLE_CLIENT_SECRET environment variable is required")
+	}
+
 	var err error
 	db, err = sql.Open("sqlite3", "./users.db")
 	if err != nil {
@@ -74,6 +86,14 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// getEnvOrDefault returns the value of an environment variable or a default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 func main() {
