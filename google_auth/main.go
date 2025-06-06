@@ -16,8 +16,8 @@ import (
 
 var (
 	googleOauthConfig = &oauth2.Config{
-		ClientID:     "204913639838-lt4jcl1cc0b9qjq4lh8ef6u19trudech.apps.googleusercontent.com",
-		ClientSecret: "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",
+		ClientID:     "204913639838-4m6soe15a1e1tssnfupuj1mcbd6arj82.apps.googleusercontent.com",
+		ClientSecret: "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",
 		RedirectURL:  "http://localhost:8081/auth/google/callback",
 		Scopes: []string{
 			"https://www.googleapis.com/auth/userinfo.email",
