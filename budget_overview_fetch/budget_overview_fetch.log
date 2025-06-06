@@ -1,120 +1,103 @@
-2025/06/05 20:47:44 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/05 20:47:44 Database connection established successfully
-2025/06/05 20:47:44 Budget Overview Fetch service starting on port 8098
-2025/06/05 20:48:13 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=42.00, BillCash=0.00, TotalBalance=178.00
-2025/06/05 20:48:13 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:48:13    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:48:13    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:48:13    🏷️ Bills Amount: 42.00 (Bank: 42.00 + Cash: 0.00)
-2025/06/05 20:48:13    📊 Combined Expense (expenses + bills): 64.00
-2025/06/05 20:48:13    💵 Available Balance: 136.00 (Income: 200.00 - Combined Expenses: 64.00)
-2025/06/05 20:48:13    📋 Upcoming Bills: 42.00
-2025/06/05 20:48:13 💳 Cash/Bank Distribution: Cash=-22.00 (-12.4%), Bank=200.00 (112.4%), Total=178.00
-2025/06/05 20:48:14 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=42.00, BillCash=0.00, TotalBalance=178.00
-2025/06/05 20:48:14 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:48:14    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:48:14    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:48:14    🏷️ Bills Amount: 42.00 (Bank: 42.00 + Cash: 0.00)
-2025/06/05 20:48:14    📊 Combined Expense (expenses + bills): 64.00
-2025/06/05 20:48:14    💵 Available Balance: 136.00 (Income: 200.00 - Combined Expenses: 64.00)
-2025/06/05 20:48:14    📋 Upcoming Bills: 42.00
-2025/06/05 20:48:14 💳 Cash/Bank Distribution: Cash=-22.00 (-12.4%), Bank=200.00 (112.4%), Total=178.00
-2025/06/05 20:48:29 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:48:29 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:48:29    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:48:29    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:48:29    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:48:29    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:48:29    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:48:29    📋 Upcoming Bills: 64.00
-2025/06/05 20:48:29 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:48:29 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:48:29 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:48:29    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:48:29    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:48:29    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:48:29    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:48:29    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:48:29    📋 Upcoming Bills: 64.00
-2025/06/05 20:48:29 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:48:30 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:48:30 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:48:30    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:48:30    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:48:30    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:48:30    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:48:30    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:48:30    📋 Upcoming Bills: 64.00
-2025/06/05 20:48:30 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:48:37 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=44.00, BillCash=0.00, TotalBalance=70.00
-2025/06/05 20:48:37 🧮 Budget calculation breakdown for period monthly, date 2025-07:
-2025/06/05 20:48:37    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:48:37    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:48:37    🏷️ Bills Amount: 44.00 (Bank: 44.00 + Cash: 0.00)
-2025/06/05 20:48:37    📊 Combined Expense (expenses + bills): 44.00
-2025/06/05 20:48:37    💵 Available Balance: -44.00 (Income: 0.00 - Combined Expenses: 44.00)
-2025/06/05 20:48:37    📋 Upcoming Bills: 44.00
-2025/06/05 20:48:37 💳 Cash/Bank Distribution: Cash=-22.00 (-31.4%), Bank=92.00 (131.4%), Total=70.00
-2025/06/05 20:48:38 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=44.00, BillCash=0.00, TotalBalance=70.00
-2025/06/05 20:48:38 🧮 Budget calculation breakdown for period monthly, date 2025-07:
-2025/06/05 20:48:38    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:48:38    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:48:38    🏷️ Bills Amount: 44.00 (Bank: 44.00 + Cash: 0.00)
-2025/06/05 20:48:38    📊 Combined Expense (expenses + bills): 44.00
-2025/06/05 20:48:38    💵 Available Balance: -44.00 (Income: 0.00 - Combined Expenses: 44.00)
-2025/06/05 20:48:38    📋 Upcoming Bills: 44.00
-2025/06/05 20:48:38 💳 Cash/Bank Distribution: Cash=-22.00 (-31.4%), Bank=92.00 (131.4%), Total=70.00
-2025/06/05 20:54:03 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:54:03 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:54:03    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:54:03    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:54:03    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:54:03    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:54:03    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:54:03    📋 Upcoming Bills: 64.00
-2025/06/05 20:54:03 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:54:03 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:54:03 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:54:03    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:54:03    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:54:03    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:54:03    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:54:03    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:54:03    📋 Upcoming Bills: 64.00
-2025/06/05 20:54:03 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:56:11 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:56:11 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:56:11    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:56:11    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:56:11    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:56:11    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:56:11    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:56:11    📋 Upcoming Bills: 64.00
-2025/06/05 20:56:11 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:56:11 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=64.00, BillCash=0.00, TotalBalance=114.00
-2025/06/05 20:56:11 🧮 Budget calculation breakdown for period monthly, date 2025-06:
-2025/06/05 20:56:11    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
-2025/06/05 20:56:11    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
-2025/06/05 20:56:11    🏷️ Bills Amount: 64.00 (Bank: 64.00 + Cash: 0.00)
-2025/06/05 20:56:11    📊 Combined Expense (expenses + bills): 86.00
-2025/06/05 20:56:11    💵 Available Balance: 114.00 (Income: 200.00 - Combined Expenses: 86.00)
-2025/06/05 20:56:11    📋 Upcoming Bills: 64.00
-2025/06/05 20:56:11 💳 Cash/Bank Distribution: Cash=-22.00 (-19.3%), Bank=136.00 (119.3%), Total=114.00
-2025/06/05 20:56:36 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=44.00, BillCash=0.00, TotalBalance=70.00
-2025/06/05 20:56:36 🧮 Budget calculation breakdown for period monthly, date 2025-07:
-2025/06/05 20:56:36    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:56:36    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:56:36    🏷️ Bills Amount: 44.00 (Bank: 44.00 + Cash: 0.00)
-2025/06/05 20:56:36    📊 Combined Expense (expenses + bills): 44.00
-2025/06/05 20:56:36    💵 Available Balance: -44.00 (Income: 0.00 - Combined Expenses: 44.00)
-2025/06/05 20:56:36    📋 Upcoming Bills: 44.00
-2025/06/05 20:56:36 💳 Cash/Bank Distribution: Cash=-22.00 (-31.4%), Bank=92.00 (131.4%), Total=70.00
-2025/06/05 20:56:37 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=44.00, BillCash=0.00, TotalBalance=70.00
-2025/06/05 20:56:37 🧮 Budget calculation breakdown for period monthly, date 2025-07:
-2025/06/05 20:56:37    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:56:37    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
-2025/06/05 20:56:37    🏷️ Bills Amount: 44.00 (Bank: 44.00 + Cash: 0.00)
-2025/06/05 20:56:37    📊 Combined Expense (expenses + bills): 44.00
-2025/06/05 20:56:37    💵 Available Balance: -44.00 (Income: 0.00 - Combined Expenses: 44.00)
-2025/06/05 20:56:37    📋 Upcoming Bills: 44.00
-2025/06/05 20:56:37 💳 Cash/Bank Distribution: Cash=-22.00 (-31.4%), Bank=92.00 (131.4%), Total=70.00
+2025/06/06 12:44:16 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/06 12:44:16 Database connection established successfully
+2025/06/06 12:44:16 Budget Overview Fetch service starting on port 8098
+2025/06/06 12:44:41 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=244.00, BillCash=0.00, TotalBalance=-66.00
+2025/06/06 12:44:41 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 12:44:41    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
+2025/06/06 12:44:41    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
+2025/06/06 12:44:41    🏷️ Bills Amount: 244.00 (Bank: 244.00 + Cash: 0.00)
+2025/06/06 12:44:41    📊 Combined Expense (expenses + bills): 266.00
+2025/06/06 12:44:41    💵 Available Balance: -66.00 (Income: 200.00 - Combined Expenses: 266.00)
+2025/06/06 12:44:41    📋 Upcoming Bills: 244.00
+2025/06/06 12:44:41 💳 Cash/Bank Distribution: Cash=-22.00 (0.0%), Bank=-44.00 (0.0%), Total=-66.00
+2025/06/06 12:44:41 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=244.00, BillCash=0.00, TotalBalance=-66.00
+2025/06/06 12:44:41 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 12:44:41    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
+2025/06/06 12:44:41    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
+2025/06/06 12:44:41    🏷️ Bills Amount: 244.00 (Bank: 244.00 + Cash: 0.00)
+2025/06/06 12:44:41    📊 Combined Expense (expenses + bills): 266.00
+2025/06/06 12:44:41    💵 Available Balance: -66.00 (Income: 200.00 - Combined Expenses: 266.00)
+2025/06/06 12:44:41    📋 Upcoming Bills: 244.00
+2025/06/06 12:44:41 💳 Cash/Bank Distribution: Cash=-22.00 (0.0%), Bank=-44.00 (0.0%), Total=-66.00
+2025/06/06 12:44:41 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/06 12:44:41 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/06 12:44:41 🔍 Args: [1 2025-06 2025-06 2025-06]
+2025/06/06 12:44:41 🏠 Bill ID=8, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:44:41 📅 Bill ID=8 is overdue by 5 days (due: 2025-06-01, now: 2025-06-06)
+2025/06/06 12:44:41 🏠 Bill ID=4, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:44:41 📅 Bill ID=4 is overdue by 1 days (due: 2025-06-05, now: 2025-06-06)
+2025/06/06 12:44:41 🏠 Bill ID=5, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:44:41 📅 Bill ID=5 is overdue by 1 days (due: 2025-06-05, now: 2025-06-06)
+2025/06/06 12:44:41 🏠 Bill ID=2, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:44:41 🏠 Bill ID=7, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:44:41 🏠 Bill ID=1, Name=coche, Month=2025-06, Paid=true
+2025/06/06 12:48:39 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=244.00, BillCash=0.00, TotalBalance=-66.00
+2025/06/06 12:48:39 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 12:48:39    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
+2025/06/06 12:48:39    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
+2025/06/06 12:48:39    🏷️ Bills Amount: 244.00 (Bank: 244.00 + Cash: 0.00)
+2025/06/06 12:48:39    📊 Combined Expense (expenses + bills): 266.00
+2025/06/06 12:48:39    💵 Available Balance: -66.00 (Income: 200.00 - Combined Expenses: 266.00)
+2025/06/06 12:48:39    📋 Upcoming Bills: 244.00
+2025/06/06 12:48:39 💳 Cash/Bank Distribution: Cash=-22.00 (0.0%), Bank=-44.00 (0.0%), Total=-66.00
+2025/06/06 12:48:39 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/06 12:48:39 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/06 12:48:39 🔍 Args: [1 2025-06 2025-06 2025-06]
+2025/06/06 12:48:39 🏠 Bill ID=8, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:48:39 📅 Bill ID=8 is overdue by 5 days (due: 2025-06-01, now: 2025-06-06)
+2025/06/06 12:48:39 🏠 Bill ID=4, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:48:39 📅 Bill ID=4 is overdue by 1 days (due: 2025-06-05, now: 2025-06-06)
+2025/06/06 12:48:39 🏠 Bill ID=5, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:48:39 📅 Bill ID=5 is overdue by 1 days (due: 2025-06-05, now: 2025-06-06)
+2025/06/06 12:48:39 🏠 Bill ID=2, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:48:39 🏠 Bill ID=7, Name=alquiler, Month=2025-06, Paid=false
+2025/06/06 12:48:39 🏠 Bill ID=1, Name=coche, Month=2025-06, Paid=true
+2025/06/06 12:48:39 📊 Balance data found: IncomeBank=200.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=22.00, BillBank=244.00, BillCash=0.00, TotalBalance=-66.00
+2025/06/06 12:48:39 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 12:48:39    💰 Total Income: 200.00 (Bank: 200.00 + Cash: 0.00)
+2025/06/06 12:48:39    💸 Spent Amount (expenses only): 22.00 (Bank: 0.00 + Cash: 22.00)
+2025/06/06 12:48:39    🏷️ Bills Amount: 244.00 (Bank: 244.00 + Cash: 0.00)
+2025/06/06 12:48:39    📊 Combined Expense (expenses + bills): 266.00
+2025/06/06 12:48:39    💵 Available Balance: -66.00 (Income: 200.00 - Combined Expenses: 266.00)
+2025/06/06 12:48:39    📋 Upcoming Bills: 244.00
+2025/06/06 12:48:39 💳 Cash/Bank Distribution: Cash=-22.00 (0.0%), Bank=-44.00 (0.0%), Total=-66.00

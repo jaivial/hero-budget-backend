@@ -179,6 +179,7 @@ func main() {
 	http.HandleFunc("/budget-overview", corsMiddleware(handleBudgetOverview))
 	http.HandleFunc("/transactions/history", corsMiddleware(handleTransactionHistory))
 	http.HandleFunc("/transactions/upcoming-bills", corsMiddleware(handleUpcomingBills))
+	http.HandleFunc("/upcoming-bills", corsMiddleware(handleUpcomingBills))
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
 	http.HandleFunc("/budget-overview/health", corsMiddleware(handleBudgetOverviewHealth))
 
@@ -974,16 +975,48 @@ func handleTransactionHistory(w http.ResponseWriter, r *http.Request) {
 
 // handleUpcomingBills handles requests for upcoming bills
 func handleUpcomingBills(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
+	if r.Method != http.MethodPost && r.Method != http.MethodGet {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
 	var request TransactionRequest
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		log.Printf("Error decoding upcoming bills request: %v", err)
-		sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
-		return
+
+	// Handle both GET and POST methods
+	if r.Method == http.MethodGet {
+		// Get parameters from query string
+		request.UserID = r.URL.Query().Get("user_id")
+		request.Period = r.URL.Query().Get("period")
+		request.Date = r.URL.Query().Get("date")
+		request.StartDate = r.URL.Query().Get("start_date")
+		request.EndDate = r.URL.Query().Get("end_date")
+
+		// Parse transaction types and payment methods if provided
+		if transactionTypesStr := r.URL.Query().Get("transaction_types"); transactionTypesStr != "" {
+			request.TransactionTypes = strings.Split(transactionTypesStr, ",")
+		}
+		if paymentMethodsStr := r.URL.Query().Get("payment_methods"); paymentMethodsStr != "" {
+			request.PaymentMethods = strings.Split(paymentMethodsStr, ",")
+		}
+
+		// Parse limit and offset
+		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+			if limit, err := strconv.Atoi(limitStr); err == nil {
+				request.Limit = limit
+			}
+		}
+		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+			if offset, err := strconv.Atoi(offsetStr); err == nil {
+				request.Offset = offset
+			}
+		}
+	} else {
+		// POST method - decode JSON body
+		if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+			log.Printf("Error decoding upcoming bills request: %v", err)
+			sendErrorResponse(w, "Invalid request format", http.StatusBadRequest)
+			return
+		}
 	}
 
 	// Validate required fields
@@ -1255,31 +1288,78 @@ func fetchTransactionHistory(request TransactionRequest) (*TransactionHistoryRes
 	}, nil
 }
 
-// fetchUpcomingBills retrieves upcoming (unpaid) bills from the database
+// fetchUpcomingBills retrieves all bills with payment status for specific month from bill_payments
 func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, error) {
-	// Build the WHERE clause for filtering
-	whereConditions := []string{"user_id = ?", "paid = 0"}
-	args := []interface{}{request.UserID}
-
-	// Add date range filter
-	if request.StartDate != "" && request.EndDate != "" {
-		whereConditions = append(whereConditions, "due_date BETWEEN ? AND ?")
-		args = append(args, request.StartDate, request.EndDate)
-	} else if request.StartDate != "" {
-		whereConditions = append(whereConditions, "due_date >= ?")
-		args = append(args, request.StartDate)
-	} else if request.EndDate != "" {
-		whereConditions = append(whereConditions, "due_date <= ?")
-		args = append(args, request.EndDate)
+	// Extract year-month from the date range for bill_payments lookup
+	var targetYearMonth string
+	if request.StartDate != "" {
+		if len(request.StartDate) >= 7 {
+			targetYearMonth = request.StartDate[:7] // Extract YYYY-MM from YYYY-MM-DD
+		}
 	}
 
-	// Build the query
-	query := fmt.Sprintf(`
-		SELECT 
-			id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon
-		FROM bills 
-		WHERE %s 
-		ORDER BY due_date ASC`, strings.Join(whereConditions, " AND "))
+	// Build the WHERE clause for filtering
+	whereConditions := []string{"b.user_id = ?"}
+	args := []interface{}{request.UserID}
+
+	// Add date range filter - Support for recurring bills with duration
+	if request.StartDate != "" && request.EndDate != "" {
+		// For recurring bills, check if target month falls within the bill's duration
+		whereConditions = append(whereConditions, `(
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		)`)
+		args = append(args, targetYearMonth, targetYearMonth, targetYearMonth)
+	} else if targetYearMonth != "" {
+		// For recurring bills, check if target month falls within the bill's duration
+		whereConditions = append(whereConditions, `(
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		)`)
+		args = append(args, targetYearMonth, targetYearMonth, targetYearMonth)
+	}
+
+	// Build the query with LEFT JOIN to bill_payments to get payment status for specific months
+	var query string
+	if targetYearMonth != "" {
+		// For specific month queries, check payment status for that month ONLY from bill_payments
+		query = fmt.Sprintf(`
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%%Y-%%m-%%d', 
+							date('%s-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '%s'
+			WHERE %s 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC`, targetYearMonth, targetYearMonth, strings.Join(whereConditions, " AND "))
+	} else {
+		// For general queries without specific month, show only unpaid bills
+		whereConditions = append(whereConditions, "b.paid = 0")
+		query = fmt.Sprintf(`
+			SELECT 
+				b.id, b.name, b.amount, b.due_date as calculated_due_date, 
+				0 as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			WHERE %s 
+			ORDER BY calculated_due_date ASC`, strings.Join(whereConditions, " AND "))
+	}
+
+	log.Printf("🔍 fetchUpcomingBills for month: %s", targetYearMonth)
+	log.Printf("🔍 Query: %s", query)
+	log.Printf("🔍 Args: %v", args)
 
 	rows, err := db.Query(query, args...)
 	if err != nil {
@@ -1295,12 +1375,14 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 
 	for rows.Next() {
 		var t Transaction
-		var paid, overdueFlag, recurring bool
+		var monthPaid, overdueFlag, recurring bool
 		var overdueDays int
+		var startDate sql.NullString
+		var paymentDay, durationMonths sql.NullInt64
 
 		err := rows.Scan(
-			&t.ID, &t.Name, &t.Amount, &t.Date, &paid, &overdueFlag, &overdueDays,
-			&recurring, &t.Category, &t.Icon,
+			&t.ID, &t.Name, &t.Amount, &t.Date, &monthPaid, &overdueFlag, &overdueDays,
+			&recurring, &t.Category, &t.Icon, &startDate, &durationMonths, &paymentDay,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan bill: %v", err)
@@ -1309,10 +1391,10 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 		// Set transaction type and bill-specific fields
 		t.Type = "bill"
 		t.PaymentMethod = "cash" // Default value since bills table doesn't have payment_method
-		t.Paid = &paid
-		t.Overdue = &overdueFlag
+		t.Paid = &monthPaid      // Use month-specific payment status
 		t.Recurring = &recurring
-		t.OverdueDays = &overdueDays
+
+		log.Printf("🏠 Bill ID=%d, Name=%s, Month=%s, Paid=%t", t.ID, t.Name, targetYearMonth, monthPaid)
 
 		// Parse due date for categorization
 		dueDate, err := time.Parse("2006-01-02", t.Date)
@@ -1321,16 +1403,33 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 			continue
 		}
 
-		// Categorize bills
-		if overdueFlag {
-			overdue++
-		} else {
-			upcoming++
-			if dueDate.Before(weekFromNow) {
-				thisWeek++
-			}
-			if dueDate.Before(monthFromNow) {
-				thisMonth++
+		// Calculate overdue status dynamically based on current date
+		currentOverdue := false
+		currentOverdueDays := 0
+
+		if !monthPaid && dueDate.Before(now) {
+			currentOverdue = true
+			currentOverdueDays = int(now.Sub(dueDate).Hours() / 24)
+			log.Printf("📅 Bill ID=%d is overdue by %d days (due: %s, now: %s)",
+				t.ID, currentOverdueDays, t.Date, now.Format("2006-01-02"))
+		}
+
+		// Set the calculated overdue values
+		t.Overdue = &currentOverdue
+		t.OverdueDays = &currentOverdueDays
+
+		// Categorize bills - only count unpaid bills in statistics
+		if !monthPaid {
+			if currentOverdue {
+				overdue++
+			} else {
+				upcoming++
+				if dueDate.Before(weekFromNow) {
+					thisWeek++
+				}
+				if dueDate.Before(monthFromNow) {
+					thisMonth++
+				}
 			}
 		}
 

@@ -1,7 +1,6 @@
-2025/06/05 20:47:29 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/05 20:47:29 Database connection established successfully
-2025/06/05 20:47:29 Categories Management service started on :8096
-2025/06/05 20:47:53 DEBUG - Emoji decodificado: 'BASE64:8J+PoA==' -> '🏠'
-2025/06/05 20:47:53 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/05 20:48:17 DEBUG - Emoji decodificado: 'BASE64:8J+PoA==' -> '🏠'
-2025/06/05 20:48:29 DEBUG - Emoji decodificado: 'BASE64:8J+PoA==' -> '🏠'
+2025/06/06 12:44:02 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/06 12:44:02 Database connection established successfully
+2025/06/06 12:44:02 Categories Management service started on :8096
+2025/06/06 12:44:25 DEBUG - Emoji decodificado: 'BASE64:8J+PoA==' -> '🏠'
+2025/06/06 12:44:25 DEBUG - Emoji decodificado: 'BASE64:8J+alw==' -> '🚗'
+2025/06/06 12:44:25 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'

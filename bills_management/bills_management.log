@@ -1,8 +1,3 @@
 Using database at: ../google_auth/users.db
-2025/06/05 20:47:28 Database connection established successfully
+2025/06/06 12:44:01 Database connection established successfully
 Bills Management service started on :8091
-2025/06/05 20:48:29 Updated projection in monthly_cash_bank_balance for bill 7
-2025/06/05 20:48:29 Updated projection in monthly_cash_bank_balance for bill 7
-2025/06/05 20:48:29 Updated projection in monthly_cash_bank_balance for bill 7
-2025/06/05 20:48:29 Successfully recalculated all balances for user 1 from date 2025-06
-2025/06/05 20:48:29 Successfully added bill 7 with balance updates for user 1
