@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -41,6 +42,14 @@ type ApiResponse struct {
 }
 
 func init() {
+	// Load environment variables from .env file in parent directory
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+		log.Printf("Continuing with system environment variables...")
+	} else {
+		log.Println("Successfully loaded environment variables from ../.env")
+	}
+
 	// Initialize OAuth config with environment variables
 	googleOauthConfig = &oauth2.Config{
 		ClientID:     getEnvOrDefault("GOOGLE_CLIENT_ID", ""),

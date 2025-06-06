@@ -1,3 +1,48 @@
-2025/06/06 17:03:48 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/06 17:03:48 Database connection established successfully
-2025/06/06 17:03:48 Budget Overview Fetch service starting on port 8098
+2025/06/06 17:50:40 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/06 17:50:40 Database connection established successfully
+2025/06/06 17:50:40 Budget Overview Fetch service starting on port 8098
+2025/06/06 17:51:49 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/06 17:51:49 ⚠️  No historical data found for user 2 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/06 17:51:49 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 17:51:49    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    📊 Combined Expense (expenses + bills): 0.00
+2025/06/06 17:51:49    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/06 17:51:49    📋 Upcoming Bills: 0.00
+2025/06/06 17:51:49 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 2: sql: no rows in result set
+2025/06/06 17:51:49 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/06 17:51:49 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/06 17:51:49 🔍 Args: [2 2025-06 2025-06 2025-06]
+2025/06/06 17:51:49 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/06 17:51:49 ⚠️  No historical data found for user 2 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/06 17:51:49 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/06 17:51:49    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/06 17:51:49    📊 Combined Expense (expenses + bills): 0.00
+2025/06/06 17:51:49    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/06 17:51:49    📋 Upcoming Bills: 0.00
+2025/06/06 17:51:49 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 2: sql: no rows in result set
