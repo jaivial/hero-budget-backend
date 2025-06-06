@@ -1,5 +1,3 @@
-2025/06/06 16:42:50 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/06 16:42:50 Database connection established successfully
-2025/06/06 16:42:50 Fetch Dashboard service started on :8085
-2025/06/06 16:42:54 Getting user info for user ID: 2
-2025/06/06 16:42:54 User not found for ID: 2
+2025/06/06 17:03:37 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/06 17:03:37 Database connection established successfully
+2025/06/06 17:03:37 Fetch Dashboard service started on :8085

@@ -1,5 +1,1 @@
-2025/06/06 16:42:44 Registering routes:
-2025/06/06 16:42:44 - POST /auth/google
-2025/06/06 16:42:44 - POST /update/locale
-2025/06/06 16:42:44 - GET /health
-2025/06/06 16:42:44 Server started on :8081
+2025/06/06 17:03:31 GOOGLE_CLIENT_ID environment variable is required
