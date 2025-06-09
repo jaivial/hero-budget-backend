@@ -1,5 +1,27 @@
-2025/06/06 17:50:38 Configuration loaded successfully
-2025/06/06 17:50:38 Verification email templates loaded for 14 languages
-2025/06/06 17:50:38 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/06 17:50:38 Database connection established successfully
-2025/06/06 17:50:38 Signup service started on :8082
+2025/06/09 11:28:33 Configuration loaded successfully
+2025/06/09 11:28:33 Verification email templates loaded for 14 languages
+2025/06/09 11:28:33 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/09 11:28:33 Database connection established successfully
+2025/06/09 11:28:33 Signup service started on :8082
+2025/06/09 11:31:39 Received signup request
+2025/06/09 11:31:39 Request body (truncated): {"email":"jaimevillalcon@hotmail.com","password":"Jva-Mvc","name":"Jaime Villanueva","given_name":"Jaime","family_name":"Villanueva","locale":"es","verified_email":true,"picture_base64":"/9j/4AAQSkZJRgABAQAASABIAAD/4QKERXhpZgAATU0AKgAAAAgACgEGAAMAAAABAAIAAAEPAAIAAAASAAAAhgEQAAIAAAAKAAAAmAESAAMAAAABAAEAAAEaAAUAAAABAAAAogEbAAUAAAABAAAAqgEoAAMAAAABAAIAAAExAAIAAAAQAAAAsgEyAAIAAAAUAAAAwodpAAQAAAABAAAA1gAAAABOSUtPTiBDT1JQT1JBVElPTgBOSUtPTiBEOTAAAAAASAAAAAEAAABIAAAAAVF1aWNrVGltZSA3LjYuMwAyMDA5OjEwOjA5IDIzOjA5OjIwAAAagpoABQAAAAEAAAIUgp0ABQAAAAEAAAIciCIAAwAAAAEAAwAAiCcAAwAAAAEBkAAAkAAABwAAAAQwMjIwkAMAAgAAABQAAAIkkAQAAgAAABQAAAI4kBAAAgAAAAcAAAJMkBEAAgAAAAcAAAJUkBIAAgAAAAcAAAJckQEABwAAAAQBAgMAkgQACgAAAAEAAAJkkgUABQAAAAEAAAJskgcAAwAAAAEABQAAkggAAwAAAAEACQAAkgkAAwAAAAEAAAAAkgoABQAAAAEAAAJ0kpAAAgAAAAQwMDAAkpEAAgAAAAQwMDAAkpIAAgAAAAQwMDAAoAAABwAAAAQwMTAwoAEAAwAAAAH//wAAoAIABAAAAAEAAAQAoAMABAAAAAEAAAKoohcAAwAAAAEAAgAApAYAAwAAAAEAAAAAAAAAAAAAAAEAAADIAAAAHAAAAAUyMDA5OjEwOjA5IDIzOjA5OjIwADIwMDk6MTA6MDkgM...
+2025/06/09 11:31:39 Parsed request: email=jaimevillalcon@hotmail.com, name=Jaime Villanueva, given_name=Jaime, family_name=Villanueva, locale=es, verified_email=true, has_picture=true
+2025/06/09 11:31:39 Image format: jpeg, size: 157 KB
+2025/06/09 11:31:39 Compressed WebP size: 39 KB
+2025/06/09 11:31:39 Successfully processed and compressed image to WebP format
+2025/06/09 11:31:39 Inserting new user: email=jaimevillalcon@hotmail.com, name=Jaime Villanueva, given_name=Jaime, family_name=Villanueva
+2025/06/09 11:31:39 User created with ID: 3
+2025/06/09 11:31:39 User name for email: 'Jaime Villanueva'
+2025/06/09 11:31:39 Sending verification email with OTP - Email: jaimevillalcon@hotmail.com, Code: 528012, Name: Jaime Villanueva, Language: es
+2025/06/09 11:31:41 Verification email with OTP sent successfully to jaimevillalcon@hotmail.com in language: es
+2025/06/09 11:31:41 Verification email sent to jaimevillalcon@hotmail.com
+2025/06/09 11:31:41 User registration successful for ID: 3
+2025/06/09 11:31:41 Resend verification request for user_id=, email=jaimevillalcon@hotmail.com
+2025/06/09 11:31:41 Sending verification email with OTP - Email: jaimevillalcon@hotmail.com, Code: 528012, Name: Jaime Villanueva, Language: es
+2025/06/09 11:31:43 Verification email with OTP sent successfully to jaimevillalcon@hotmail.com in language: es
+2025/06/09 11:31:43 Verification email resent to jaimevillalcon@hotmail.com
+2025/06/09 11:32:03 Attempting to verify email - Code: 528012, UserID: , Email: jaimevillalcon@hotmail.com
+2025/06/09 11:32:03 Found user ID: 3, email: jaimevillalcon@hotmail.com for verification code: 528012
+2025/06/09 11:32:03 Email verified for user ID: 3, email: jaimevillalcon@hotmail.com
+2025/06/09 11:32:03 Attempting to verify email - Code: 528012, UserID: , Email: jaimevillalcon@hotmail.com
+2025/06/09 11:32:03 User ID: 3 is already verified. Returning success.

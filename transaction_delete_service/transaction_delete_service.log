@@ -1,3 +1,22 @@
-2025/06/06 17:50:41 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/06 17:50:41 Transaction Delete Service - Database connection established successfully
-2025/06/06 17:50:41 Transaction Delete Service starting on port 8095
+2025/06/09 13:34:40 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/09 13:34:40 Transaction Delete Service - Database connection established successfully
+2025/06/09 13:34:40 Transaction Delete Service starting on port 8095
+2025/06/09 13:39:29 Deleting transaction ID 33 of type expense for user 3
+2025/06/09 13:39:29 Updating balances for user 3 after deleting expense transaction (amount: 100.00, method: cash, bill_id: <nil>)
+2025/06/09 13:39:29 Period 2025-02-13 not found in daily_cash_bank_balance for user 3
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/09 13:39:29 Period 2025-W07 not found in weekly_cash_bank_balance for user 3
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/09 13:39:29 Updated monthly_cash_bank_balance balance for period 2025-02 (amount change: 100.00 cash, type: expense)
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/09 13:39:29 Updated cascade for period 2025-03: amount 100.00 (cash)
+2025/06/09 13:39:29 Updated cascade for period 2025-04: amount 100.00 (cash)
+2025/06/09 13:39:29 Updated cascade for period 2025-05: amount 100.00 (cash)
+2025/06/09 13:39:29 Updated cascade for period 2025-06: amount 100.00 (cash)
+2025/06/09 13:39:29 Period 2025-Q1 not found in quarterly_cash_bank_balance for user 3
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/09 13:39:29 Updated cascade for period 2025-Q2: amount 100.00 (cash)
+2025/06/09 13:39:29 Updated semiannual_cash_bank_balance balance for period 2025-H1 (amount change: 100.00 cash, type: expense)
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/09 13:39:29 Updated annual_cash_bank_balance balance for period 2025 (amount change: 100.00 cash, type: expense)
+2025/06/09 13:39:29 Updating subsequent periods for expense with bill_id = NULL (cascade effect)

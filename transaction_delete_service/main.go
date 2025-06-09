@@ -163,7 +163,7 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Recalculate balances for all time periods
-	err = recalculateAllBalances(deleteRequest.UserID, transaction.Date, transaction.Amount, transaction.PaymentMethod, deleteRequest.TransactionType)
+	err = recalculateAllBalances(deleteRequest.UserID, transaction.Date, transaction.Amount, transaction.PaymentMethod, deleteRequest.TransactionType, transaction.BillID)
 	if err != nil {
 		log.Printf("Error recalculating balances: %v", err)
 		// Don't fail the request if balance recalculation fails, just log it
@@ -185,6 +185,7 @@ type TransactionDetails struct {
 	Amount        float64 `json:"amount"`
 	Date          string  `json:"date"`
 	PaymentMethod string  `json:"payment_method"`
+	BillID        *int    `json:"bill_id,omitempty"` // Nuevo campo para bill_id
 }
 
 func getTransactionDetails(transactionID int, transactionType, userID string) (*TransactionDetails, error) {
@@ -193,19 +194,36 @@ func getTransactionDetails(transactionID int, transactionType, userID string) (*
 
 	switch strings.ToLower(transactionType) {
 	case "expense":
-		query = `SELECT id, user_id, amount, date, payment_method FROM expenses WHERE id = ? AND user_id = ?`
+		query = `SELECT id, user_id, amount, date, payment_method, bill_id FROM expenses WHERE id = ? AND user_id = ?`
+		row := db.QueryRow(query, transactionID, userID)
+		err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.Amount,
+			&transaction.Date, &transaction.PaymentMethod, &transaction.BillID)
+		if err != nil {
+			return nil, err
+		}
 	case "income":
 		query = `SELECT id, user_id, amount, date, payment_method FROM incomes WHERE id = ? AND user_id = ?`
+		row := db.QueryRow(query, transactionID, userID)
+		err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.Amount,
+			&transaction.Date, &transaction.PaymentMethod)
+		if err != nil {
+			return nil, err
+		}
+		// Para income, bill_id siempre es NULL
+		transaction.BillID = nil
 	case "bill":
 		query = `SELECT id, user_id, amount, due_date as date, 'bank' as payment_method FROM bills WHERE id = ? AND user_id = ?`
+		row := db.QueryRow(query, transactionID, userID)
+		err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.Amount,
+			&transaction.Date, &transaction.PaymentMethod)
+		if err != nil {
+			return nil, err
+		}
+		// Para bill, bill_id es el mismo ID
+		billID := transactionID
+		transaction.BillID = &billID
 	default:
 		return nil, fmt.Errorf("unsupported transaction type: %s", transactionType)
-	}
-
-	row := db.QueryRow(query, transactionID, userID)
-	err := row.Scan(&transaction.ID, &transaction.UserID, &transaction.Amount, &transaction.Date, &transaction.PaymentMethod)
-	if err != nil {
-		return nil, err
 	}
 
 	return &transaction, nil
@@ -242,9 +260,9 @@ func deleteTransaction(transactionID int, transactionType, userID string) error 
 	return nil
 }
 
-func recalculateAllBalances(userID, transactionDate string, amount float64, paymentMethod, transactionType string) error {
-	log.Printf("Updating balances for user %s after deleting %s transaction (amount: %.2f, method: %s)",
-		userID, transactionType, amount, paymentMethod)
+func recalculateAllBalances(userID, transactionDate string, amount float64, paymentMethod, transactionType string, billID *int) error {
+	log.Printf("Updating balances for user %s after deleting %s transaction (amount: %.2f, method: %s, bill_id: %v)",
+		userID, transactionType, amount, paymentMethod, billID)
 
 	// Parse the transaction date
 	date, err := time.Parse("2006-01-02", transactionDate[:10])
@@ -277,7 +295,12 @@ func recalculateAllBalances(userID, transactionDate string, amount float64, paym
 		}
 
 		// Update subsequent periods' previous balances
-		err = updateSubsequentPeriods(userID, periodInfo.tableName, periodInfo.name, date)
+		// Usar lógica específica para expenses con bill_id = NULL
+		if strings.ToLower(transactionType) == "expense" {
+			err = updateSubsequentPeriodsForExpense(userID, periodInfo.tableName, periodInfo.name, date, amount, paymentMethod, billID)
+		} else {
+			err = updateSubsequentPeriods(userID, periodInfo.tableName, periodInfo.name, date)
+		}
 		if err != nil {
 			log.Printf("Error updating subsequent %s periods: %v", periodInfo.name, err)
 		}

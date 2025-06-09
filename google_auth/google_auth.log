@@ -1,16 +1,6 @@
-2025/06/06 17:50:24 Successfully loaded environment variables from ../.env
-2025/06/06 17:50:24 Registering routes:
-2025/06/06 17:50:24 - POST /auth/google
-2025/06/06 17:50:24 - POST /update/locale
-2025/06/06 17:50:24 - GET /health
-2025/06/06 17:50:24 Server started on :8081
-2025/06/06 17:51:48 Using device locale for user jaimebillanueba99@gmail.com: es
-2025/06/06 17:51:48 Final locale value before DB operations: 'es'
-2025/06/06 17:51:48 Creating new user with locale: 'es'
-2025/06/06 17:51:48 Created new user with ID: 2, locale: 'es'
-2025/06/06 17:51:48 User locale in final response: 'es'
-2025/06/06 17:51:48 Using device locale for user jaimebillanueba99@gmail.com: es
-2025/06/06 17:51:48 Final locale value before DB operations: 'es'
-2025/06/06 17:51:48 Updating existing user with locale: 'es'
-2025/06/06 17:51:48 Updated user ID: 2, changed locale from 'es' to 'es'
-2025/06/06 17:51:48 User locale in final response: 'es'
+2025/06/09 11:28:19 Successfully loaded environment variables from ../.env
+2025/06/09 11:28:19 Registering routes:
+2025/06/09 11:28:19 - POST /auth/google
+2025/06/09 11:28:19 - POST /update/locale
+2025/06/09 11:28:19 - GET /health
+2025/06/09 11:28:19 Server started on :8081

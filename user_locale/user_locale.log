@@ -1,3 +1,41 @@
-2025/06/06 17:50:42 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/06 17:50:42 User Locale service - Database connection established successfully
-2025/06/06 17:50:42 User Locale service started on :8099
+2025/06/09 11:28:38 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/09 11:28:38 User Locale service - Database connection established successfully
+2025/06/09 11:28:38 User Locale service started on :8099
+2025/06/09 11:43:09 Getting user locale for user ID: 3
+2025/06/09 11:43:09 Successfully retrieved locale for user 3: es
+2025/06/09 11:45:00 Getting user locale for user ID: 3
+2025/06/09 11:45:00 Successfully retrieved locale for user 3: es
+2025/06/09 11:59:17 Getting user locale for user ID: 3
+2025/06/09 11:59:17 Successfully retrieved locale for user 3: es
+2025/06/09 12:00:13 Getting user locale for user ID: 3
+2025/06/09 12:00:13 Successfully retrieved locale for user 3: es
+2025/06/09 12:03:19 Getting user locale for user ID: 3
+2025/06/09 12:03:19 Successfully retrieved locale for user 3: es
+2025/06/09 12:04:08 Getting user locale for user ID: 3
+2025/06/09 12:04:08 Successfully retrieved locale for user 3: es
+2025/06/09 12:04:35 Getting user locale for user ID: 3
+2025/06/09 12:04:35 Successfully retrieved locale for user 3: es
+2025/06/09 12:05:44 Getting user locale for user ID: 3
+2025/06/09 12:05:44 Successfully retrieved locale for user 3: es
+2025/06/09 12:08:05 Getting user locale for user ID: 3
+2025/06/09 12:08:05 Successfully retrieved locale for user 3: es
+2025/06/09 12:09:54 Getting user locale for user ID: 3
+2025/06/09 12:09:54 Successfully retrieved locale for user 3: es
+2025/06/09 12:49:52 Getting user locale for user ID: 3
+2025/06/09 12:49:52 Successfully retrieved locale for user 3: es
+2025/06/09 12:50:22 Getting user locale for user ID: 3
+2025/06/09 12:50:22 Successfully retrieved locale for user 3: es
+2025/06/09 12:57:17 Getting user locale for user ID: 3
+2025/06/09 12:57:17 Successfully retrieved locale for user 3: es
+2025/06/09 13:19:09 Getting user locale for user ID: 3
+2025/06/09 13:19:09 Successfully retrieved locale for user 3: es
+2025/06/09 13:23:36 Getting user locale for user ID: 3
+2025/06/09 13:23:36 Successfully retrieved locale for user 3: es
+2025/06/09 13:30:11 Getting user locale for user ID: 3
+2025/06/09 13:30:11 Successfully retrieved locale for user 3: es
+2025/06/09 13:30:36 Getting user locale for user ID: 3
+2025/06/09 13:30:36 Successfully retrieved locale for user 3: es
+2025/06/09 13:36:48 Getting user locale for user ID: 3
+2025/06/09 13:36:48 Successfully retrieved locale for user 3: es
+2025/06/09 13:37:24 Getting user locale for user ID: 3
+2025/06/09 13:37:24 Successfully retrieved locale for user 3: es
