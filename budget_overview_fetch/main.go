@@ -107,6 +107,7 @@ type Transaction struct {
 	OverdueDays   *int    `json:"overdue_days,omitempty"` // For bills (pointer to handle null)
 	Recurring     *bool   `json:"recurring,omitempty"`    // For bills (pointer to handle null)
 	Icon          string  `json:"icon,omitempty"`         // For bills
+	PaymentDay    *int    `json:"payment_day,omitempty"`  // For bills (pointer to handle null)
 }
 
 // TransactionRequest represents the request structure for transaction queries
@@ -1393,6 +1394,12 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 		t.PaymentMethod = "cash" // Default value since bills table doesn't have payment_method
 		t.Paid = &monthPaid      // Use month-specific payment status
 		t.Recurring = &recurring
+
+		// Set payment_day if available
+		if paymentDay.Valid {
+			dayValue := int(paymentDay.Int64)
+			t.PaymentDay = &dayValue
+		}
 
 		log.Printf("🏠 Bill ID=%d, Name=%s, Month=%s, Paid=%t", t.ID, t.Name, targetYearMonth, monthPaid)
 
