@@ -1,9 +1,9 @@
-2025/06/11 15:49:36 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/11 15:49:36 Transaction Delete Service - Database connection established successfully
-2025/06/11 15:49:36 Transaction Delete Service starting on port 8095
-2025/06/11 17:55:27 Deleting transaction ID 51 of type expense for user 3
-2025/06/11 17:55:27 Handling expense with bill_id 44 deletion for user 3
-2025/06/11 17:55:27 Processing expense deletion - Bill ID: 44, Month: 2025-06, Amount: 200.00, Payment Method: bank
-2025/06/11 17:55:27 Updated bill_payments: marked bill_id 44 as unpaid for 2025-06
-2025/06/11 17:55:27 Updated monthly_cash_bank_balance: moved 200.00 from expense_bank_amount to bill_bank_amount for 2025-06
-2025/06/11 17:55:27 Successfully handled expense with bill deletion - ID: 51, Bill ID: 44
+2025/06/11 22:42:01 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/11 22:42:01 Transaction Delete Service - Database connection established successfully
+2025/06/11 22:42:01 Transaction Delete Service starting on port 8095
+2025/06/11 22:49:50 Deleting transaction ID 63 of type expense for user 3
+2025/06/11 22:49:50 Handling expense with bill_id 49 deletion for user 3
+2025/06/11 22:49:50 Processing expense deletion - Bill ID: 49, Month: 2025-03, Amount: 50.00, Payment Method: bank
+2025/06/11 22:49:50 Updated bill_payments: marked bill_id 49 as unpaid for 2025-03
+2025/06/11 22:49:50 Updated monthly_cash_bank_balance: moved 50.00 from expense_bank_amount to bill_bank_amount for 2025-03
+2025/06/11 22:49:50 Successfully handled expense with bill deletion - ID: 63, Bill ID: 49

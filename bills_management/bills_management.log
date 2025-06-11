@@ -1,6 +1,63 @@
 Using database at: ../google_auth/users.db
-2025/06/11 17:47:59 Database connection established successfully
+2025/06/11 22:20:46 Database connection established successfully
 Bills Management service started on :8091
-2025/06/11 17:48:50 Error processing bill payment: bill not found: unrecognized token: ":"
-2025/06/11 17:51:24 Error processing bill payment: bill not found: unrecognized token: ":"
-2025/06/11 17:51:56 Error processing bill payment: bill not found: unrecognized token: ":"
+2025/06/11 22:21:46 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-03 (user 3)
+2025/06/11 22:21:46 Created expense record for bill payment: Pago factura: Gym 2025-06-11 (amount: 50.00, bill_id: 47)
+2025/06/11 22:21:46 Payment processed for month 2025-03 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:26:38 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-05 (user 3)
+2025/06/11 22:26:38 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 50.00, bill_id: 47)
+2025/06/11 22:26:38 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:32:02 No payment records found for bill 47, creating retroactive records
+2025/06/11 22:32:02 Created 7 bill payment records for bill 47 starting from 2025-02-08
+2025/06/11 22:32:02 Created retroactive payment records for bill 47
+2025/06/11 22:32:02 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-04 (user 3)
+2025/06/11 22:32:02 Created expense record for bill payment: Pago factura: Gym 2025-04-11 (amount: 50.00, bill_id: 47)
+2025/06/11 22:32:02 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-01
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-02
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-03
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-04
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-05
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-06
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-07
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-08
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-09
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-10
+2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-11
+2025/06/11 22:36:55 Created 11 bill payment records for bill 48 starting from 2025-01-03
+2025/06/11 22:37:12 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-05 (user 3)
+2025/06/11 22:37:12 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 100.00, bill_id: 48)
+2025/06/11 22:37:12 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:37:52 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-05 (user 3)
+2025/06/11 22:37:52 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 100.00, bill_id: 48)
+2025/06/11 22:37:52 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:38:02 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-04 (user 3)
+2025/06/11 22:38:02 Created expense record for bill payment: Pago factura: Gym 2025-04-11 (amount: 100.00, bill_id: 48)
+2025/06/11 22:38:02 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:38:15 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-02 (user 3)
+2025/06/11 22:38:15 Created expense record for bill payment: Pago factura: Gym 2025-02-11 (amount: 100.00, bill_id: 48)
+2025/06/11 22:38:15 Payment processed for month 2025-02 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-02
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-03
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-04
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-05
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-06
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-07
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-08
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-09
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-10
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-11
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-12
+2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2026-01
+2025/06/11 22:45:50 Created 12 bill payment records for bill 49 starting from 2025-02-20
+2025/06/11 22:49:00 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-04 (user 3)
+2025/06/11 22:49:00 Created expense record for bill payment: Pago factura: Gym 2025-04-05 (amount: 50.00, bill_id: 49)
+2025/06/11 22:49:00 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:49:32 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-03 (user 3)
+2025/06/11 22:49:32 Created expense record for bill payment: Pago factura: Gym 2025-03-05 (amount: 50.00, bill_id: 49)
+2025/06/11 22:49:32 Payment processed for month 2025-03 - only bill_*_amount and expense_*_amount updated
+2025/06/11 22:50:21 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-02 (user 3)
+2025/06/11 22:50:21 Created expense record for bill payment: Pago factura: Gym 2025-02-05 (amount: 50.00, bill_id: 49)
+2025/06/11 22:50:21 Payment processed for month 2025-02 - only bill_*_amount and expense_*_amount updated
+2025/06/11 23:12:41 Added 200.00 to bill_bank_amount for user 3 in month 2025-06
+2025/06/11 23:12:41 Created 1 bill payment records for bill 50 starting from 2025-06-11

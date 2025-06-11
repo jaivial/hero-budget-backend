@@ -49,11 +49,6 @@ type UpdateBillRequest struct {
 	PaymentMethod  string  `json:"payment_method,omitempty"`
 }
 
-type DeleteBillRequest struct {
-	UserID string `json:"user_id"`
-	BillID int    `json:"bill_id"`
-}
-
 type ApiResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message"`
@@ -449,81 +444,6 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 		"bill_id": updateRequest.BillID,
 		"user_id": updateRequest.UserID,
 		"status":  "updated",
-	})
-}
-
-func handleDeleteBill(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "POST" {
-		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	var deleteRequest DeleteBillRequest
-	err := json.NewDecoder(r.Body).Decode(&deleteRequest)
-	if err != nil {
-		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
-		return
-	}
-
-	// Validate required fields
-	if deleteRequest.UserID == "" {
-		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
-		return
-	}
-	if deleteRequest.BillID <= 0 {
-		sendErrorResponse(w, "Valid bill ID is required", http.StatusBadRequest)
-		return
-	}
-
-	// Check if bill exists and belongs to the user
-	var existingBillID int
-	checkQuery := "SELECT id FROM bills WHERE id = ? AND user_id = ?"
-	err = db.QueryRow(checkQuery, deleteRequest.BillID, deleteRequest.UserID).Scan(&existingBillID)
-
-	if err == sql.ErrNoRows {
-		sendErrorResponse(w, "Bill not found or you don't have permission to delete it", http.StatusNotFound)
-		return
-	}
-	if err != nil {
-		log.Printf("Error checking bill existence: %v", err)
-		sendErrorResponse(w, "Error checking bill", http.StatusInternalServerError)
-		return
-	}
-
-	// Delete related bill_payments first
-	deletePaymentsQuery := "DELETE FROM bill_payments WHERE bill_id = ?"
-	_, err = db.Exec(deletePaymentsQuery, deleteRequest.BillID)
-	if err != nil {
-		log.Printf("Error deleting bill payments: %v", err)
-		sendErrorResponse(w, "Error deleting bill payments", http.StatusInternalServerError)
-		return
-	}
-
-	// Delete the bill
-	deleteBillQuery := "DELETE FROM bills WHERE id = ? AND user_id = ?"
-	result, err := db.Exec(deleteBillQuery, deleteRequest.BillID, deleteRequest.UserID)
-	if err != nil {
-		log.Printf("Error deleting bill: %v", err)
-		sendErrorResponse(w, "Error deleting bill", http.StatusInternalServerError)
-		return
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Printf("Error getting rows affected: %v", err)
-		sendErrorResponse(w, "Error verifying deletion", http.StatusInternalServerError)
-		return
-	}
-
-	if rowsAffected == 0 {
-		sendErrorResponse(w, "Bill not found or already deleted", http.StatusNotFound)
-		return
-	}
-
-	sendSuccessResponse(w, "Bill deleted successfully", map[string]interface{}{
-		"bill_id": deleteRequest.BillID,
-		"user_id": deleteRequest.UserID,
-		"status":  "deleted",
 	})
 }
 

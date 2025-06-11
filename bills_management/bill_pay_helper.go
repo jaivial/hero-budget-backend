@@ -30,6 +30,11 @@ type PayBillResponse struct {
 // markBillPaid marca una factura como pagada para un mes específico
 // y actualiza la cascada de balances
 func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string) (*PayBillResponse, error) {
+	// Si no se proporciona fecha de pago, usar la fecha actual
+	if paymentDate == "" {
+		paymentDate = time.Now().Format("2006-01-02")
+	}
+
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, fmt.Errorf("error starting transaction: %v", err)
