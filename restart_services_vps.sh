@@ -119,7 +119,7 @@ start_service() {
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
     # Verificar compilación
-    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" main.go >> "/tmp/${service_name}.log" 2>&1; then
+    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
         echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
         cd "$BASE_PATH"
         return 1
@@ -127,7 +127,7 @@ start_service() {
     rm -f "/tmp/test_${service_name}"
     
     # Ejecutar en background
-    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run main.go > "/tmp/${service_name}.log" 2>&1 &
+    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run . > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"
