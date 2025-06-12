@@ -1,63 +1,258 @@
 Using database at: ../google_auth/users.db
-2025/06/11 22:20:46 Database connection established successfully
+2025/06/12 12:50:11 Database connection established successfully
 Bills Management service started on :8091
-2025/06/11 22:21:46 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-03 (user 3)
-2025/06/11 22:21:46 Created expense record for bill payment: Pago factura: Gym 2025-06-11 (amount: 50.00, bill_id: 47)
-2025/06/11 22:21:46 Payment processed for month 2025-03 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:26:38 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-05 (user 3)
-2025/06/11 22:26:38 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 50.00, bill_id: 47)
-2025/06/11 22:26:38 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:32:02 No payment records found for bill 47, creating retroactive records
-2025/06/11 22:32:02 Created 7 bill payment records for bill 47 starting from 2025-02-08
-2025/06/11 22:32:02 Created retroactive payment records for bill 47
-2025/06/11 22:32:02 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-04 (user 3)
-2025/06/11 22:32:02 Created expense record for bill payment: Pago factura: Gym 2025-04-11 (amount: 50.00, bill_id: 47)
-2025/06/11 22:32:02 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-01
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-02
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-03
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-04
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-05
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-06
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-07
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-08
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-09
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-10
-2025/06/11 22:36:55 Added 100.00 to bill_bank_amount for user 3 in month 2025-11
-2025/06/11 22:36:55 Created 11 bill payment records for bill 48 starting from 2025-01-03
-2025/06/11 22:37:12 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-05 (user 3)
-2025/06/11 22:37:12 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 100.00, bill_id: 48)
-2025/06/11 22:37:12 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:37:52 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-05 (user 3)
-2025/06/11 22:37:52 Created expense record for bill payment: Pago factura: Gym 2025-05-11 (amount: 100.00, bill_id: 48)
-2025/06/11 22:37:52 Payment processed for month 2025-05 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:38:02 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-04 (user 3)
-2025/06/11 22:38:02 Created expense record for bill payment: Pago factura: Gym 2025-04-11 (amount: 100.00, bill_id: 48)
-2025/06/11 22:38:02 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:38:15 Moved bill amount 100.00 from bill_bank to expense_bank for month 2025-02 (user 3)
-2025/06/11 22:38:15 Created expense record for bill payment: Pago factura: Gym 2025-02-11 (amount: 100.00, bill_id: 48)
-2025/06/11 22:38:15 Payment processed for month 2025-02 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-02
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-03
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-04
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-05
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-06
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-07
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-08
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-09
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-10
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-11
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2025-12
-2025/06/11 22:45:50 Added 50.00 to bill_bank_amount for user 3 in month 2026-01
-2025/06/11 22:45:50 Created 12 bill payment records for bill 49 starting from 2025-02-20
-2025/06/11 22:49:00 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-04 (user 3)
-2025/06/11 22:49:00 Created expense record for bill payment: Pago factura: Gym 2025-04-05 (amount: 50.00, bill_id: 49)
-2025/06/11 22:49:00 Payment processed for month 2025-04 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:49:32 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-03 (user 3)
-2025/06/11 22:49:32 Created expense record for bill payment: Pago factura: Gym 2025-03-05 (amount: 50.00, bill_id: 49)
-2025/06/11 22:49:32 Payment processed for month 2025-03 - only bill_*_amount and expense_*_amount updated
-2025/06/11 22:50:21 Moved bill amount 50.00 from bill_bank to expense_bank for month 2025-02 (user 3)
-2025/06/11 22:50:21 Created expense record for bill payment: Pago factura: Gym 2025-02-05 (amount: 50.00, bill_id: 49)
-2025/06/11 22:50:21 Payment processed for month 2025-02 - only bill_*_amount and expense_*_amount updated
-2025/06/11 23:12:41 Added 200.00 to bill_bank_amount for user 3 in month 2025-06
-2025/06/11 23:12:41 Created 1 bill payment records for bill 50 starting from 2025-06-11
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-06
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 12:51:02 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 12:51:02 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 12:51:02 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-07
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 12:51:02 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 12:51:02 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-08-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-08-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-08
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-08
+2025/06/12 12:51:02 📋 Bill ID 51 (Gym): period=2025-08, paid=true, dueDate=2025-08-12
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-08
+2025/06/12 12:51:02 ✅ Returning 1 bills for period 2025-08-01
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-09-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-09-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-09
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-09
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 0 bills for period 2025-09
+2025/06/12 12:51:02 ✅ Returning 0 bills for period 2025-09-01
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-10-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-10-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-10
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-10
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 0 bills for period 2025-10
+2025/06/12 12:51:02 ✅ Returning 0 bills for period 2025-10-01
+2025/06/12 12:51:02 🔍 handleFetchBills: userID=3, period=monthly, date=2025-11-01
+2025/06/12 12:51:02 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-11-01
+2025/06/12 12:51:02 📅 Target year-month: 2025-11
+2025/06/12 12:51:02 🔍 Executing query with targetYearMonth: 2025-11
+2025/06/12 12:51:02 ✅ fetchBillsForPeriod: Found 0 bills for period 2025-11
+2025/06/12 12:51:02 ✅ Returning 0 bills for period 2025-11-01
+2025/06/12 12:59:22 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:59:22 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:59:22 📅 Target year-month: 2025-06
+2025/06/12 12:59:22 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 12:59:22 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 12:59:22 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 12:59:22 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 12:59:22 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 12:59:28 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 12:59:28 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 12:59:28 📅 Target year-month: 2025-07
+2025/06/12 12:59:28 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 12:59:28 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 12:59:28 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 12:59:28 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 12:59:32 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:59:32 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 12:59:32 📅 Target year-month: 2025-06
+2025/06/12 12:59:32 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 12:59:32 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 12:59:32 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 12:59:32 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 12:59:32 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:05:29 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:05:29 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:05:29 📅 Target year-month: 2025-06
+2025/06/12 13:05:29 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:05:29 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:05:29 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:05:29 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:05:29 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:05:31 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:05:31 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:05:31 📅 Target year-month: 2025-07
+2025/06/12 13:05:31 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 13:05:31 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 13:05:31 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 13:05:31 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 13:09:17 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:09:17 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:09:17 📅 Target year-month: 2025-06
+2025/06/12 13:09:17 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:09:17 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:09:17 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:09:17 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:09:17 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:09:20 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:09:20 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:09:20 📅 Target year-month: 2025-07
+2025/06/12 13:09:20 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 13:09:20 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 13:09:20 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 13:09:20 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 13:09:57 🔍 handleFetchBills: userID=3, period=monthly, date=2025-08-01
+2025/06/12 13:09:57 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-08-01
+2025/06/12 13:09:57 📅 Target year-month: 2025-08
+2025/06/12 13:09:57 🔍 Executing query with targetYearMonth: 2025-08
+2025/06/12 13:09:57 📋 Bill ID 51 (Gym): period=2025-08, paid=true, dueDate=2025-08-12
+2025/06/12 13:09:57 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-08
+2025/06/12 13:09:57 ✅ Returning 1 bills for period 2025-08-01
+2025/06/12 13:09:59 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:09:59 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:09:59 📅 Target year-month: 2025-07
+2025/06/12 13:09:59 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 13:09:59 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 13:09:59 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 13:09:59 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 13:10:00 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:10:00 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:10:00 📅 Target year-month: 2025-06
+2025/06/12 13:10:00 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:10:00 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:10:00 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:10:00 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:10:00 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:10:01 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:10:01 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:10:01 📅 Target year-month: 2025-05
+2025/06/12 13:10:01 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:10:01 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:10:01 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:10:01 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:17:15 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:17:15 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:17:15 📅 Target year-month: 2025-06
+2025/06/12 13:17:15 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:17:15 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:17:15 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:17:15 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:17:15 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:17:19 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:17:19 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:17:19 📅 Target year-month: 2025-07
+2025/06/12 13:17:19 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 13:17:19 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 13:17:19 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 13:17:19 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 13:17:21 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:17:21 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:17:21 📅 Target year-month: 2025-06
+2025/06/12 13:17:21 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:17:21 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:17:21 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:17:21 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:17:21 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:17:22 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:17:22 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:17:22 📅 Target year-month: 2025-05
+2025/06/12 13:17:22 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:17:22 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:17:22 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:17:22 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:22:25 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:22:25 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:22:25 📅 Target year-month: 2025-06
+2025/06/12 13:22:25 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:22:25 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:22:25 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:22:25 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:22:25 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:22:28 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:22:28 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:22:28 📅 Target year-month: 2025-05
+2025/06/12 13:22:28 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:22:28 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:22:28 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:22:28 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:22:29 🔍 handleFetchBills: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:22:29 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:22:29 📅 Target year-month: 2025-04
+2025/06/12 13:22:29 🔍 Executing query with targetYearMonth: 2025-04
+2025/06/12 13:22:29 📋 Bill ID 51 (Gym): period=2025-04, paid=true, dueDate=2025-04-12
+2025/06/12 13:22:29 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-04
+2025/06/12 13:22:29 ✅ Returning 1 bills for period 2025-04-01
+2025/06/12 13:22:30 🔍 handleFetchBills: userID=3, period=monthly, date=2025-03-01
+2025/06/12 13:22:30 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-03-01
+2025/06/12 13:22:30 📅 Target year-month: 2025-03
+2025/06/12 13:22:30 🔍 Executing query with targetYearMonth: 2025-03
+2025/06/12 13:22:30 📋 Bill ID 51 (Gym): period=2025-03, paid=true, dueDate=2025-03-12
+2025/06/12 13:22:30 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-03
+2025/06/12 13:22:30 ✅ Returning 1 bills for period 2025-03-01
+2025/06/12 13:22:31 🔍 handleFetchBills: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:22:31 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:22:31 📅 Target year-month: 2025-04
+2025/06/12 13:22:31 🔍 Executing query with targetYearMonth: 2025-04
+2025/06/12 13:22:31 📋 Bill ID 51 (Gym): period=2025-04, paid=true, dueDate=2025-04-12
+2025/06/12 13:22:31 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-04
+2025/06/12 13:22:31 ✅ Returning 1 bills for period 2025-04-01
+2025/06/12 13:22:32 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:22:32 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:22:32 📅 Target year-month: 2025-05
+2025/06/12 13:22:32 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:22:32 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:22:32 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:22:32 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:22:33 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:22:33 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:22:33 📅 Target year-month: 2025-06
+2025/06/12 13:22:33 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:22:33 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:22:33 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:22:33 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:22:33 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:26:24 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:24 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:24 📅 Target year-month: 2025-06
+2025/06/12 13:26:24 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:26:24 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:26:24 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:26:24 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:26:24 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:26:26 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:26:26 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:26:26 📅 Target year-month: 2025-05
+2025/06/12 13:26:26 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:26:26 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:26:26 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:26:26 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:26:27 🔍 handleFetchBills: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:26:27 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-04-01
+2025/06/12 13:26:27 📅 Target year-month: 2025-04
+2025/06/12 13:26:27 🔍 Executing query with targetYearMonth: 2025-04
+2025/06/12 13:26:27 📋 Bill ID 51 (Gym): period=2025-04, paid=true, dueDate=2025-04-12
+2025/06/12 13:26:27 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-04
+2025/06/12 13:26:27 ✅ Returning 1 bills for period 2025-04-01
+2025/06/12 13:26:28 🔍 handleFetchBills: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:26:28 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-05-01
+2025/06/12 13:26:28 📅 Target year-month: 2025-05
+2025/06/12 13:26:28 🔍 Executing query with targetYearMonth: 2025-05
+2025/06/12 13:26:28 📋 Bill ID 51 (Gym): period=2025-05, paid=true, dueDate=2025-05-12
+2025/06/12 13:26:28 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-05
+2025/06/12 13:26:28 ✅ Returning 1 bills for period 2025-05-01
+2025/06/12 13:26:30 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:30 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:30 📅 Target year-month: 2025-06
+2025/06/12 13:26:30 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:26:30 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:26:30 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:26:30 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:26:30 ✅ Returning 2 bills for period 2025-06-01
+2025/06/12 13:26:31 🔍 handleFetchBills: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:26:31 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-07-01
+2025/06/12 13:26:31 📅 Target year-month: 2025-07
+2025/06/12 13:26:31 🔍 Executing query with targetYearMonth: 2025-07
+2025/06/12 13:26:31 📋 Bill ID 51 (Gym): period=2025-07, paid=true, dueDate=2025-07-12
+2025/06/12 13:26:31 ✅ fetchBillsForPeriod: Found 1 bills for period 2025-07
+2025/06/12 13:26:31 ✅ Returning 1 bills for period 2025-07-01
+2025/06/12 13:26:32 🔍 handleFetchBills: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:32 🔍 fetchBillsForPeriod: userID=3, period=monthly, date=2025-06-01
+2025/06/12 13:26:32 📅 Target year-month: 2025-06
+2025/06/12 13:26:32 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/12 13:26:32 📋 Bill ID 50 (Gym): period=2025-06, paid=false, dueDate=2025-06-11
+2025/06/12 13:26:32 📋 Bill ID 51 (Gym): period=2025-06, paid=false, dueDate=2025-06-12
+2025/06/12 13:26:32 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06
+2025/06/12 13:26:32 ✅ Returning 2 bills for period 2025-06-01

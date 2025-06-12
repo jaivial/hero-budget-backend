@@ -1,4 +1,4 @@
-2025/06/11 21:40:56 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/11 21:40:56 Note: period column might already exist: duplicate column name: period
-2025/06/11 21:40:56 Database connection established successfully
-2025/06/11 21:40:56 Savings Management service started on :8089
+2025/06/12 12:50:23 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/12 12:50:23 Note: period column might already exist: duplicate column name: period
+2025/06/12 12:50:23 Database connection established successfully
+2025/06/12 12:50:23 Savings Management service started on :8089

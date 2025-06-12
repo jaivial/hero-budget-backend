@@ -1,47 +1,19 @@
-2025/06/11 21:41:02 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/11 21:41:02 User Locale service - Database connection established successfully
-2025/06/11 21:41:02 User Locale service started on :8099
-2025/06/11 21:42:17 Getting user locale for user ID: 3
-2025/06/11 21:42:17 Successfully retrieved locale for user 3: es
-2025/06/11 22:06:22 Getting user locale for user ID: 3
-2025/06/11 22:06:22 Successfully retrieved locale for user 3: es
-2025/06/11 22:13:46 Getting user locale for user ID: 3
-2025/06/11 22:13:46 Successfully retrieved locale for user 3: es
-2025/06/11 22:14:55 Getting user locale for user ID: 3
-2025/06/11 22:14:55 Successfully retrieved locale for user 3: es
-2025/06/11 22:17:37 Getting user locale for user ID: 3
-2025/06/11 22:17:37 Successfully retrieved locale for user 3: es
-2025/06/11 22:21:12 Getting user locale for user ID: 3
-2025/06/11 22:21:12 Successfully retrieved locale for user 3: es
-2025/06/11 22:26:22 Getting user locale for user ID: 3
-2025/06/11 22:26:22 Successfully retrieved locale for user 3: es
-2025/06/11 22:30:42 Getting user locale for user ID: 3
-2025/06/11 22:30:42 Successfully retrieved locale for user 3: es
-2025/06/11 22:31:33 Getting user locale for user ID: 3
-2025/06/11 22:31:33 Successfully retrieved locale for user 3: es
-2025/06/11 22:36:15 Getting user locale for user ID: 3
-2025/06/11 22:36:15 Successfully retrieved locale for user 3: es
-2025/06/11 22:45:23 Getting user locale for user ID: 3
-2025/06/11 22:45:23 Successfully retrieved locale for user 3: es
-2025/06/11 22:48:50 Getting user locale for user ID: 3
-2025/06/11 22:48:50 Successfully retrieved locale for user 3: es
-2025/06/11 23:10:49 Getting user locale for user ID: 3
-2025/06/11 23:10:49 Successfully retrieved locale for user 3: es
-2025/06/11 23:20:45 Getting user locale for user ID: 3
-2025/06/11 23:20:45 Successfully retrieved locale for user 3: es
-2025/06/11 23:25:07 Getting user locale for user ID: 3
-2025/06/11 23:25:07 Successfully retrieved locale for user 3: es
-2025/06/11 23:28:43 Getting user locale for user ID: 3
-2025/06/11 23:28:43 Successfully retrieved locale for user 3: es
-2025/06/11 23:38:58 Getting user locale for user ID: 3
-2025/06/11 23:38:58 Successfully retrieved locale for user 3: es
-2025/06/11 23:39:11 Getting user locale for user ID: 3
-2025/06/11 23:39:11 Successfully retrieved locale for user 3: es
-2025/06/11 23:45:54 Getting user locale for user ID: 3
-2025/06/11 23:45:54 Successfully retrieved locale for user 3: es
-2025/06/11 23:49:19 Getting user locale for user ID: 3
-2025/06/11 23:49:19 Successfully retrieved locale for user 3: es
-2025/06/11 23:53:49 Getting user locale for user ID: 3
-2025/06/11 23:53:49 Successfully retrieved locale for user 3: es
-2025/06/11 23:54:05 Getting user locale for user ID: 3
-2025/06/11 23:54:05 Successfully retrieved locale for user 3: nl
+2025/06/12 12:50:29 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/12 12:50:29 User Locale service - Database connection established successfully
+2025/06/12 12:50:29 User Locale service started on :8099
+2025/06/12 12:50:59 Getting user locale for user ID: 3
+2025/06/12 12:50:59 Successfully retrieved locale for user 3: en
+2025/06/12 12:59:19 Getting user locale for user ID: 3
+2025/06/12 12:59:19 Successfully retrieved locale for user 3: en
+2025/06/12 13:04:42 Getting user locale for user ID: 3
+2025/06/12 13:04:42 Successfully retrieved locale for user 3: en
+2025/06/12 13:05:23 Getting user locale for user ID: 3
+2025/06/12 13:05:23 Successfully retrieved locale for user 3: en
+2025/06/12 13:09:11 Getting user locale for user ID: 3
+2025/06/12 13:09:11 Successfully retrieved locale for user 3: en
+2025/06/12 13:17:11 Getting user locale for user ID: 3
+2025/06/12 13:17:11 Successfully retrieved locale for user 3: en
+2025/06/12 13:22:21 Getting user locale for user ID: 3
+2025/06/12 13:22:21 Successfully retrieved locale for user 3: en
+2025/06/12 13:26:06 Getting user locale for user ID: 3
+2025/06/12 13:26:06 Successfully retrieved locale for user 3: en

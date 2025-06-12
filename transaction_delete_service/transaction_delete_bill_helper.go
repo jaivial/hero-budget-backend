@@ -26,13 +26,19 @@ func handleExpenseWithBillDeletion(transaction TransactionDetails) error {
 		return fmt.Errorf("error updating bill_payments: %v", err)
 	}
 
-	// Step 3: Update monthly_cash_bank_balance table
+	// Step 3: Update bills table to mark as unpaid
+	err = updateBillPaidStatus(*transaction.BillID, transaction.UserID)
+	if err != nil {
+		return fmt.Errorf("error updating bills paid status: %v", err)
+	}
+
+	// Step 4: Update monthly_cash_bank_balance table
 	err = updateMonthlyBalanceForBillDeletion(transaction, yearMonth)
 	if err != nil {
 		return fmt.Errorf("error updating monthly_cash_bank_balance: %v", err)
 	}
 
-	// Step 4: Delete the expense transaction
+	// Step 5: Delete the expense transaction
 	err = deleteTransaction(transaction.ID, "expense", transaction.UserID)
 	if err != nil {
 		return fmt.Errorf("error deleting expense transaction: %v", err)
@@ -59,6 +65,28 @@ func updateBillPaymentStatus(billID int, yearMonth string) error {
 		log.Printf("Warning: No bill_payments record found for bill_id %d and year_month %s", billID, yearMonth)
 	} else {
 		log.Printf("Updated bill_payments: marked bill_id %d as unpaid for %s", billID, yearMonth)
+	}
+
+	return nil
+}
+
+// updateBillPaidStatus updates the bills table to mark as unpaid when a payment is deleted
+func updateBillPaidStatus(billID int, userID string) error {
+	billUpdateQuery := `UPDATE bills SET paid = 0 WHERE id = ? AND user_id = ?`
+	result, err := db.Exec(billUpdateQuery, billID, userID)
+	if err != nil {
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("error checking bills update: %v", err)
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("Warning: No bills record found for bill_id %d and user_id %s", billID, userID)
+	} else {
+		log.Printf("Updated bills: marked bill_id %d as unpaid for user %s", billID, userID)
 	}
 
 	return nil

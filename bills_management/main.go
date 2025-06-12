@@ -158,6 +158,33 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Obtener parámetros opcionales de período y fecha
+	period := r.URL.Query().Get("period")
+	date := r.URL.Query().Get("date")
+
+	log.Printf("🔍 handleFetchBills: userID=%s, period=%s, date=%s", userID, period, date)
+
+	// Si se proporcionan parámetros de período, usar la nueva lógica
+	if period != "" && date != "" {
+		billsWithStatus, err := fetchBillsForPeriod(userID, period, date)
+		if err != nil {
+			log.Printf("❌ Error fetching bills for period: %v", err)
+			sendErrorResponse(w, "Error fetching bills for period", http.StatusInternalServerError)
+			return
+		}
+
+		// Convertir a formato Bill para compatibilidad
+		var bills []Bill
+		for _, billWithStatus := range billsWithStatus {
+			bills = append(bills, convertBillWithPeriodStatusToBill(billWithStatus))
+		}
+
+		log.Printf("✅ Returning %d bills for period %s", len(bills), date)
+		sendSuccessResponse(w, "Bills fetched successfully", bills)
+		return
+	}
+
+	// Fallback: usar la lógica original si no se proporcionan parámetros de período
 	bills, err := fetchBills(userID)
 	if err != nil {
 		sendErrorResponse(w, "Error fetching bills", http.StatusInternalServerError)
