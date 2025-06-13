@@ -1,0 +1,9 @@
+2025/06/13 16:31:56 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 16:31:56 Database connection established successfully
+2025/06/13 16:31:56 Fetch Dashboard service started on :8085
+2025/06/13 16:32:05 Getting user info for user ID: 6
+2025/06/13 16:32:05 User not found for ID: 6
+2025/06/13 16:32:12 Getting user info for user ID: 6
+2025/06/13 16:32:12 User not found for ID: 6
+2025/06/13 16:32:56 Getting user info for user ID: 8
+2025/06/13 16:32:56 Successfully retrieved user 8: Jaime Villalcon (jaimevillalcon@hotmail.com)

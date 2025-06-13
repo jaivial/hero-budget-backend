@@ -48,3 +48,365 @@ No savings goal found for user 3: sql: no rows in result set
 2025/06/13 12:50:46 📅 Bill ID=50 is overdue by 2 days (due: 2025-06-11, now: 2025-06-13)
 2025/06/13 12:50:46 🏠 Bill ID=51, Name=Gym, Month=2025-06, Paid=false
 2025/06/13 12:50:46 📅 Bill ID=51 is overdue by 1 days (due: 2025-06-12, now: 2025-06-13)
+2025/06/13 16:07:23 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:07:23 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:07:23 🔍 Args: [null 2025-06 2025-06 2025-06]
+2025/06/13 16:07:23 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:07:23 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:07:23 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:07:23    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:07:23    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:07:23    📋 Upcoming Bills: 0.00
+2025/06/13 16:07:23 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:07:23 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:07:23 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:07:23 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:07:23    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:07:23    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:07:23    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:07:23    📋 Upcoming Bills: 0.00
+2025/06/13 16:07:23 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:12:59 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:12:59 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:12:59 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:12:59    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:12:59    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:12:59    📋 Upcoming Bills: 0.00
+2025/06/13 16:12:59 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:12:59 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:12:59 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:12:59 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:12:59    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:12:59    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:12:59    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:12:59    📋 Upcoming Bills: 0.00
+2025/06/13 16:12:59 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:12:59 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:12:59 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:12:59 🔍 Args: [null 2025-06 2025-06 2025-06]
+2025/06/13 16:15:38 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:15:38 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:15:38 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:15:38    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:15:38    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:15:38    📋 Upcoming Bills: 0.00
+2025/06/13 16:15:38 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:15:38 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:15:38 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:15:38 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:15:38 🔍 Args: [null 2025-06 2025-06 2025-06]
+2025/06/13 16:15:38 ⚠️  No historical data found for user null in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:15:38 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:15:38    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:38    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:15:38    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:15:38    📋 Upcoming Bills: 0.00
+2025/06/13 16:15:38 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user null: sql: no rows in result set
+2025/06/13 16:15:58 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=240.00, BillCash=0.00, TotalBalance=-400.00
+2025/06/13 16:15:58 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:15:58    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:58    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:58    🏷️ Bills Amount: 240.00 (Bank: 240.00 + Cash: 0.00)
+2025/06/13 16:15:58    📊 Combined Expense (expenses + bills): 240.00
+2025/06/13 16:15:58    💵 Available Balance: -240.00 (Income: 0.00 - Combined Expenses: 240.00)
+2025/06/13 16:15:58    📋 Upcoming Bills: 240.00
+2025/06/13 16:15:58 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-400.00 (0.0%), Total=-400.00
+No savings goal found for user 3: sql: no rows in result set
+2025/06/13 16:15:58 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:15:58 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:15:58 🔍 Args: [3 2025-06 2025-06 2025-06]
+2025/06/13 16:15:58 🏠 Bill ID=50, Name=Gym, Month=2025-06, Paid=false
+2025/06/13 16:15:58 📅 Bill ID=50 is overdue by 2 days (due: 2025-06-11, now: 2025-06-13)
+2025/06/13 16:15:58 🏠 Bill ID=51, Name=Gym, Month=2025-06, Paid=false
+2025/06/13 16:15:58 📅 Bill ID=51 is overdue by 1 days (due: 2025-06-12, now: 2025-06-13)
+2025/06/13 16:15:58 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=240.00, BillCash=0.00, TotalBalance=-400.00
+2025/06/13 16:15:58 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:15:58    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:58    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:15:58    🏷️ Bills Amount: 240.00 (Bank: 240.00 + Cash: 0.00)
+2025/06/13 16:15:58    📊 Combined Expense (expenses + bills): 240.00
+2025/06/13 16:15:58    💵 Available Balance: -240.00 (Income: 0.00 - Combined Expenses: 240.00)
+2025/06/13 16:15:58    📋 Upcoming Bills: 240.00
+2025/06/13 16:15:58 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-400.00 (0.0%), Total=-400.00
+No savings goal found for user 3: sql: no rows in result set
+2025/06/13 16:16:46 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:16:46 ⚠️  No historical data found for user 6 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:16:46 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:16:46    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:16:46    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:16:46    📋 Upcoming Bills: 0.00
+2025/06/13 16:16:46 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 6: sql: no rows in result set
+2025/06/13 16:16:46 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:16:46 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:16:46 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:16:46 🔍 Args: [6 2025-06 2025-06 2025-06]
+2025/06/13 16:16:46 ⚠️  No historical data found for user 6 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:16:46 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:16:46    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:16:46    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:16:46    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:16:46    📋 Upcoming Bills: 0.00
+2025/06/13 16:16:46 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 6: sql: no rows in result set
+2025/06/13 16:26:51 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:26:51 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:26:51 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:26:51 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:26:51 🔍 Args: [6 2025-06 2025-06 2025-06]
+2025/06/13 16:26:51 ⚠️  No historical data found for user 6 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:26:51 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:26:51    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:26:51    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:26:51    📋 Upcoming Bills: 0.00
+2025/06/13 16:26:51 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 6: sql: no rows in result set
+2025/06/13 16:26:51 ⚠️  No historical data found for user 6 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:26:51 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:26:51    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:26:51    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:26:51    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:26:51    📋 Upcoming Bills: 0.00
+2025/06/13 16:26:51 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 6: sql: no rows in result set
+2025/06/13 16:27:13 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:27:13 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:27:13 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:27:13 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:27:13 🔍 Args: [7 2025-06 2025-06 2025-06]
+2025/06/13 16:27:13 ⚠️  No historical data found for user 7 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:27:13 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:27:13    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:27:13    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:27:13    📋 Upcoming Bills: 0.00
+2025/06/13 16:27:13 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+2025/06/13 16:27:13 ⚠️  No historical data found for user 7 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:27:13 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:27:13    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:27:13    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:27:13    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+No savings goal found for user 7: sql: no rows in result set
+2025/06/13 16:27:13    📋 Upcoming Bills: 0.00
+2025/06/13 16:27:13 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 7: sql: no rows in result set
+2025/06/13 16:33:34 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:33:34 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/13 16:33:34 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/13 16:33:34 🔍 Args: [9 2025-06 2025-06 2025-06]
+2025/06/13 16:33:34 ⚠️  No historical data found for user 9 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:33:34 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:33:34    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:33:34    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:33:34    📋 Upcoming Bills: 0.00
+2025/06/13 16:33:34 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 9: sql: no rows in result set
+2025/06/13 16:33:34 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/13 16:33:34 ⚠️  No historical data found for user 9 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-06
+2025/06/13 16:33:34 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/13 16:33:34    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/13 16:33:34    📊 Combined Expense (expenses + bills): 0.00
+2025/06/13 16:33:34    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/13 16:33:34    📋 Upcoming Bills: 0.00
+2025/06/13 16:33:34 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+No savings goal found for user 9: sql: no rows in result set

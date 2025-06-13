@@ -10,7 +10,7 @@ func getUserByAppleID(appleID string) (*User, error) {
 	var user User
 	err := db.QueryRow(`
 		SELECT id, apple_id, google_id, email, name, given_name, family_name, 
-		picture, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
 		FROM users WHERE apple_id = ?`, appleID).Scan(
 		&user.ID,
 		&user.AppleID,
@@ -20,6 +20,7 @@ func getUserByAppleID(appleID string) (*User, error) {
 		&user.GivenName,
 		&user.FamilyName,
 		&user.Picture,
+		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
 		&user.CreatedAt,
@@ -33,7 +34,7 @@ func getUserByEmail(email string) (*User, error) {
 	var user User
 	err := db.QueryRow(`
 		SELECT id, apple_id, google_id, email, name, given_name, family_name, 
-		picture, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
 		FROM users WHERE email = ?`, email).Scan(
 		&user.ID,
 		&user.AppleID,
@@ -43,6 +44,7 @@ func getUserByEmail(email string) (*User, error) {
 		&user.GivenName,
 		&user.FamilyName,
 		&user.Picture,
+		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
 		&user.CreatedAt,
@@ -56,10 +58,10 @@ func createAppleUser(user User) (*User, error) {
 	result, err := db.Exec(`
 		INSERT INTO users (
 			apple_id, email, name, given_name, family_name, 
-			locale, verified_email
-		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+			picture, profile_image_blob, locale, verified_email
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		user.AppleID, user.Email, user.Name, user.GivenName,
-		user.FamilyName, user.Locale, user.VerifiedEmail,
+		user.FamilyName, user.Picture, user.ProfileImageBlob, user.Locale, user.VerifiedEmail,
 	)
 	if err != nil {
 		return nil, err

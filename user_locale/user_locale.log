@@ -3,3 +3,5 @@
 2025/06/13 11:02:38 User Locale service started on :8099
 2025/06/13 12:50:44 Getting user locale for user ID: 3
 2025/06/13 12:50:44 Successfully retrieved locale for user 3: en
+2025/06/13 16:26:50 Getting user locale for user ID: 6
+2025/06/13 16:26:50 Successfully retrieved locale for user 6: es

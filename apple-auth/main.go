@@ -110,10 +110,10 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 	// Extract user information from claims and request
 	user := extractUserFromRequest(req, claims)
 
-	log.Printf("Processing Apple Sign-In for user: %s (Apple ID: %s)", user.Email, user.AppleID)
+	log.Printf("Processing Apple Sign-In for user: %s (Apple ID: %s)", user.Email, user.AppleID.String)
 
 	// Check if user exists in database
-	existingUser, err := getUserByAppleID(user.AppleID)
+	existingUser, err := getUserByAppleID(user.AppleID.String)
 	if err != nil && err != sql.ErrNoRows {
 		log.Printf("Database error checking user: %v", err)
 		sendErrorResponse(w, "Database error", http.StatusInternalServerError)
@@ -131,7 +131,7 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 
 		if emailErr == nil {
 			// User exists with same email, link Apple ID to existing account
-			err = linkAppleIDToUser(existingEmailUser.ID, user.AppleID)
+			err = linkAppleIDToUser(existingEmailUser.ID, user.AppleID.String)
 			if err != nil {
 				log.Printf("Failed to link Apple ID to existing user: %v", err)
 				sendErrorResponse(w, "Failed to link account", http.StatusInternalServerError)
@@ -164,12 +164,50 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 	sendSuccessResponse(w, "Login successful", existingUser)
 }
 
+// userToJSON converts a User with sql.NullString fields to a JSON-friendly format
+func userToJSON(user *User) map[string]interface{} {
+	result := map[string]interface{}{
+		"id":             user.ID,
+		"email":          user.Email,
+		"verified_email": user.VerifiedEmail,
+		"created_at":     user.CreatedAt,
+		"updated_at":     user.UpdatedAt,
+	}
+
+	if user.AppleID.Valid {
+		result["apple_id"] = user.AppleID.String
+	}
+	if user.GoogleID.Valid {
+		result["google_id"] = user.GoogleID.String
+	}
+	if user.Name.Valid {
+		result["name"] = user.Name.String
+	}
+	if user.GivenName.Valid {
+		result["given_name"] = user.GivenName.String
+	}
+	if user.FamilyName.Valid {
+		result["family_name"] = user.FamilyName.String
+	}
+	if user.Picture.Valid {
+		result["picture"] = user.Picture.String
+	}
+	if user.ProfileImageBlob.Valid {
+		result["profile_image_blob"] = user.ProfileImageBlob.String
+	}
+	if user.Locale.Valid {
+		result["locale"] = user.Locale.String
+	}
+
+	return result
+}
+
 func sendSuccessResponse(w http.ResponseWriter, message string, user *User) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(AppleSignInResponse{
 		Success: true,
 		Message: message,
-		User:    user,
+		User:    userToJSON(user),
 	})
 }
 
