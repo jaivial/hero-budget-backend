@@ -1,33 +1,6 @@
-2025/06/12 12:50:17 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/12 12:50:17 Database connection established successfully
-2025/06/12 12:50:17 Fetch Dashboard service started on :8085
-2025/06/12 12:50:59 Getting user info for user ID: 3
-2025/06/12 12:50:59 Using profile image blob for user 3
-2025/06/12 12:50:59 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 12:59:19 Getting user info for user ID: 3
-2025/06/12 12:59:19 Using profile image blob for user 3
-2025/06/12 12:59:19 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:04:42 Getting user info for user ID: 3
-2025/06/12 13:04:42 Using profile image blob for user 3
-2025/06/12 13:04:42 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:05:23 Getting user info for user ID: 3
-2025/06/12 13:05:23 Using profile image blob for user 3
-2025/06/12 13:05:23 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:09:12 Getting user info for user ID: 3
-2025/06/12 13:09:12 Using profile image blob for user 3
-2025/06/12 13:09:12 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:17:11 Getting user info for user ID: 3
-2025/06/12 13:17:11 Using profile image blob for user 3
-2025/06/12 13:17:11 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:22:21 Getting user info for user ID: 3
-2025/06/12 13:22:21 Using profile image blob for user 3
-2025/06/12 13:22:21 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:26:06 Getting user info for user ID: 3
-2025/06/12 13:26:06 Using profile image blob for user 3
-2025/06/12 13:26:06 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 13:32:48 Getting user info for user ID: 3
-2025/06/12 13:32:48 Using profile image blob for user 3
-2025/06/12 13:32:48 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/12 14:21:26 Getting user info for user ID: 3
-2025/06/12 14:21:26 Using profile image blob for user 3
-2025/06/12 14:21:26 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
+2025/06/13 11:02:25 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 11:02:25 Database connection established successfully
+2025/06/13 11:02:25 Fetch Dashboard service started on :8085
+2025/06/13 12:50:45 Getting user info for user ID: 3
+2025/06/13 12:50:45 Using profile image blob for user 3
+2025/06/13 12:50:45 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)

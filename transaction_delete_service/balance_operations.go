@@ -152,7 +152,7 @@ func updatePeriodBalance(userID, tableName, periodIdentifier string, amount floa
 	// Now update total_balance separately to ensure it uses the updated values
 	totalBalanceQuery := fmt.Sprintf(`
 		UPDATE %s 
-		SET total_balance = (
+		SET total_balance = COALESCE(total_previous_balance, 0) + (
 			COALESCE(income_bank_amount, 0) + COALESCE(income_cash_amount, 0) - 
 			COALESCE(expense_bank_amount, 0) - COALESCE(expense_cash_amount, 0) - 
 			COALESCE(bill_bank_amount, 0) - COALESCE(bill_cash_amount, 0)

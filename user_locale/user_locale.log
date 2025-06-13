@@ -1,23 +1,5 @@
-2025/06/12 12:50:29 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/12 12:50:29 User Locale service - Database connection established successfully
-2025/06/12 12:50:29 User Locale service started on :8099
-2025/06/12 12:50:59 Getting user locale for user ID: 3
-2025/06/12 12:50:59 Successfully retrieved locale for user 3: en
-2025/06/12 12:59:19 Getting user locale for user ID: 3
-2025/06/12 12:59:19 Successfully retrieved locale for user 3: en
-2025/06/12 13:04:42 Getting user locale for user ID: 3
-2025/06/12 13:04:42 Successfully retrieved locale for user 3: en
-2025/06/12 13:05:23 Getting user locale for user ID: 3
-2025/06/12 13:05:23 Successfully retrieved locale for user 3: en
-2025/06/12 13:09:11 Getting user locale for user ID: 3
-2025/06/12 13:09:11 Successfully retrieved locale for user 3: en
-2025/06/12 13:17:11 Getting user locale for user ID: 3
-2025/06/12 13:17:11 Successfully retrieved locale for user 3: en
-2025/06/12 13:22:21 Getting user locale for user ID: 3
-2025/06/12 13:22:21 Successfully retrieved locale for user 3: en
-2025/06/12 13:26:06 Getting user locale for user ID: 3
-2025/06/12 13:26:06 Successfully retrieved locale for user 3: en
-2025/06/12 13:32:48 Getting user locale for user ID: 3
-2025/06/12 13:32:48 Successfully retrieved locale for user 3: en
-2025/06/12 14:21:26 Getting user locale for user ID: 3
-2025/06/12 14:21:26 Successfully retrieved locale for user 3: en
+2025/06/13 11:02:38 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 11:02:38 User Locale service - Database connection established successfully
+2025/06/13 11:02:38 User Locale service started on :8099
+2025/06/13 12:50:44 Getting user locale for user ID: 3
+2025/06/13 12:50:44 Successfully retrieved locale for user 3: en
