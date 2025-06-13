@@ -1,6 +1,6 @@
-2025/06/13 19:57:03 Successfully loaded environment variables from ../.env
-2025/06/13 19:57:03 Registering routes:
-2025/06/13 19:57:03 - POST /auth/google
-2025/06/13 19:57:03 - POST /update/locale
-2025/06/13 19:57:03 - GET /health
-2025/06/13 19:57:03 Server started on :8081
+2025/06/13 21:00:37 Successfully loaded environment variables from ../.env
+2025/06/13 21:00:37 Registering routes:
+2025/06/13 21:00:37 - POST /auth/google
+2025/06/13 21:00:37 - POST /update/locale
+2025/06/13 21:00:37 - GET /health
+2025/06/13 21:00:37 Server started on :8081

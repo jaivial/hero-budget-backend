@@ -156,6 +156,11 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	// Check if user exists and password is correct
 	var user User
 	var storedPassword sql.NullString // Use NullString to handle NULL values safely
+	var name sql.NullString
+	var givenName sql.NullString
+	var familyName sql.NullString
+	var picture sql.NullString
+	var locale sql.NullString
 
 	err := db.QueryRow(`
 		SELECT id, email, password, name, given_name, family_name, 
@@ -166,15 +171,22 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		&user.ID,
 		&user.Email,
 		&storedPassword, // This now handles NULL values properly
-		&user.Name,
-		&user.GivenName,
-		&user.FamilyName,
-		&user.Picture,
-		&user.Locale,
+		&name,
+		&givenName,
+		&familyName,
+		&picture,
+		&locale,
 		&user.VerifiedEmail,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
+
+	// Convert NullString values to regular strings for User struct
+	user.Name = name.String
+	user.GivenName = givenName.String
+	user.FamilyName = familyName.String
+	user.Picture = picture.String
+	user.Locale = locale.String
 
 	if err == sql.ErrNoRows {
 		w.Header().Set("Content-Type", "application/json")
