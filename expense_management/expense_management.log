@@ -1,3 +1,60 @@
-2025/06/13 11:02:25 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 11:02:25 Database connection established successfully
-2025/06/13 11:02:25 Expense Management service started on :8094
+2025/06/13 19:57:09 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 19:57:09 Database connection established successfully
+2025/06/13 19:57:09 Expense Management service started on :8094
+2025/06/13 20:20:35 Adding expense: UserID=9, Amount=35.00, Date=2025-06-13, Category=Cena, PaymentMethod=bank
+2025/06/13 20:20:35 updateBalance called with userID: 9, amount: -35.00, paymentMethod: bank
+2025/06/13 20:20:35 Found 0 records in balances table for user 9
+2025/06/13 20:20:35 Inserting new balance record with cash: 0.00, bank: -35.00
+2025/06/13 20:20:35 Successfully updated balances table
+2025/06/13 20:20:35 Processing cash_bank for month: 2025-06
+2025/06/13 20:20:35 Record exists in cash_bank for user 9 and month 2025-06: true
+2025/06/13 20:20:35 Current cash_bank values - cash: 250.00, bank: 3000.00, total: 3250.00
+2025/06/13 20:20:35 Updated cash_bank values - cash: 250.00, bank: 2965.00, total: 3215.00
+2025/06/13 20:20:35 Calculated cash_bank percentages - cash: 7.78%, bank: 92.22%
+2025/06/13 20:20:35 Successfully updated cash_bank record
+2025/06/13 20:20:35 Recording transaction - type: expense_bank, amount: -35.00
+2025/06/13 20:20:35 Successfully recorded cash_bank_transaction
+2025/06/13 20:20:35 updateBalance completed successfully
+2025/06/13 20:20:35 Error updating daily balance: 12 values for 11 columns
+2025/06/13 20:20:35 Error updating weekly balance: 14 values for 13 columns
+2025/06/13 20:20:35 Error updating quarterly balance: table quarterly_balance has no column named start_date
+2025/06/13 20:20:35 Error updating semiannual balance: table semiannual_balance has no column named start_date
+2025/06/13 20:20:35 Error updating annual balance: 14 values for 11 columns
+2025/06/13 20:21:06 Adding expense: UserID=9, Amount=5.00, Date=2025-06-13, Category=Cena, PaymentMethod=bank
+2025/06/13 20:21:06 updateBalance called with userID: 9, amount: -5.00, paymentMethod: bank
+2025/06/13 20:21:06 Found 1 records in balances table for user 9
+2025/06/13 20:21:06 Updating existing balance with amount: -5.00 for method: bank
+2025/06/13 20:21:06 Successfully updated balances table
+2025/06/13 20:21:06 Processing cash_bank for month: 2025-06
+2025/06/13 20:21:06 Record exists in cash_bank for user 9 and month 2025-06: true
+2025/06/13 20:21:06 Current cash_bank values - cash: 250.00, bank: 2965.00, total: 3215.00
+2025/06/13 20:21:06 Updated cash_bank values - cash: 250.00, bank: 2960.00, total: 3210.00
+2025/06/13 20:21:06 Calculated cash_bank percentages - cash: 7.79%, bank: 92.21%
+2025/06/13 20:21:06 Successfully updated cash_bank record
+2025/06/13 20:21:06 Recording transaction - type: expense_bank, amount: -5.00
+2025/06/13 20:21:06 Successfully recorded cash_bank_transaction
+2025/06/13 20:21:06 updateBalance completed successfully
+2025/06/13 20:21:06 Error updating daily balance: 12 values for 11 columns
+2025/06/13 20:21:06 Error updating weekly balance: 14 values for 13 columns
+2025/06/13 20:21:06 Error updating quarterly balance: table quarterly_balance has no column named start_date
+2025/06/13 20:21:06 Error updating semiannual balance: table semiannual_balance has no column named start_date
+2025/06/13 20:21:06 Error updating annual balance: 14 values for 11 columns
+2025/06/13 20:21:40 Adding expense: UserID=9, Amount=2.00, Date=2025-06-13, Category=Varios, PaymentMethod=cash
+2025/06/13 20:21:40 updateBalance called with userID: 9, amount: -2.00, paymentMethod: cash
+2025/06/13 20:21:40 Found 1 records in balances table for user 9
+2025/06/13 20:21:40 Updating existing balance with amount: -2.00 for method: cash
+2025/06/13 20:21:40 Successfully updated balances table
+2025/06/13 20:21:40 Processing cash_bank for month: 2025-06
+2025/06/13 20:21:40 Record exists in cash_bank for user 9 and month 2025-06: true
+2025/06/13 20:21:40 Current cash_bank values - cash: 250.00, bank: 2960.00, total: 3210.00
+2025/06/13 20:21:40 Updated cash_bank values - cash: 248.00, bank: 2960.00, total: 3208.00
+2025/06/13 20:21:40 Calculated cash_bank percentages - cash: 7.73%, bank: 92.27%
+2025/06/13 20:21:40 Successfully updated cash_bank record
+2025/06/13 20:21:40 Recording transaction - type: expense_cash, amount: -2.00
+2025/06/13 20:21:40 Successfully recorded cash_bank_transaction
+2025/06/13 20:21:40 updateBalance completed successfully
+2025/06/13 20:21:40 Error updating daily balance: 12 values for 11 columns
+2025/06/13 20:21:40 Error updating weekly balance: 14 values for 13 columns
+2025/06/13 20:21:40 Error updating quarterly balance: table quarterly_balance has no column named start_date
+2025/06/13 20:21:40 Error updating semiannual balance: table semiannual_balance has no column named start_date
+2025/06/13 20:21:40 Error updating annual balance: 14 values for 11 columns

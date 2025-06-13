@@ -155,7 +155,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 
 	// Check if user exists and password is correct
 	var user User
-	var storedPassword string
+	var storedPassword sql.NullString // Use NullString to handle NULL values safely
 
 	err := db.QueryRow(`
 		SELECT id, email, password, name, given_name, family_name, 
@@ -165,7 +165,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	`, req.Email).Scan(
 		&user.ID,
 		&user.Email,
-		&storedPassword,
+		&storedPassword, // This now handles NULL values properly
 		&user.Name,
 		&user.GivenName,
 		&user.FamilyName,
@@ -186,13 +186,31 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	} else if err != nil {
 		log.Printf("Database error: %v", err)
-		http.Error(w, "Database error", http.StatusInternalServerError)
+		// Return proper JSON error instead of plain text
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(SignInResponse{
+			Success: false,
+			Message: "Database error occurred",
+		})
+		return
+	}
+
+	// Handle NULL or empty password field
+	if !storedPassword.Valid || storedPassword.String == "" {
+		log.Printf("User %s has no password set (NULL or empty)", req.Email)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		json.NewEncoder(w).Encode(SignInResponse{
+			Success: false,
+			Message: "Invalid email or password",
+		})
 		return
 	}
 
 	// In a production app, you would use a secure password comparison
 	// This is a simple string comparison for demonstration
-	if storedPassword != req.Password {
+	if storedPassword.String != req.Password {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusUnauthorized)
 		json.NewEncoder(w).Encode(SignInResponse{

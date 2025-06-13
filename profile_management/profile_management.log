@@ -1,50 +1,18 @@
-2025/06/13 11:02:29 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 11:02:29 Database connection established successfully
-2025/06/13 11:02:29 Profile Management service started on :8092
-2025/06/13 16:15:58 Updating locale for user ID: 3
-2025/06/13 16:15:58 Locale updated successfully for user ID: 3
-2025/06/13 16:16:27 DELETE ACCOUNT: Iniciando eliminación completa para usuario ID: 3
-2025/06/13 16:16:27 DELETE ACCOUNT: Usuario encontrado: jaimevillalcon@hotmail.com (3)
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 3 registros de tabla categories
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 31 registros de tabla cash_bank_transactions
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 1 registros de tabla cash_bank
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 5 registros de tabla daily_cash_bank_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 4 registros de tabla weekly_cash_bank_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 13 registros de tabla monthly_cash_bank_balance
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 2 registros de tabla bills
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 8 registros de tabla expenses
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 0 registros de tabla incomes
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 0 registros de tabla savings
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 1 registros de tabla balances
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminados 1 registros de tabla users
-2025/06/13 16:16:27 DELETE ACCOUNT: Eliminación completa exitosa para usuario jaimevillalcon@hotmail.com (3)
-2025/06/13 16:25:35 Updating profile for user ID: 123
-2025/06/13 16:25:35 User not found: 123
-2025/06/13 16:25:35 Updating profile for user ID: 123
-2025/06/13 16:25:35 User not found: 123
-2025/06/13 16:25:35 TEST IMAGE UPDATE: Recibida solicitud para usuario ID: 123
-2025/06/13 16:25:35 TEST IMAGE UPDATE: Tamaño de imagen recibida: 118 bytes
-2025/06/13 16:25:35 TEST IMAGE UPDATE: Usuario no encontrado: sql: no rows in result set
-2025/06/13 16:27:00 DELETE ACCOUNT: Iniciando eliminación completa para usuario ID: 6
-2025/06/13 16:27:00 DELETE ACCOUNT: Usuario encontrado: jaimevillalcon@hotmail.com (6)
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla categories
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank_transactions
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_cash_bank_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_cash_bank_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_cash_bank_balance
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla bills
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla expenses
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla incomes
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla savings
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 0 registros de tabla balances
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminados 1 registros de tabla users
-2025/06/13 16:27:00 DELETE ACCOUNT: Eliminación completa exitosa para usuario jaimevillalcon@hotmail.com (6)
-2025/06/13 16:31:03 DELETE ACCOUNT: Iniciando eliminación completa para usuario ID: 7
-2025/06/13 16:31:03 DELETE ACCOUNT: Usuario no encontrado: sql: Scan error on column index 3, name "name": converting NULL to string is unsupported
+2025/06/13 19:57:15 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 19:57:15 Database connection established successfully
+2025/06/13 19:57:15 Profile Management service started on :8092
+2025/06/13 20:01:46 Updating profile for user ID: 9
+2025/06/13 20:01:46 Received image data for processing (length: 185364 bytes)
+2025/06/13 20:01:46 Processing image, input length: 185364
+2025/06/13 20:01:46 Cleaned base64 data, final length: 185364
+2025/06/13 20:01:46 Successfully decoded using standard base64
+2025/06/13 20:01:46 Image format: jpeg, size: 135 KB
+2025/06/13 20:01:46 Compressed JPEG size: 73 KB
+2025/06/13 20:01:46 Final encoded JPEG image size: 100492 bytes
+2025/06/13 20:01:46 Successfully processed and compressed profile image (processed length: 100492 bytes)
+2025/06/13 20:01:46 Update query: UPDATE users SET updated_at = CURRENT_TIMESTAMP, name = ?, profile_image_blob = ? WHERE id = ?
+2025/06/13 20:01:46 Update params count: 3
+2025/06/13 20:01:46 Param 0: jaimevillalcon (length: 14)
+2025/06/13 20:01:46 Param 1: /9j/2wCEAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSgBBwcH... (length: 100492)
+2025/06/13 20:01:46 Param 2: 9
+2025/06/13 20:01:46 Successfully updated user 9, 1 rows affected

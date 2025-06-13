@@ -1,18 +1,5 @@
-2025/06/13 11:02:25 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 11:02:25 Database connection established successfully
-2025/06/13 11:02:25 Fetch Dashboard service started on :8085
-2025/06/13 12:50:45 Getting user info for user ID: 3
-2025/06/13 12:50:45 Using profile image blob for user 3
-2025/06/13 12:50:45 Successfully retrieved user 3: Jaime Villanueva (jaimevillalcon@hotmail.com)
-2025/06/13 16:16:52 Getting user info for user ID: 6
-2025/06/13 16:16:52 Database error for user ID 6: sql: Scan error on column index 3, name "name": converting NULL to string is unsupported
-2025/06/13 16:23:32 Getting user info for user ID: 6
-2025/06/13 16:23:32 Successfully retrieved user 6: Usuario Apple (jaimevillalcon@hotmail.com)
-2025/06/13 16:25:56 Getting user info for user ID: 6
-2025/06/13 16:25:56 Successfully retrieved user 6: Usuario Apple (jaimevillalcon@hotmail.com)
-2025/06/13 16:26:50 Getting user info for user ID: 6
-2025/06/13 16:26:50 Successfully retrieved user 6: Usuario Apple (jaimevillalcon@hotmail.com)
-2025/06/13 16:31:39 Getting user info for user ID: 6
-2025/06/13 16:31:39 User not found for ID: 6
-2025/06/13 16:31:46 Getting user info for user ID: 6
-2025/06/13 16:31:46 User not found for ID: 6
+2025/06/13 19:57:11 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 19:57:11 Database connection established successfully
+2025/06/13 19:57:11 Fetch Dashboard service started on :8085
+2025/06/13 19:58:39 Getting user info for user ID: 9
+2025/06/13 19:58:39 Successfully retrieved user 9: jaimevillalcon (jaimevillalcon@hotmail.com)
