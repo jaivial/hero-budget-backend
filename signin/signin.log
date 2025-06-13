@@ -1,4 +1,4 @@
-2025/06/13 19:57:18 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 19:57:18 Database connection established successfully
-2025/06/13 19:57:18 SignIn service started on :8084
-2025/06/13 20:59:03 Database error: sql: Scan error on column index 2, name "password": converting NULL to string is unsupported
+2025/06/13 21:00:52 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 21:00:52 Database connection established successfully
+2025/06/13 21:00:52 SignIn service started on :8084
+2025/06/13 21:00:52 listen tcp :8084: bind: address already in use

@@ -1,18 +1,3 @@
-2025/06/13 19:57:15 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 19:57:15 Database connection established successfully
-2025/06/13 19:57:15 Profile Management service started on :8092
-2025/06/13 20:01:46 Updating profile for user ID: 9
-2025/06/13 20:01:46 Received image data for processing (length: 185364 bytes)
-2025/06/13 20:01:46 Processing image, input length: 185364
-2025/06/13 20:01:46 Cleaned base64 data, final length: 185364
-2025/06/13 20:01:46 Successfully decoded using standard base64
-2025/06/13 20:01:46 Image format: jpeg, size: 135 KB
-2025/06/13 20:01:46 Compressed JPEG size: 73 KB
-2025/06/13 20:01:46 Final encoded JPEG image size: 100492 bytes
-2025/06/13 20:01:46 Successfully processed and compressed profile image (processed length: 100492 bytes)
-2025/06/13 20:01:46 Update query: UPDATE users SET updated_at = CURRENT_TIMESTAMP, name = ?, profile_image_blob = ? WHERE id = ?
-2025/06/13 20:01:46 Update params count: 3
-2025/06/13 20:01:46 Param 0: jaimevillalcon (length: 14)
-2025/06/13 20:01:46 Param 1: /9j/2wCEAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSgBBwcH... (length: 100492)
-2025/06/13 20:01:46 Param 2: 9
-2025/06/13 20:01:46 Successfully updated user 9, 1 rows affected
+2025/06/13 21:00:49 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 21:00:49 Database connection established successfully
+2025/06/13 21:00:49 Profile Management service started on :8092

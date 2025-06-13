@@ -1,17 +1,3 @@
-2025/06/13 19:57:22 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 19:57:22 Transaction Delete Service - Database connection established successfully
-2025/06/13 19:57:22 Transaction Delete Service starting on port 8095
-2025/06/13 20:21:56 Deleting transaction ID 74 of type expense for user 9
-2025/06/13 20:21:56 Updating balances for user 9 after deleting expense transaction (amount: 5.00, method: bank, bill_id: <nil>)
-2025/06/13 20:21:56 Updated daily_cash_bank_balance balance for period 2025-06-13 (amount change: 5.00 bank, type: expense)
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
-2025/06/13 20:21:56 Period 2025-W24 not found in weekly_cash_bank_balance for user 9
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
-2025/06/13 20:21:56 Updated monthly_cash_bank_balance balance for period 2025-06 (amount change: 5.00 bank, type: expense)
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
-2025/06/13 20:21:56 Updated quarterly_cash_bank_balance balance for period 2025-Q2 (amount change: 5.00 bank, type: expense)
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
-2025/06/13 20:21:56 Updated semiannual_cash_bank_balance balance for period 2025-H1 (amount change: 5.00 bank, type: expense)
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
-2025/06/13 20:21:56 Updated annual_cash_bank_balance balance for period 2025 (amount change: 5.00 bank, type: expense)
-2025/06/13 20:21:56 Updating subsequent periods for expense with bill_id = NULL (cascade effect)
+2025/06/13 21:00:56 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/13 21:00:56 Transaction Delete Service - Database connection established successfully
+2025/06/13 21:00:56 Transaction Delete Service starting on port 8095
