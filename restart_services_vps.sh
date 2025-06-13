@@ -19,7 +19,7 @@ NC='\033[0m'
 
 # Configuración de servicios y puertos para VPS
 ALL_SERVICES=(
-    "apple_auth:8100"
+    "apple-auth:8100"
     "google_auth:8081"
     "signup:8082"
     "language_cookie:8083"
