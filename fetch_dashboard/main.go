@@ -137,11 +137,14 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 	// Log for debugging
 	log.Printf("Getting user info for user ID: %s", userID)
 
-	// Get user info from database
+	// Get user info from database with proper null handling
 	var user User
+	var createdAtStr, updatedAtStr sql.NullString
 	err := db.QueryRow(`
 		SELECT id, google_id, email, name, given_name, family_name, 
-		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, 
+		COALESCE(created_at, datetime('now')) as created_at,
+		COALESCE(updated_at, datetime('now')) as updated_at
 		FROM users 
 		WHERE id = ?
 	`, userID).Scan(
@@ -155,8 +158,8 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
-		&user.CreatedAt,
-		&user.UpdatedAt,
+		&createdAtStr,
+		&updatedAtStr,
 	)
 
 	if err == sql.ErrNoRows {
@@ -169,22 +172,46 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Parse dates safely
+	if createdAtStr.Valid {
+		user.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAtStr.String)
+	} else {
+		user.CreatedAt = time.Now()
+	}
+
+	if updatedAtStr.Valid {
+		user.UpdatedAt, _ = time.Parse("2006-01-02 15:04:05", updatedAtStr.String)
+	} else {
+		user.UpdatedAt = time.Now()
+	}
+
+	// Debug user type information
+	log.Printf("User %d type info - GoogleID: %v, ProfileImageBlob present: %v",
+		user.ID,
+		user.GoogleID != nil && *user.GoogleID != "",
+		user.ProfileImageBlob != nil && *user.ProfileImageBlob != "")
+
 	// Set the display image based on the user type
 	if user.GoogleID != nil && *user.GoogleID != "" {
 		// Google user - use Picture URL field
 		if user.Picture != nil && *user.Picture != "" {
 			user.DisplayImage = *user.Picture
 			log.Printf("Using Google profile picture URL for user %d", user.ID)
+		} else {
+			log.Printf("Google user %d has no picture URL", user.ID)
 		}
 	} else {
-		// Regular user - use ProfileImageBlob field
+		// Regular/Email user - use ProfileImageBlob field
 		if user.ProfileImageBlob != nil && *user.ProfileImageBlob != "" {
 			user.DisplayImage = *user.ProfileImageBlob
-			log.Printf("Using profile image blob for user %d", user.ID)
+			log.Printf("Using profile image blob for email user %d (blob size: %d bytes)", user.ID, len(*user.ProfileImageBlob))
+		} else {
+			log.Printf("Email user %d has no profile image blob", user.ID)
 		}
 	}
 
-	log.Printf("Successfully retrieved user %s: %s (%s)", userID, user.Name, user.Email)
+	log.Printf("Successfully retrieved user %s: %s (%s) - DisplayImage set: %v",
+		userID, user.Name, user.Email, user.DisplayImage != "")
 
 	// Return user info as JSON
 	w.Header().Set("Content-Type", "application/json")

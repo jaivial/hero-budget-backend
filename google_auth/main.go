@@ -31,6 +31,7 @@ type User struct {
 	Picture       string    `json:"picture"`
 	Locale        string    `json:"locale"`
 	VerifiedEmail bool      `json:"verified_email"`
+	Type          string    `json:"type"` // Type of authentication: 'email', 'google', 'apple'
 	CreatedAt     time.Time `json:"created_at"`
 	UpdatedAt     time.Time `json:"updated_at"`
 }
@@ -88,12 +89,20 @@ func init() {
 			picture TEXT,
 			locale TEXT,
 			verified_email BOOLEAN,
+			type TEXT DEFAULT 'google',
 			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 		)
 	`)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	// Add type column if it doesn't exist (for existing databases)
+	_, err = db.Exec(`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'google'`)
+	if err != nil {
+		// Ignore error if column already exists
+		log.Printf("Column 'type' may already exist: %v", err)
 	}
 }
 
@@ -166,10 +175,10 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 	// Debug: Verify the locale is set correctly before database operations
 	log.Printf("Final locale value before DB operations: '%s'", user.Locale)
 
-	// Check if user exists in DB
+	// Check if user exists in DB by Google ID
 	var existingUser User
 	err = db.QueryRow(`
-		SELECT id, email, name, given_name, family_name, picture, locale, verified_email, created_at, updated_at 
+		SELECT id, email, name, given_name, family_name, picture, locale, verified_email, COALESCE(type, 'google') as type, created_at, updated_at 
 		FROM users WHERE google_id = ?`, user.GoogleID).Scan(
 		&existingUser.ID,
 		&existingUser.Email,
@@ -179,20 +188,33 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 		&existingUser.Picture,
 		&existingUser.Locale,
 		&existingUser.VerifiedEmail,
+		&existingUser.Type,
 		&existingUser.CreatedAt,
 		&existingUser.UpdatedAt,
 	)
 
 	if err == sql.ErrNoRows {
-		// Create new user
+		// Check if user with same email but different type exists
+		var emailUser User
+		emailErr := db.QueryRow(`
+			SELECT id, type FROM users WHERE email = ? AND type != 'google' LIMIT 1`, user.Email).Scan(
+			&emailUser.ID, &emailUser.Type,
+		)
+
+		if emailErr == nil {
+			// User exists with same email but different type, create Google user anyway
+			log.Printf("User with email %s exists with type '%s', creating Google user", user.Email, emailUser.Type)
+		}
+
+		// Create new user with type 'google'
 		log.Printf("Creating new user with locale: '%s'", user.Locale)
 		result, err := db.Exec(`
 			INSERT INTO users (
 				google_id, email, name, given_name, family_name, 
-				picture, locale, verified_email
-			) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+				picture, locale, verified_email, type
+			) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 			user.GoogleID, user.Email, user.Name, user.GivenName,
-			user.FamilyName, user.Picture, user.Locale, user.VerifiedEmail,
+			user.FamilyName, user.Picture, user.Locale, user.VerifiedEmail, "google",
 		)
 		if err != nil {
 			log.Printf("Failed to create user: %v", err)
@@ -202,7 +224,8 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 		userID, _ := result.LastInsertId()
 		user.ID = int(userID)
-		log.Printf("Created new user with ID: %d, locale: '%s'", user.ID, user.Locale)
+		user.Type = "google"
+		log.Printf("Created new user with ID: %d, locale: '%s', type: 'google'", user.ID, user.Locale)
 	} else if err != nil {
 		log.Printf("Database error: %v", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -213,10 +236,10 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 		_, err = db.Exec(`
 			UPDATE users SET 
 				email = ?, name = ?, given_name = ?, family_name = ?,
-				picture = ?, locale = ?, verified_email = ?, updated_at = CURRENT_TIMESTAMP
+				picture = ?, locale = ?, verified_email = ?, type = ?, updated_at = CURRENT_TIMESTAMP
 			WHERE google_id = ?`,
 			user.Email, user.Name, user.GivenName, user.FamilyName,
-			user.Picture, user.Locale, user.VerifiedEmail, user.GoogleID,
+			user.Picture, user.Locale, user.VerifiedEmail, "google", user.GoogleID,
 		)
 		if err != nil {
 			log.Printf("Failed to update user: %v", err)
@@ -224,8 +247,9 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		user.ID = existingUser.ID
+		user.Type = "google"
 		user.CreatedAt = existingUser.CreatedAt
-		log.Printf("Updated user ID: %d, changed locale from '%s' to '%s'", user.ID, existingUser.Locale, user.Locale)
+		log.Printf("Updated user ID: %d, changed locale from '%s' to '%s', type: 'google'", user.ID, existingUser.Locale, user.Locale)
 	}
 
 	// Verify the user's locale one final time before sending response

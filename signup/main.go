@@ -82,6 +82,7 @@ type Config struct {
 type User struct {
 	ID               int       `json:"id"`
 	GoogleID         string    `json:"google_id"`
+	AppleID          string    `json:"apple_id"`
 	Email            string    `json:"email"`
 	Password         string    `json:"password,omitempty"` // Password is omitempty to not return it to client
 	Name             string    `json:"name"`
@@ -92,6 +93,7 @@ type User struct {
 	Locale           string    `json:"locale"`
 	VerifiedEmail    bool      `json:"verified_email"`
 	VerificationCode string    `json:"verification_code,omitempty"` // Code for email verification
+	Type             string    `json:"type"`                        // Type of authentication: 'email', 'google', 'apple'
 	CreatedAt        time.Time `json:"created_at"`
 	UpdatedAt        time.Time `json:"updated_at"`
 }
@@ -232,6 +234,128 @@ func getVerificationEmailTemplate(language string) VerificationEmailTemplate {
 	}
 }
 
+func migrateTableStructure(db *sql.DB) error {
+	log.Println("Checking if table structure migration is needed...")
+
+	// Check if the current table has the old structure (email UNIQUE)
+	// We'll check the table schema to see if it has the problematic constraint
+	rows, err := db.Query("SELECT sql FROM sqlite_master WHERE type='table' AND name='users'")
+	if err != nil {
+		return fmt.Errorf("failed to query table schema: %v", err)
+	}
+	defer rows.Close()
+
+	var tableSQL string
+	if rows.Next() {
+		if err := rows.Scan(&tableSQL); err != nil {
+			return fmt.Errorf("failed to scan table schema: %v", err)
+		}
+	}
+
+	// Check if the table has the old structure (email TEXT UNIQUE without compound constraint)
+	hasOldStructure := strings.Contains(tableSQL, "email TEXT UNIQUE") && !strings.Contains(tableSQL, "UNIQUE(email, type)")
+
+	if !hasOldStructure {
+		log.Println("Table structure is already up to date")
+		return nil
+	}
+
+	log.Println("Migrating table structure from old (email UNIQUE) to new (email, type UNIQUE)...")
+
+	// Begin transaction for safe migration
+	tx, err := db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %v", err)
+	}
+	defer tx.Rollback()
+
+	// Create new table with correct structure
+	_, err = tx.Exec(`
+		CREATE TABLE users_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			google_id TEXT UNIQUE,
+			apple_id TEXT,
+			email TEXT,
+			password TEXT,
+			name TEXT,
+			given_name TEXT,
+			family_name TEXT,
+			picture TEXT,
+			profile_image_blob TEXT,
+			locale TEXT,
+			verified_email BOOLEAN,
+			verification_code TEXT,
+			type TEXT DEFAULT 'email',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			reset_token TEXT,
+			reset_expires DATETIME,
+			UNIQUE(email, type)
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create new table: %v", err)
+	}
+
+	// Copy all existing data to the new table
+	_, err = tx.Exec(`
+		INSERT INTO users_new (
+			id, google_id, apple_id, email, password, name, given_name, family_name,
+			picture, profile_image_blob, locale, verified_email, verification_code,
+			type, created_at, updated_at, reset_token, reset_expires
+		)
+		SELECT 
+			id, 
+			google_id, 
+			COALESCE(apple_id, ''),
+			email, 
+			password, 
+			name, 
+			given_name, 
+			family_name,
+			picture, 
+			profile_image_blob, 
+			locale, 
+			verified_email, 
+			verification_code,
+			COALESCE(type, 'email'),
+			created_at, 
+			updated_at, 
+			COALESCE(reset_token, ''),
+			reset_expires
+		FROM users
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to copy data to new table: %v", err)
+	}
+
+	// Drop the old table
+	_, err = tx.Exec("DROP TABLE users")
+	if err != nil {
+		return fmt.Errorf("failed to drop old table: %v", err)
+	}
+
+	// Rename the new table
+	_, err = tx.Exec("ALTER TABLE users_new RENAME TO users")
+	if err != nil {
+		return fmt.Errorf("failed to rename new table: %v", err)
+	}
+
+	// Recreate the apple_id index
+	_, err = tx.Exec("CREATE UNIQUE INDEX idx_users_apple_id ON users(apple_id) WHERE apple_id IS NOT NULL AND apple_id != ''")
+	if err != nil {
+		return fmt.Errorf("failed to create apple_id index: %v", err)
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit migration transaction: %v", err)
+	}
+
+	log.Println("Table structure migration completed successfully")
+	return nil
+}
+
 func init() {
 	// Load configuration
 	loadConfig()
@@ -295,6 +419,7 @@ func init() {
 	hasPasswordColumn := false
 	hasProfileImageBlobColumn := false
 	hasVerificationCodeColumn := false
+	hasTypeColumn := false
 
 	for rows.Next() {
 		var cid int
@@ -316,6 +441,9 @@ func init() {
 		}
 		if name == "verification_code" {
 			hasVerificationCodeColumn = true
+		}
+		if name == "type" {
+			hasTypeColumn = true
 		}
 	}
 	rows.Close()
@@ -342,6 +470,20 @@ func init() {
 		if err != nil {
 			log.Fatalf("Failed to add verification_code column: %v", err)
 		}
+	}
+
+	if !hasTypeColumn {
+		log.Println("Adding missing type column to users table")
+		_, err = db.Exec("ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'email'")
+		if err != nil {
+			log.Fatalf("Failed to add type column: %v", err)
+		}
+	}
+
+	// Check if we need to migrate from old table structure (email UNIQUE) to new structure (email, type UNIQUE)
+	err = migrateTableStructure(db)
+	if err != nil {
+		log.Fatalf("Failed to migrate table structure: %v", err)
 	}
 
 	log.Println("Database connection established successfully")
@@ -392,9 +534,9 @@ func handleCheckEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if email exists
+	// Check if email exists with type='email'
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", req.Email).Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND type = 'email')", req.Email).Scan(&exists)
 	if err != nil {
 		log.Printf("Database error: %v", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -681,9 +823,9 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Parsed request: email=%s, name=%s, given_name=%s, family_name=%s, locale=%s, verified_email=%v, has_picture=%v",
 		req.Email, req.Name, req.GivenName, req.FamilyName, req.Locale, req.VerifiedEmail, req.PictureBase64 != "")
 
-	// Check if email already exists
+	// Check if email already exists with type 'email' specifically
 	var exists bool
-	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", req.Email).Scan(&exists)
+	err = db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND type = 'email')", req.Email).Scan(&exists)
 	if err != nil {
 		log.Printf("Database error checking email: %v", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -691,10 +833,12 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if exists {
-		log.Printf("User with email %s already exists", req.Email)
+		log.Printf("User with email %s already exists with type 'email'", req.Email)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusConflict) // 409 Conflict
-		json.NewEncoder(w).Encode(map[string]string{"error": "User with this email already exists"})
+		json.NewEncoder(w).Encode(map[string]string{
+			"error": "An account with this email already exists. Please sign in instead or use a different email address.",
+		})
 		return
 	}
 
@@ -752,11 +896,11 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 		INSERT INTO users (
 			email, password, name, given_name, family_name, 
 			picture, profile_image_blob, locale, verified_email,
-			verification_code
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			verification_code, type
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		req.Email, req.Password, name, givenName,
-		familyName, req.PictureBase64, processedImageBase64, req.Locale, false, // Set verified_email to false by default
-		verificationCode,
+		familyName, "", processedImageBase64, req.Locale, false, // Set picture to empty for manual users, store processed image in profile_image_blob
+		verificationCode, "email",
 	)
 	if err != nil {
 		log.Printf("Failed to create user: %v", err)
@@ -793,9 +937,11 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 	// Fetch the inserted user to return
 	var user User
 	err = db.QueryRow(`
-		SELECT id, email, name, given_name, family_name, picture, profile_image_blob, locale, verified_email, created_at, updated_at 
+		SELECT id, COALESCE(google_id, '') as google_id, COALESCE(apple_id, '') as apple_id, email, name, given_name, family_name, picture, profile_image_blob, locale, verified_email, COALESCE(type, 'email') as type, created_at, updated_at 
 		FROM users WHERE id = ?`, userID).Scan(
 		&user.ID,
+		&user.GoogleID,
+		&user.AppleID,
 		&user.Email,
 		&user.Name,
 		&user.GivenName,
@@ -804,6 +950,7 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
+		&user.Type,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)

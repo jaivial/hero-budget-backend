@@ -40,6 +40,13 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
+	// Add type column if it doesn't exist (for existing databases)
+	_, err = db.Exec(`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'apple'`)
+	if err != nil {
+		// Ignore error if column already exists
+		log.Printf("Column 'type' may already exist: %v", err)
+	}
+
 	log.Println("Database connection established successfully")
 }
 
@@ -121,31 +128,45 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err == sql.ErrNoRows {
-		// Check if user exists with same email (different auth method)
-		existingEmailUser, emailErr := getUserByEmail(user.Email)
-		if emailErr != nil && emailErr != sql.ErrNoRows {
-			log.Printf("Database error checking email: %v", emailErr)
+		// Check if user exists with same email and type 'apple'
+		var existingAppleUser User
+		appleErr := db.QueryRow(`
+			SELECT id, apple_id, google_id, email, name, given_name, family_name, 
+			picture, profile_image_blob, locale, verified_email, COALESCE(type, 'apple') as type, created_at, updated_at 
+			FROM users WHERE email = ? AND type = 'apple'`, user.Email).Scan(
+			&existingAppleUser.ID,
+			&existingAppleUser.AppleID,
+			&existingAppleUser.GoogleID,
+			&existingAppleUser.Email,
+			&existingAppleUser.Name,
+			&existingAppleUser.GivenName,
+			&existingAppleUser.FamilyName,
+			&existingAppleUser.Picture,
+			&existingAppleUser.ProfileImageBlob,
+			&existingAppleUser.Locale,
+			&existingAppleUser.VerifiedEmail,
+			&existingAppleUser.Type,
+			&existingAppleUser.CreatedAt,
+			&existingAppleUser.UpdatedAt,
+		)
+
+		if appleErr == nil {
+			log.Printf("User with email %s already exists with type 'apple'", user.Email)
+			sendErrorResponse(w, "User with this email already exists for Apple Sign-In", http.StatusConflict)
+			return
+		} else if appleErr != sql.ErrNoRows {
+			log.Printf("Database error checking Apple user: %v", appleErr)
 			sendErrorResponse(w, "Database error", http.StatusInternalServerError)
 			return
 		}
 
+		// Check if user exists with same email but different type (for logging purposes)
+		existingEmailUser, emailErr := getUserByEmail(user.Email)
 		if emailErr == nil {
-			// User exists with same email, link Apple ID to existing account
-			err = linkAppleIDToUser(existingEmailUser.ID, user.AppleID.String)
-			if err != nil {
-				log.Printf("Failed to link Apple ID to existing user: %v", err)
-				sendErrorResponse(w, "Failed to link account", http.StatusInternalServerError)
-				return
-			}
-
-			// Update user info and return
-			existingEmailUser.AppleID = user.AppleID
-			updateUserLastLogin(existingEmailUser.ID)
-			sendSuccessResponse(w, "Account linked successfully", existingEmailUser)
-			return
+			log.Printf("User with email %s exists with type '%s', creating Apple user anyway", user.Email, existingEmailUser.Type.String)
 		}
 
-		// Create new user
+		// Create new user with type 'apple'
 		newUser, err := createAppleUser(user)
 		if err != nil {
 			log.Printf("Failed to create user: %v", err)
@@ -153,7 +174,7 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		log.Printf("Created new Apple user: %s", newUser.Email)
+		log.Printf("Created new Apple user: %s with type 'apple'", newUser.Email)
 		sendSuccessResponse(w, "User created successfully", newUser)
 		return
 	}
@@ -197,6 +218,9 @@ func userToJSON(user *User) map[string]interface{} {
 	}
 	if user.Locale.Valid {
 		result["locale"] = user.Locale.String
+	}
+	if user.Type.Valid {
+		result["type"] = user.Type.String
 	}
 
 	return result

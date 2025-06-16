@@ -20,6 +20,7 @@ type User struct {
 	ProfileImageBlob sql.NullString `json:"profile_image_blob,omitempty"`
 	Locale           sql.NullString `json:"locale"`
 	VerifiedEmail    bool           `json:"verified_email"`
+	Type             sql.NullString `json:"type"` // Type of authentication: 'email', 'google', 'apple'
 	CreatedAt        time.Time      `json:"created_at"`
 	UpdatedAt        time.Time      `json:"updated_at"`
 }

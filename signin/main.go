@@ -17,18 +17,20 @@ var (
 )
 
 type User struct {
-	ID            int       `json:"id"`
-	GoogleID      string    `json:"google_id"`
-	Email         string    `json:"email"`
-	Password      string    `json:"-"` // Never send password to client
-	Name          string    `json:"name"`
-	GivenName     string    `json:"given_name"`
-	FamilyName    string    `json:"family_name"`
-	Picture       string    `json:"picture"`
-	Locale        string    `json:"locale"`
-	VerifiedEmail bool      `json:"verified_email"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	ID               int       `json:"id"`
+	GoogleID         string    `json:"google_id"`
+	Email            string    `json:"email"`
+	Password         string    `json:"-"` // Never send password to client
+	Name             string    `json:"name"`
+	GivenName        string    `json:"given_name"`
+	FamilyName       string    `json:"family_name"`
+	Picture          string    `json:"picture"`
+	ProfileImageBlob string    `json:"profile_image_blob,omitempty"`
+	Locale           string    `json:"locale"`
+	VerifiedEmail    bool      `json:"verified_email"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+	DisplayImage     string    `json:"display_image"`
 }
 
 type SignInRequest struct {
@@ -116,9 +118,9 @@ func handleCheckEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if email exists
+	// Check if email exists with type='email' (only email users, not Google/Apple)
 	var exists bool
-	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ?)", req.Email).Scan(&exists)
+	err := db.QueryRow("SELECT EXISTS(SELECT 1 FROM users WHERE email = ? AND type = 'email')", req.Email).Scan(&exists)
 	if err != nil {
 		log.Printf("Database error: %v", err)
 		http.Error(w, "Database error", http.StatusInternalServerError)
@@ -153,20 +155,24 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if user exists and password is correct
+	// Check if user exists and password is correct - ONLY for email users (type='email')
 	var user User
 	var storedPassword sql.NullString // Use NullString to handle NULL values safely
 	var name sql.NullString
 	var givenName sql.NullString
 	var familyName sql.NullString
 	var picture sql.NullString
+	var profileImageBlob sql.NullString
 	var locale sql.NullString
+
+	// Log signin attempt for debugging
+	log.Printf("Sign-in attempt for email: %s", req.Email)
 
 	err := db.QueryRow(`
 		SELECT id, email, password, name, given_name, family_name, 
-		picture, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
 		FROM users 
-		WHERE email = ?
+		WHERE email = ? AND type = 'email'
 	`, req.Email).Scan(
 		&user.ID,
 		&user.Email,
@@ -175,6 +181,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		&givenName,
 		&familyName,
 		&picture,
+		&profileImageBlob,
 		&locale,
 		&user.VerifiedEmail,
 		&user.CreatedAt,
@@ -186,7 +193,16 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	user.GivenName = givenName.String
 	user.FamilyName = familyName.String
 	user.Picture = picture.String
+	user.ProfileImageBlob = profileImageBlob.String
 	user.Locale = locale.String
+
+	// Set display_image based on user type (email users use profile_image_blob)
+	if user.ProfileImageBlob != "" {
+		user.DisplayImage = user.ProfileImageBlob
+		log.Printf("Using profile image blob for email user %d (blob size: %d bytes)", user.ID, len(user.ProfileImageBlob))
+	} else {
+		log.Printf("Email user %d has no profile image blob", user.ID)
+	}
 
 	if err == sql.ErrNoRows {
 		w.Header().Set("Content-Type", "application/json")

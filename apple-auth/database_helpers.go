@@ -10,7 +10,7 @@ func getUserByAppleID(appleID string) (*User, error) {
 	var user User
 	err := db.QueryRow(`
 		SELECT id, apple_id, google_id, email, name, given_name, family_name, 
-		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, COALESCE(type, 'apple') as type, created_at, updated_at 
 		FROM users WHERE apple_id = ?`, appleID).Scan(
 		&user.ID,
 		&user.AppleID,
@@ -23,6 +23,7 @@ func getUserByAppleID(appleID string) (*User, error) {
 		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
+		&user.Type,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -34,7 +35,7 @@ func getUserByEmail(email string) (*User, error) {
 	var user User
 	err := db.QueryRow(`
 		SELECT id, apple_id, google_id, email, name, given_name, family_name, 
-		picture, profile_image_blob, locale, verified_email, created_at, updated_at 
+		picture, profile_image_blob, locale, verified_email, COALESCE(type, 'apple') as type, created_at, updated_at 
 		FROM users WHERE email = ?`, email).Scan(
 		&user.ID,
 		&user.AppleID,
@@ -47,6 +48,7 @@ func getUserByEmail(email string) (*User, error) {
 		&user.ProfileImageBlob,
 		&user.Locale,
 		&user.VerifiedEmail,
+		&user.Type,
 		&user.CreatedAt,
 		&user.UpdatedAt,
 	)
@@ -58,10 +60,10 @@ func createAppleUser(user User) (*User, error) {
 	result, err := db.Exec(`
 		INSERT INTO users (
 			apple_id, email, name, given_name, family_name, 
-			picture, profile_image_blob, locale, verified_email
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+			picture, profile_image_blob, locale, verified_email, type
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		user.AppleID, user.Email, user.Name, user.GivenName,
-		user.FamilyName, user.Picture, user.ProfileImageBlob, user.Locale, user.VerifiedEmail,
+		user.FamilyName, user.Picture, user.ProfileImageBlob, user.Locale, user.VerifiedEmail, "apple",
 	)
 	if err != nil {
 		return nil, err
@@ -73,6 +75,8 @@ func createAppleUser(user User) (*User, error) {
 	}
 
 	user.ID = int(id)
+	user.Type.String = "apple"
+	user.Type.Valid = true
 	user.CreatedAt = time.Now()
 	user.UpdatedAt = time.Now()
 	return &user, nil

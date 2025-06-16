@@ -1,3 +1,39 @@
-2025/06/13 21:00:49 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/13 21:00:49 Database connection established successfully
-2025/06/13 21:00:49 Profile Management service started on :8092
+2025/06/16 13:10:59 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/16 13:10:59 Database connection established successfully
+2025/06/16 13:10:59 Profile Management service started on :8092
+2025/06/16 13:14:52 DELETE ACCOUNT: Iniciando eliminación completa para usuario ID: 11
+2025/06/16 13:14:52 DELETE ACCOUNT: Usuario encontrado: jaimevillalcon@hotmail.com (11)
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla categories
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank_transactions
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_cash_bank_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_cash_bank_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_cash_bank_balance
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla bills
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla expenses
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla incomes
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla savings
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 0 registros de tabla balances
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminados 1 registros de tabla users
+2025/06/16 13:14:52 DELETE ACCOUNT: Eliminación completa exitosa para usuario jaimevillalcon@hotmail.com (11)
+2025/06/16 13:15:49 DELETE ACCOUNT: Iniciando eliminación completa para usuario ID: 12
+2025/06/16 13:15:49 DELETE ACCOUNT: Usuario encontrado: jaimevillalcon@hotmail.com (12)
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla categories
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank_transactions
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla cash_bank
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla daily_cash_bank_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla weekly_cash_bank_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla monthly_cash_bank_balance
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla bills
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla expenses
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla incomes
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla savings
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 0 registros de tabla balances
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminados 1 registros de tabla users
+2025/06/16 13:15:49 DELETE ACCOUNT: Eliminación completa exitosa para usuario jaimevillalcon@hotmail.com (12)
