@@ -70,6 +70,7 @@ func UpdateCascadeBalances(db *sql.DB, userID string, startMonth string) error {
 		}
 
 		// Calcular saldos del mes actual
+		// Las facturas pendientes reducen el saldo disponible (dinero comprometido)
 		cashAmount := previousCashAmount + incomeCash - expenseCash - billCash
 		bankAmount := previousBankAmount + incomeBank - expenseBank - billBank
 		balanceCashAmount := cashAmount

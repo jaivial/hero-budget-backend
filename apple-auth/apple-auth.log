@@ -1,30 +1,4 @@
-2025/06/17 13:21:07 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/17 13:21:07 Column 'type' may already exist: duplicate column name: type
-2025/06/17 13:21:07 Database connection established successfully
-2025/06/17 13:21:07 Apple Auth service started on :8100
-2025/06/17 13:23:26 🔍 Starting Apple token validation
-2025/06/17 13:23:26 🎫 Token length: 778 characters
-2025/06/17 13:23:26 🎫 Token preview: eyJraWQiOiJFNnE4M1JCMTVuIiwiYWxnIjoiUlMyNTYifQ.eyJ...
-2025/06/17 13:23:26 ✅ Token parsed successfully
-2025/06/17 13:23:26 ✅ Claims extracted successfully
-2025/06/17 13:23:26 🔍 Claims details:
-2025/06/17 13:23:26    - Subject: '000146.83d2e4ad11374a7abfb6da19424fcff0.1332'
-2025/06/17 13:23:26    - Email: 'jaimevillalcon@hotmail.com'
-2025/06/17 13:23:26    - EmailVerified: true
-2025/06/17 13:23:26    - Issuer: 'https://appleid.apple.com'
-2025/06/17 13:23:26    - Audience: 'com.herobudgetapp.app'
-2025/06/17 13:23:26    - Expiration: 1750245807
-2025/06/17 13:23:26    - IssuedAt: 1750159407
-2025/06/17 13:23:26    - Current time: 1750159406
-2025/06/17 13:23:26 ✅ Subject validation passed
-2025/06/17 13:23:26 ✅ Expiration validation passed
-2025/06/17 13:23:26 🎉 Apple token validation completed successfully
-2025/06/17 13:23:26 🔍 Extracting user data from Apple Sign-In:
-2025/06/17 13:23:26    - Email from token: jaimevillalcon@hotmail.com
-2025/06/17 13:23:26    - Subject: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/17 13:23:26    - No name data provided in user data
-2025/06/17 13:23:26    - Using email prefix as name: 'jaimevillalcon'
-2025/06/17 13:23:26    - Device locale: es
-2025/06/17 13:23:26 ✅ User extraction completed for Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/17 13:23:26 Processing Apple Sign-In for user: jaimevillalcon@hotmail.com (Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332)
-2025/06/17 13:23:26 Apple user logged in: jaimevillalcon@hotmail.com
+2025/06/17 16:08:23 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/17 16:08:23 Column 'type' may already exist: duplicate column name: type
+2025/06/17 16:08:23 Database connection established successfully
+2025/06/17 16:08:23 Apple Auth service started on :8100

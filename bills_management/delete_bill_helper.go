@@ -92,7 +92,7 @@ func deleteBill(request DeleteBillRequest) error {
 	}
 
 	// Update monthly cash bank balance before deleting the bill
-	if err := updateMonthlyBalanceForDeletedBill(billData); err != nil {
+	if err := updateMonthlyBalanceForDeletedBill(db, *billData); err != nil {
 		log.Printf("Error updating monthly balance for deleted bill: %v", err)
 		return err
 	}
@@ -178,4 +178,51 @@ func (e NotFoundError) Error() string {
 
 func NewNotFoundError(message string) NotFoundError {
 	return NotFoundError{Message: message}
+}
+
+// updateMainBalanceColumnsForDeletedBill updates main balance columns incrementally when a bill is deleted
+// Eliminating a bill IMPROVES the month's balance, so we ADD the amounts to main balance columns
+func updateMainBalanceColumnsForDeletedBill(billData BillData, targetMonth string) error {
+	log.Printf("Updating main balance columns for deleted bill - Bill: %d, Amount: %.2f, Method: %s, Month: %s",
+		billData.ID, billData.Amount, billData.PaymentMethod, targetMonth)
+
+	// Prepare the update query based on payment method
+	var updateQuery string
+	switch billData.PaymentMethod {
+	case "bank":
+		updateQuery = `
+			UPDATE monthly_cash_bank_balance 
+			SET bank_amount = bank_amount + ?,
+				total_balance = bank_amount + cash_amount
+			WHERE user_id = ? AND year_month = ?`
+	case "cash":
+		updateQuery = `
+			UPDATE monthly_cash_bank_balance 
+			SET cash_amount = cash_amount + ?,
+				total_balance = bank_amount + cash_amount
+			WHERE user_id = ? AND year_month = ?`
+	default:
+		return NewValidationError("Invalid payment method: " + billData.PaymentMethod)
+	}
+
+	// Execute the update
+	result, err := db.Exec(updateQuery, billData.Amount, billData.UserID, targetMonth)
+	if err != nil {
+		log.Printf("Error updating main balance columns for deleted bill: %v", err)
+		return err
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error getting rows affected: %v", err)
+		return err
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("Warning: No rows affected when updating balance for month %s", targetMonth)
+	} else {
+		log.Printf("Successfully updated main balance columns for month %s", targetMonth)
+	}
+
+	return nil
 }

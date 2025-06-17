@@ -1,7 +1,7 @@
-2025/06/17 13:21:03 Successfully loaded environment variables from ../.env
-2025/06/17 13:21:03 Column 'type' may already exist: duplicate column name: type
-2025/06/17 13:21:03 Registering routes:
-2025/06/17 13:21:03 - POST /auth/google
-2025/06/17 13:21:03 - POST /update/locale
-2025/06/17 13:21:03 - GET /health
-2025/06/17 13:21:03 Server started on :8081
+2025/06/17 16:08:19 Successfully loaded environment variables from ../.env
+2025/06/17 16:08:19 Column 'type' may already exist: duplicate column name: type
+2025/06/17 16:08:19 Registering routes:
+2025/06/17 16:08:19 - POST /auth/google
+2025/06/17 16:08:19 - POST /update/locale
+2025/06/17 16:08:19 - GET /health
+2025/06/17 16:08:19 Server started on :8081

@@ -1,23 +1,87 @@
-2025/06/17 13:21:10 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/17 13:21:10 Database connection established successfully
-2025/06/17 13:21:10 Fetch Dashboard service started on :8085
-2025/06/17 13:33:05 Getting user info for user ID: 14
-2025/06/17 13:33:05 User 14 type info - GoogleID: false, ProfileImageBlob present: false
-2025/06/17 13:33:05 Email user 14 has no profile image blob
-2025/06/17 13:33:05 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
-2025/06/17 13:35:19 Getting user info for user ID: 14
-2025/06/17 13:35:19 User 14 type info - GoogleID: false, ProfileImageBlob present: false
-2025/06/17 13:35:19 Email user 14 has no profile image blob
-2025/06/17 13:35:19 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
-2025/06/17 14:16:44 Getting user info for user ID: 14
-2025/06/17 14:16:44 User 14 type info - GoogleID: false, ProfileImageBlob present: false
-2025/06/17 14:16:44 Email user 14 has no profile image blob
-2025/06/17 14:16:44 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
-2025/06/17 14:24:42 Getting user info for user ID: 14
-2025/06/17 14:24:42 User 14 type info - GoogleID: false, ProfileImageBlob present: false
-2025/06/17 14:24:42 Email user 14 has no profile image blob
-2025/06/17 14:24:42 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
-2025/06/17 14:25:08 Getting user info for user ID: 14
-2025/06/17 14:25:08 User 14 type info - GoogleID: false, ProfileImageBlob present: false
-2025/06/17 14:25:08 Email user 14 has no profile image blob
-2025/06/17 14:25:08 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:08:26 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/17 16:08:26 Database connection established successfully
+2025/06/17 16:08:26 Fetch Dashboard service started on :8085
+2025/06/17 16:08:58 Getting user info for user ID: 14
+2025/06/17 16:08:58 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:08:58 Email user 14 has no profile image blob
+2025/06/17 16:08:58 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:47:06 Getting user info for user ID: 14
+2025/06/17 16:47:06 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:47:06 Email user 14 has no profile image blob
+2025/06/17 16:47:06 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:47:41 Getting user info for user ID: 14
+2025/06/17 16:47:41 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:47:41 Email user 14 has no profile image blob
+2025/06/17 16:47:41 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:49:31 Getting user info for user ID: 14
+2025/06/17 16:49:31 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:49:31 Email user 14 has no profile image blob
+2025/06/17 16:49:31 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:51:29 Getting user info for user ID: 14
+2025/06/17 16:51:29 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:51:29 Email user 14 has no profile image blob
+2025/06/17 16:51:29 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 16:58:00 Getting user info for user ID: 14
+2025/06/17 16:58:00 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 16:58:00 Email user 14 has no profile image blob
+2025/06/17 16:58:00 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:00:08 Getting user info for user ID: 14
+2025/06/17 17:00:08 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:00:08 Email user 14 has no profile image blob
+2025/06/17 17:00:08 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:03:15 Getting user info for user ID: 14
+2025/06/17 17:03:15 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:03:15 Email user 14 has no profile image blob
+2025/06/17 17:03:15 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:03:51 Getting user info for user ID: 14
+2025/06/17 17:03:51 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:03:51 Email user 14 has no profile image blob
+2025/06/17 17:03:51 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:04:55 Getting user info for user ID: 14
+2025/06/17 17:04:55 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:04:55 Email user 14 has no profile image blob
+2025/06/17 17:04:55 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:05:01 Getting user info for user ID: 14
+2025/06/17 17:05:01 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:05:01 Email user 14 has no profile image blob
+2025/06/17 17:05:01 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:06:23 Getting user info for user ID: 14
+2025/06/17 17:06:23 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:06:23 Email user 14 has no profile image blob
+2025/06/17 17:06:23 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:06:36 Getting user info for user ID: 14
+2025/06/17 17:06:36 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:06:36 Email user 14 has no profile image blob
+2025/06/17 17:06:36 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:07:00 Getting user info for user ID: 14
+2025/06/17 17:07:00 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:07:00 Email user 14 has no profile image blob
+2025/06/17 17:07:00 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:16:10 Getting user info for user ID: 14
+2025/06/17 17:16:10 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:16:10 Email user 14 has no profile image blob
+2025/06/17 17:16:10 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:16:55 Getting user info for user ID: 14
+2025/06/17 17:16:55 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:16:55 Email user 14 has no profile image blob
+2025/06/17 17:16:55 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:20:09 Getting user info for user ID: 14
+2025/06/17 17:20:09 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:20:09 Email user 14 has no profile image blob
+2025/06/17 17:20:09 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:23:43 Getting user info for user ID: 14
+2025/06/17 17:23:43 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:23:43 Email user 14 has no profile image blob
+2025/06/17 17:23:43 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:42:57 Getting user info for user ID: 14
+2025/06/17 17:42:57 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:42:57 Email user 14 has no profile image blob
+2025/06/17 17:42:57 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:43:12 Getting user info for user ID: 14
+2025/06/17 17:43:12 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:43:12 Email user 14 has no profile image blob
+2025/06/17 17:43:12 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 17:43:36 Getting user info for user ID: 14
+2025/06/17 17:43:36 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 17:43:36 Email user 14 has no profile image blob
+2025/06/17 17:43:36 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false

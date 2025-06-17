@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"time"
@@ -56,44 +57,60 @@ func getExpenseMonthsForBill(billID int) ([]ExpenseMonth, error) {
 }
 
 // updateMonthlyBalanceForDeletedBill updates monthly balance when deleting a bill
-func updateMonthlyBalanceForDeletedBill(billData *BillData) error {
-	// Get expense months for this bill
-	expenseMonths, err := getExpenseMonthsForBill(billData.ID)
+func updateMonthlyBalanceForDeletedBill(db *sql.DB, billData BillData) error {
+	log.Printf("🗑️ Eliminando factura: user_id=%s, monto=%.2f, duración=%d meses, fecha=%s, método=%s",
+		billData.UserID, billData.Amount, billData.Duration, billData.StartDate, billData.PaymentMethod)
+
+	// Si la duración es mayor a 1 mes, usar reversión cascada
+	if billData.Duration > 1 {
+		log.Printf("🗑️ Factura multi-mes detectada, usando reversión cascada")
+		return revertCascadeBillBalance(db, billData.UserID, billData.StartDate, billData.Duration, billData.Amount, billData.PaymentMethod)
+	}
+
+	// Para facturas de un solo mes, usar lógica simple
+	log.Printf("🗑️ Factura de un solo mes, usando lógica simple")
+	// Parse the start date to get the year_month
+	startTime, err := time.Parse("2006-01-02", billData.StartDate)
 	if err != nil {
-		return err
-	}
-
-	// Create map of expense months for quick lookup
-	expenseMonthsMap := make(map[string]bool)
-	for _, em := range expenseMonths {
-		expenseMonthsMap[em.YearMonth] = true
-	}
-
-	// Parse start date string to time.Time for calculations
-	startDate, err := time.Parse("2006-01-02", billData.StartDate)
-	if err != nil {
-		log.Printf("Error parsing start date: %v", err)
-		return err
-	}
-
-	// Generate all months for the bill duration
-	allBillMonths := generateBillMonths(startDate, billData.Duration)
-
-	// Update balances for each month
-	for _, yearMonth := range allBillMonths {
-		isExpenseMonth := expenseMonthsMap[yearMonth]
-
-		if err := updateMonthBalance(billData, yearMonth, isExpenseMonth); err != nil {
-			return err
+		// Intentar con formato ISO si falla el formato simple
+		startTime, err = time.Parse("2006-01-02T15:04:05Z", billData.StartDate)
+		if err != nil {
+			log.Printf("🗑️ Error parseando fecha: %v", err)
+			return fmt.Errorf("error parsing start date: %v", err)
 		}
 	}
 
-	// Update cascade balances from start date using existing function
-	startYearMonth := startDate.Format("2006-01")
-	if err := updateCascadeBalances(db, billData.UserID, startYearMonth); err != nil {
+	yearMonth := startTime.Format("2006-01")
+	log.Printf("🗑️ Mes calculado para eliminación: %s", yearMonth)
+
+	// Revertir el balance para el mes único
+	updateBalanceColumns(db, billData.UserID, yearMonth, billData.Amount, billData.PaymentMethod, "bill", -1)
+
+	// Para facturas de un mes, sumar de vuelta el importe al balance correspondiente
+	var updateQuery string
+	if billData.PaymentMethod == "bank" {
+		updateQuery = `
+			UPDATE monthly_cash_bank_balance 
+			SET bank_amount = bank_amount + ?, 
+			    balance_bank_amount = balance_bank_amount + ?, 
+			    total_balance = cash_amount + (bank_amount + ?)
+			WHERE user_id = ? AND year_month = ?`
+	} else {
+		updateQuery = `
+			UPDATE monthly_cash_bank_balance 
+			SET cash_amount = cash_amount + ?, 
+			    balance_cash_amount = balance_cash_amount + ?, 
+			    total_balance = (cash_amount + ?) + bank_amount
+			WHERE user_id = ? AND year_month = ?`
+	}
+
+	_, err = db.Exec(updateQuery, billData.Amount, billData.Amount, billData.Amount, billData.UserID, yearMonth)
+	if err != nil {
+		log.Printf("🗑️ Error actualizando balance tras eliminación: %v", err)
 		return err
 	}
 
+	log.Printf("✅ Factura de un solo mes eliminada exitosamente")
 	return nil
 }
 
