@@ -1,3 +1,24 @@
 Using database at: ../google_auth/users.db
-2025/06/16 13:10:49 Database connection established successfully
+2025/06/17 14:24:01 Database connection established successfully
 Bills Management service started on :8091
+2025/06/17 14:25:23 Added 1.00 to bill_bank_amount for user 14 in month 2025-05
+2025/06/17 14:25:23 Added 1.00 to bill_bank_amount for user 14 in month 2025-06
+2025/06/17 14:25:23 Added 1.00 to bill_bank_amount for user 14 in month 2025-07
+2025/06/17 14:25:23 Added 1.00 to bill_bank_amount for user 14 in month 2025-08
+2025/06/17 14:25:23 Created 4 bill payment records for bill 60 starting from 2025-05-01
+2025/06/17 14:25:37 🔍 handleFetchBills: userID=14, period=, date=
+2025/06/17 14:25:45 Start date or duration changed, skipping amount update logic (will be handled by duration logic)
+2025/06/17 14:25:45 Duration logic triggered - Duration changed: false, Start date changed: true
+2025/06/17 14:25:45 Duration: 4 -> 4 months, Start date: 2025-05-01 -> 2025-06-01
+2025/06/17 14:25:45 Removed months: [2025-05]
+2025/06/17 14:25:45 Added months: [2025-09]
+2025/06/17 14:25:45 Remaining months: [2025-06 2025-07 2025-08]
+2025/06/17 14:25:45 Processing removed month: 2025-05
+2025/06/17 14:25:45 Subtracted 1.00 from bill_bank_amount for user 14 in month 2025-05
+2025/06/17 14:25:45 Added 1.00 to main balance columns for user 14 in month 2025-05
+2025/06/17 14:25:45 Subtracted from bill records for month 2025-05 (no expenses)
+2025/06/17 14:25:45 Updated previous balances from month 2025-05 with difference -1.00
+2025/06/17 14:25:45 Processing added month: 2025-09
+2025/06/17 14:25:45 Added 1.00 to bill_bank_amount for user 14 in month 2025-09
+2025/06/17 14:25:45 Subtracted 1.00 from main balance columns for user 14 in month 2025-09
+2025/06/17 14:25:45 Added to bill records for month 2025-09 (no expenses)

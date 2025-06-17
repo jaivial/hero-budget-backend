@@ -7,15 +7,22 @@ import (
 	"time"
 )
 
-// updateBillDurationLogic maneja toda la lógica de cambios de duración
+// updateBillDurationLogic maneja toda la lógica de cambios de duración y fecha de inicio
 func updateBillDurationLogic(db *sql.DB, updateData BillUpdateData) error {
-	if updateData.OldDurationMonths == updateData.NewDurationMonths {
-		log.Printf("Duration unchanged, skipping duration update logic")
+	// Verificar si cambió la duración O la fecha de inicio
+	durationChanged := updateData.OldDurationMonths != updateData.NewDurationMonths
+	startDateChanged := updateData.OldStartDate != updateData.NewStartDate
+
+	if !durationChanged && !startDateChanged {
+		log.Printf("Duration and start date unchanged, skipping duration update logic")
 		return nil
 	}
 
-	log.Printf("Duration changed from %d to %d months",
-		updateData.OldDurationMonths, updateData.NewDurationMonths)
+	log.Printf("Duration logic triggered - Duration changed: %v, Start date changed: %v",
+		durationChanged, startDateChanged)
+	log.Printf("Duration: %d -> %d months, Start date: %s -> %s",
+		updateData.OldDurationMonths, updateData.NewDurationMonths,
+		updateData.OldStartDate, updateData.NewStartDate)
 
 	// Calcular meses antiguos y nuevos
 	oldMonths, err := calculateMonthsFromDuration(updateData.OldStartDate, updateData.OldDurationMonths)
@@ -32,8 +39,12 @@ func updateBillDurationLogic(db *sql.DB, updateData BillUpdateData) error {
 	removedMonths := findRemovedMonths(oldMonths, newMonths)
 	addedMonths := findAddedMonths(oldMonths, newMonths)
 
+	// Determinar meses que permanecen (para cambios de importe)
+	remainingMonths := findRemainingMonths(oldMonths, newMonths)
+
 	log.Printf("Removed months: %v", removedMonths)
 	log.Printf("Added months: %v", addedMonths)
+	log.Printf("Remaining months: %v", remainingMonths)
 
 	// Procesar meses eliminados
 	if len(removedMonths) > 0 {
@@ -48,6 +59,15 @@ func updateBillDurationLogic(db *sql.DB, updateData BillUpdateData) error {
 		err = processAddedMonths(db, updateData, addedMonths)
 		if err != nil {
 			return fmt.Errorf("error processing added months: %v", err)
+		}
+	}
+
+	// Procesar cambios de importe en meses que permanecen
+	if len(remainingMonths) > 0 && updateData.OldAmount != updateData.NewAmount {
+		amountDifference := updateData.NewAmount - updateData.OldAmount
+		err = processRemainingMonthsAmountChange(db, updateData, remainingMonths, amountDifference)
+		if err != nil {
+			return fmt.Errorf("error processing amount changes in remaining months: %v", err)
 		}
 	}
 
@@ -105,6 +125,23 @@ func findAddedMonths(oldMonths, newMonths []string) []string {
 	return addedMonths
 }
 
+// findRemainingMonths encuentra los meses que están en ambos oldMonths y newMonths
+func findRemainingMonths(oldMonths, newMonths []string) []string {
+	oldMonthsMap := make(map[string]bool)
+	for _, month := range oldMonths {
+		oldMonthsMap[month] = true
+	}
+
+	var remainingMonths []string
+	for _, month := range newMonths {
+		if oldMonthsMap[month] {
+			remainingMonths = append(remainingMonths, month)
+		}
+	}
+
+	return remainingMonths
+}
+
 // processRemovedMonths maneja la lógica cuando se eliminan meses de la duración
 func processRemovedMonths(db *sql.DB, updateData BillUpdateData, removedMonths []string) error {
 	// Obtener meses que tienen expenses para este bill
@@ -143,11 +180,11 @@ func processRemovedMonths(db *sql.DB, updateData BillUpdateData, removedMonths [
 				log.Printf("Error subtracting expense columns for month %s: %v", month, err)
 			}
 
-			// Restar de las columnas principales también para meses con expenses
-			err = subtractFromMainBalanceColumns(db, updateData.UserID, month,
+			// Sumar a las columnas principales también para meses con expenses (mes mejora)
+			err = addToMainBalanceColumns(db, updateData.UserID, month,
 				updateData.OldAmount, updateData.OldPaymentMethod)
 			if err != nil {
-				log.Printf("Error subtracting from main balance columns for month %s: %v", month, err)
+				log.Printf("Error adding to main balance columns for month %s: %v", month, err)
 			}
 
 			log.Printf("Subtracted from expense records for month %s (has expenses)", month)
@@ -161,11 +198,11 @@ func processRemovedMonths(db *sql.DB, updateData BillUpdateData, removedMonths [
 				continue
 			}
 
-			// Restar de las columnas principales
-			err = subtractFromMainBalanceColumns(db, updateData.UserID, month,
+			// Sumar a las columnas principales (el mes mejora al no tener factura)
+			err = addToMainBalanceColumns(db, updateData.UserID, month,
 				updateData.OldAmount, updateData.OldPaymentMethod)
 			if err != nil {
-				log.Printf("Error subtracting from main balance columns for month %s: %v", month, err)
+				log.Printf("Error adding to main balance columns for month %s: %v", month, err)
 			}
 
 			log.Printf("Subtracted from bill records for month %s (no expenses)", month)
@@ -234,10 +271,10 @@ func processAddedMonths(db *sql.DB, updateData BillUpdateData, addedMonths []str
 			}
 
 			// Añadir a las columnas principales también para meses con expenses
-			err = addToMainBalanceColumns(db, updateData.UserID, month,
+			err = subtractFromMainBalanceColumns(db, updateData.UserID, month,
 				updateData.NewAmount, updateData.NewPaymentMethod)
 			if err != nil {
-				log.Printf("Error adding to main balance columns for month %s: %v", month, err)
+				log.Printf("Error subtracting from main balance columns for month %s: %v", month, err)
 			}
 
 			log.Printf("Added to expense records for month %s (has expenses)", month)
@@ -251,11 +288,11 @@ func processAddedMonths(db *sql.DB, updateData BillUpdateData, addedMonths []str
 				continue
 			}
 
-			// Añadir a las columnas principales
-			err = addToMainBalanceColumns(db, updateData.UserID, month,
+			// Restar de las columnas principales (el mes empeora al tener nueva factura)
+			err = subtractFromMainBalanceColumns(db, updateData.UserID, month,
 				updateData.NewAmount, updateData.NewPaymentMethod)
 			if err != nil {
-				log.Printf("Error adding to main balance columns for month %s: %v", month, err)
+				log.Printf("Error subtracting from main balance columns for month %s: %v", month, err)
 			}
 
 			log.Printf("Added to bill records for month %s (no expenses)", month)
@@ -684,5 +721,135 @@ func updateCascadeBalancesFromMonth(db *sql.DB, userID string, startMonth string
 		}
 	}
 
+	return nil
+}
+
+// processRemainingMonthsAmountChange maneja la lógica cuando hay cambios de importe en meses que permanecen
+func processRemainingMonthsAmountChange(db *sql.DB, updateData BillUpdateData, remainingMonths []string, amountDifference float64) error {
+	// Obtener meses que tienen expenses para este bill
+	expenseMonths := make(map[string]bool)
+	rows, err := db.Query(`
+		SELECT DISTINCT strftime('%Y-%m', date) as year_month 
+		FROM expenses 
+		WHERE bill_id = ? AND user_id = ?
+	`, updateData.BillID, updateData.UserID)
+	if err == nil {
+		defer rows.Close()
+		for rows.Next() {
+			var month string
+			if rows.Scan(&month) == nil {
+				expenseMonths[month] = true
+			}
+		}
+	}
+
+	for _, month := range remainingMonths {
+		log.Printf("Processing remaining month %s with amount difference: %.2f", month, amountDifference)
+
+		// Si este mes TIENE expenses, actualizar tabla expenses y expense_* columns
+		if expenseMonths[month] {
+			// Actualizar amount en la tabla expenses con la diferencia
+			err := updateExpenseAmountForBillDifference(db, updateData.BillID, updateData.UserID, month, amountDifference)
+			if err != nil {
+				log.Printf("Error updating expense amount for month %s: %v", month, err)
+				continue
+			}
+
+			// Actualizar expense_* columns en monthly_cash_bank_balance con la diferencia
+			err = updateExpenseAmountInMonthlyBalance(db, updateData.UserID, month,
+				amountDifference, updateData.NewPaymentMethod)
+			if err != nil {
+				log.Printf("Error updating expense columns for month %s: %v", month, err)
+			}
+
+			// Actualizar las columnas principales también para meses con expenses
+			err = updateMainBalanceColumns(db, updateData.UserID, month,
+				amountDifference, updateData.NewPaymentMethod)
+			if err != nil {
+				log.Printf("Error updating main balance columns for month %s: %v", month, err)
+			}
+
+			log.Printf("Updated expense records for month %s with difference %.2f (has expenses)", month, amountDifference)
+		} else {
+			// Solo procesar si este mes NO tiene expenses
+			// Actualizar el importe en las columnas correspondientes con la diferencia
+			err := updateBillAmountInMonthDifference(db, updateData.UserID, month,
+				amountDifference, updateData.NewPaymentMethod)
+			if err != nil {
+				log.Printf("Error updating bill amount for month %s: %v", month, err)
+				continue
+			}
+
+			// Actualizar las columnas principales con la diferencia
+			err = updateMainBalanceColumns(db, updateData.UserID, month,
+				amountDifference, updateData.NewPaymentMethod)
+			if err != nil {
+				log.Printf("Error updating main balance columns for month %s: %v", month, err)
+			}
+
+			log.Printf("Updated bill records for month %s with difference %.2f (no expenses)", month, amountDifference)
+		}
+	}
+
+	// Actualizar previous_* en cascada desde el primer mes que permanece
+	if len(remainingMonths) > 0 {
+		earliestRemainingMonth := findEarliestMonth(remainingMonths)
+		err := updatePreviousBalancesFromMonth(db, updateData.UserID, earliestRemainingMonth,
+			amountDifference, updateData.NewPaymentMethod)
+		if err != nil {
+			log.Printf("Error updating previous balances from month %s: %v", earliestRemainingMonth, err)
+		}
+	}
+
+	return nil
+}
+
+// updateExpenseAmountForBillDifference actualiza el amount en la tabla expenses para un bill específico con diferencia
+func updateExpenseAmountForBillDifference(db *sql.DB, billID int, userID, yearMonth string, amountDifference float64) error {
+	// Actualizar todos los expenses de este bill en el mes especificado con la diferencia
+	result, err := db.Exec(`
+		UPDATE expenses 
+		SET amount = amount + ? 
+		WHERE bill_id = ? AND user_id = ? AND strftime('%Y-%m', date) = ?
+	`, amountDifference, billID, userID, yearMonth)
+
+	if err != nil {
+		return fmt.Errorf("error updating expenses amount with difference: %v", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Could not get rows affected for expense update: %v", err)
+	} else {
+		log.Printf("Updated %d expense records with amount difference %.2f for bill %d in month %s",
+			rowsAffected, amountDifference, billID, yearMonth)
+	}
+
+	return nil
+}
+
+// updateBillAmountInMonthDifference actualiza el bill_amount en un mes específico con diferencia
+func updateBillAmountInMonthDifference(db *sql.DB, userID, yearMonth string,
+	amountDifference float64, paymentMethod string) error {
+
+	var column string
+	if paymentMethod == "cash" {
+		column = "bill_cash_amount"
+	} else {
+		column = "bill_bank_amount"
+	}
+
+	_, err := db.Exec(fmt.Sprintf(`
+		UPDATE monthly_cash_bank_balance 
+		SET %s = %s + ? 
+		WHERE user_id = ? AND year_month = ?
+	`, column, column), amountDifference, userID, yearMonth)
+
+	if err != nil {
+		return fmt.Errorf("error updating %s with difference: %v", column, err)
+	}
+
+	log.Printf("Updated %s by %.2f for user %s in month %s",
+		column, amountDifference, userID, yearMonth)
 	return nil
 }

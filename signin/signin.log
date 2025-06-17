@@ -1,11 +1,3 @@
-2025/06/16 13:11:02 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/16 13:11:02 Database connection established successfully
-2025/06/16 13:11:02 SignIn service started on :8084
-2025/06/16 13:12:13 Sign-in attempt for email: jaimevillalcon@hotmail.com
-2025/06/16 13:12:13 Using profile image blob for email user 12 (blob size: 78336 bytes)
-2025/06/16 13:12:13 User jaimevillalcon@hotmail.com logged in successfully
-2025/06/16 13:15:44 Sign-in attempt for email: jaimevillalcon@hotmail.com
-2025/06/16 13:15:44 Using profile image blob for email user 12 (blob size: 78336 bytes)
-2025/06/16 13:15:44 User jaimevillalcon@hotmail.com logged in successfully
-2025/06/16 13:16:14 Sign-in attempt for email: jaimevillalcon@hotmail.com
-2025/06/16 13:16:14 Email user 0 has no profile image blob
+2025/06/17 13:21:17 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/17 13:21:17 Database connection established successfully
+2025/06/17 13:21:17 SignIn service started on :8084

@@ -23,6 +23,14 @@ type BillUpdateData struct {
 
 // updateBillAmountLogic maneja toda la lógica de actualización de importes
 func updateBillAmountLogic(db *sql.DB, updateData BillUpdateData) error {
+	// Si cambió la fecha de inicio o duración, NO procesar cambios de importe aquí
+	// porque updateBillDurationLogic ya manejará todo correctamente
+	if updateData.OldStartDate != updateData.NewStartDate ||
+		updateData.OldDurationMonths != updateData.NewDurationMonths {
+		log.Printf("Start date or duration changed, skipping amount update logic (will be handled by duration logic)")
+		return nil
+	}
+
 	if updateData.OldAmount == updateData.NewAmount {
 		log.Printf("Amount unchanged, skipping amount update logic")
 		return nil

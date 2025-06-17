@@ -1,3 +1,23 @@
-2025/06/16 13:10:55 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/16 13:10:55 Database connection established successfully
-2025/06/16 13:10:55 Fetch Dashboard service started on :8085
+2025/06/17 13:21:10 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/17 13:21:10 Database connection established successfully
+2025/06/17 13:21:10 Fetch Dashboard service started on :8085
+2025/06/17 13:33:05 Getting user info for user ID: 14
+2025/06/17 13:33:05 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 13:33:05 Email user 14 has no profile image blob
+2025/06/17 13:33:05 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 13:35:19 Getting user info for user ID: 14
+2025/06/17 13:35:19 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 13:35:19 Email user 14 has no profile image blob
+2025/06/17 13:35:19 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 14:16:44 Getting user info for user ID: 14
+2025/06/17 14:16:44 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 14:16:44 Email user 14 has no profile image blob
+2025/06/17 14:16:44 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 14:24:42 Getting user info for user ID: 14
+2025/06/17 14:24:42 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 14:24:42 Email user 14 has no profile image blob
+2025/06/17 14:24:42 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false
+2025/06/17 14:25:08 Getting user info for user ID: 14
+2025/06/17 14:25:08 User 14 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/17 14:25:08 Email user 14 has no profile image blob
+2025/06/17 14:25:08 Successfully retrieved user 14: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false

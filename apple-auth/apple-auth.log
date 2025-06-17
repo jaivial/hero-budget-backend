@@ -1,83 +1,30 @@
-2025/06/16 13:10:52 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/16 13:10:52 Column 'type' may already exist: duplicate column name: type
-2025/06/16 13:10:52 Database connection established successfully
-2025/06/16 13:10:52 Apple Auth service started on :8100
-2025/06/16 13:12:40 🔍 Starting Apple token validation
-2025/06/16 13:12:40 🎫 Token length: 778 characters
-2025/06/16 13:12:40 🎫 Token preview: eyJraWQiOiJyczBNM2tPVjlwIiwiYWxnIjoiUlMyNTYifQ.eyJ...
-2025/06/16 13:12:40 ✅ Token parsed successfully
-2025/06/16 13:12:40 ✅ Claims extracted successfully
-2025/06/16 13:12:40 🔍 Claims details:
-2025/06/16 13:12:40    - Subject: '000146.83d2e4ad11374a7abfb6da19424fcff0.1332'
-2025/06/16 13:12:40    - Email: 'jaimevillalcon@hotmail.com'
-2025/06/16 13:12:40    - EmailVerified: true
-2025/06/16 13:12:40    - Issuer: 'https://appleid.apple.com'
-2025/06/16 13:12:40    - Audience: 'com.herobudgetapp.app'
-2025/06/16 13:12:40    - Expiration: 1750158760
-2025/06/16 13:12:40    - IssuedAt: 1750072360
-2025/06/16 13:12:40    - Current time: 1750072360
-2025/06/16 13:12:40 ✅ Subject validation passed
-2025/06/16 13:12:40 ✅ Expiration validation passed
-2025/06/16 13:12:40 🎉 Apple token validation completed successfully
-2025/06/16 13:12:40 🔍 Extracting user data from Apple Sign-In:
-2025/06/16 13:12:40    - Email from token: jaimevillalcon@hotmail.com
-2025/06/16 13:12:40    - Subject: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:12:40    - No name data provided in user data
-2025/06/16 13:12:40    - Using email prefix as name: 'jaimevillalcon'
-2025/06/16 13:12:40    - Device locale: es
-2025/06/16 13:12:40 ✅ User extraction completed for Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:12:40 Processing Apple Sign-In for user: jaimevillalcon@hotmail.com (Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332)
-2025/06/16 13:12:40 Apple user logged in: jaimevillalcon@hotmail.com
-2025/06/16 13:14:47 🔍 Starting Apple token validation
-2025/06/16 13:14:47 🎫 Token length: 778 characters
-2025/06/16 13:14:47 🎫 Token preview: eyJraWQiOiJTZjJsRnF3a3BYIiwiYWxnIjoiUlMyNTYifQ.eyJ...
-2025/06/16 13:14:47 ✅ Token parsed successfully
-2025/06/16 13:14:47 ✅ Claims extracted successfully
-2025/06/16 13:14:47 🔍 Claims details:
-2025/06/16 13:14:47    - Subject: '000146.83d2e4ad11374a7abfb6da19424fcff0.1332'
-2025/06/16 13:14:47    - Email: 'jaimevillalcon@hotmail.com'
-2025/06/16 13:14:47    - EmailVerified: true
-2025/06/16 13:14:47    - Issuer: 'https://appleid.apple.com'
-2025/06/16 13:14:47    - Audience: 'com.herobudgetapp.app'
-2025/06/16 13:14:47    - Expiration: 1750158887
-2025/06/16 13:14:47    - IssuedAt: 1750072487
-2025/06/16 13:14:47    - Current time: 1750072487
-2025/06/16 13:14:47 ✅ Subject validation passed
-2025/06/16 13:14:47 ✅ Expiration validation passed
-2025/06/16 13:14:47 🎉 Apple token validation completed successfully
-2025/06/16 13:14:47 🔍 Extracting user data from Apple Sign-In:
-2025/06/16 13:14:47    - Email from token: jaimevillalcon@hotmail.com
-2025/06/16 13:14:47    - Subject: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:14:47    - No name data provided in user data
-2025/06/16 13:14:47    - Using email prefix as name: 'jaimevillalcon'
-2025/06/16 13:14:47    - Device locale: es
-2025/06/16 13:14:47 ✅ User extraction completed for Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:14:47 Processing Apple Sign-In for user: jaimevillalcon@hotmail.com (Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332)
-2025/06/16 13:14:47 Apple user logged in: jaimevillalcon@hotmail.com
-2025/06/16 13:15:10 🔍 Starting Apple token validation
-2025/06/16 13:15:10 🎫 Token length: 778 characters
-2025/06/16 13:15:10 🎫 Token preview: eyJraWQiOiJVYUlJRlkyZlc0IiwiYWxnIjoiUlMyNTYifQ.eyJ...
-2025/06/16 13:15:10 ✅ Token parsed successfully
-2025/06/16 13:15:10 ✅ Claims extracted successfully
-2025/06/16 13:15:10 🔍 Claims details:
-2025/06/16 13:15:10    - Subject: '000146.83d2e4ad11374a7abfb6da19424fcff0.1332'
-2025/06/16 13:15:10    - Email: 'jaimevillalcon@hotmail.com'
-2025/06/16 13:15:10    - EmailVerified: true
-2025/06/16 13:15:10    - Issuer: 'https://appleid.apple.com'
-2025/06/16 13:15:10    - Audience: 'com.herobudgetapp.app'
-2025/06/16 13:15:10    - Expiration: 1750158910
-2025/06/16 13:15:10    - IssuedAt: 1750072510
-2025/06/16 13:15:10    - Current time: 1750072510
-2025/06/16 13:15:10 ✅ Subject validation passed
-2025/06/16 13:15:10 ✅ Expiration validation passed
-2025/06/16 13:15:10 🎉 Apple token validation completed successfully
-2025/06/16 13:15:10 🔍 Extracting user data from Apple Sign-In:
-2025/06/16 13:15:10    - Email from token: jaimevillalcon@hotmail.com
-2025/06/16 13:15:10    - Subject: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:15:10    - No name data provided in user data
-2025/06/16 13:15:10    - Using email prefix as name: 'jaimevillalcon'
-2025/06/16 13:15:10    - Device locale: es
-2025/06/16 13:15:10 ✅ User extraction completed for Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
-2025/06/16 13:15:10 Processing Apple Sign-In for user: jaimevillalcon@hotmail.com (Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332)
-2025/06/16 13:15:10 User with email jaimevillalcon@hotmail.com exists with type 'email', creating Apple user anyway
-2025/06/16 13:15:10 Created new Apple user: jaimevillalcon@hotmail.com with type 'apple'
+2025/06/17 13:21:07 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/17 13:21:07 Column 'type' may already exist: duplicate column name: type
+2025/06/17 13:21:07 Database connection established successfully
+2025/06/17 13:21:07 Apple Auth service started on :8100
+2025/06/17 13:23:26 🔍 Starting Apple token validation
+2025/06/17 13:23:26 🎫 Token length: 778 characters
+2025/06/17 13:23:26 🎫 Token preview: eyJraWQiOiJFNnE4M1JCMTVuIiwiYWxnIjoiUlMyNTYifQ.eyJ...
+2025/06/17 13:23:26 ✅ Token parsed successfully
+2025/06/17 13:23:26 ✅ Claims extracted successfully
+2025/06/17 13:23:26 🔍 Claims details:
+2025/06/17 13:23:26    - Subject: '000146.83d2e4ad11374a7abfb6da19424fcff0.1332'
+2025/06/17 13:23:26    - Email: 'jaimevillalcon@hotmail.com'
+2025/06/17 13:23:26    - EmailVerified: true
+2025/06/17 13:23:26    - Issuer: 'https://appleid.apple.com'
+2025/06/17 13:23:26    - Audience: 'com.herobudgetapp.app'
+2025/06/17 13:23:26    - Expiration: 1750245807
+2025/06/17 13:23:26    - IssuedAt: 1750159407
+2025/06/17 13:23:26    - Current time: 1750159406
+2025/06/17 13:23:26 ✅ Subject validation passed
+2025/06/17 13:23:26 ✅ Expiration validation passed
+2025/06/17 13:23:26 🎉 Apple token validation completed successfully
+2025/06/17 13:23:26 🔍 Extracting user data from Apple Sign-In:
+2025/06/17 13:23:26    - Email from token: jaimevillalcon@hotmail.com
+2025/06/17 13:23:26    - Subject: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
+2025/06/17 13:23:26    - No name data provided in user data
+2025/06/17 13:23:26    - Using email prefix as name: 'jaimevillalcon'
+2025/06/17 13:23:26    - Device locale: es
+2025/06/17 13:23:26 ✅ User extraction completed for Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332
+2025/06/17 13:23:26 Processing Apple Sign-In for user: jaimevillalcon@hotmail.com (Apple ID: 000146.83d2e4ad11374a7abfb6da19424fcff0.1332)
+2025/06/17 13:23:26 Apple user logged in: jaimevillalcon@hotmail.com

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -612,11 +613,8 @@ func updateBillInDatabase(db *sql.DB, updateRequest UpdateBillRequest) error {
 	setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
 
 	// Construir query final
-	query := fmt.Sprintf("UPDATE bills SET %s WHERE id = ? AND user_id = ?",
-		fmt.Sprintf("%s", setParts[0]))
-	for i := 1; i < len(setParts); i++ {
-		query = fmt.Sprintf("%s, %s", query, setParts[i])
-	}
+	setClause := strings.Join(setParts, ", ")
+	query := fmt.Sprintf("UPDATE bills SET %s WHERE id = ? AND user_id = ?", setClause)
 
 	// Añadir parámetros de WHERE
 	args = append(args, updateRequest.BillID, updateRequest.UserID)
