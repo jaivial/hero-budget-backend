@@ -1,60 +1,11 @@
 Using database at: ../google_auth/users.db
-2025/06/17 17:43:07 Database connection established successfully
+2025/06/17 18:37:27 Database connection established successfully
 Bills Management service started on :8091
-2025/06/17 17:44:16 🔥 DEBUG: addNewBillToMonthlyBalance llamada con userID=14, amount=1.00, durationMonths=6, paymentMethod=bank
-2025/06/17 17:44:16 🔄 Aplicando lógica de acumulación en cascada para factura de 1.00 desde 2025-01-01 durante 6 meses
-2025/06/17 17:44:16 🔥 DEBUG: updateCascadeBillBalance iniciada - userID=14, amount=1.00, durationMonths=6
-2025/06/17 17:44:16 🔥 DEBUG: Meses calculados: [2025-01 2025-02 2025-03 2025-04 2025-05 2025-06]
-2025/06/17 17:44:16 🔄 Iniciando acumulación en cascada para factura de 1.00 desde 2025-01-01 durante 6 meses
-2025/06/17 17:44:16 📅 Meses afectados: [2025-01 2025-02 2025-03 2025-04 2025-05 2025-06]
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-01 - impacto acumulado: -1.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-01 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-02 - impacto acumulado: -2.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-02 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-03 - impacto acumulado: -3.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-03 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-04 - impacto acumulado: -4.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-04 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-05 - impacto acumulado: -5.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-05 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-06 - impacto acumulado: -6.00
-2025/06/17 17:44:16 🔥 DEBUG: Mes 2025-06 actualizado exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: Actualizando previous_amounts...
-2025/06/17 17:44:16 🔄 Actualizando previous_amounts correctamente para meses: [2025-01 2025-02 2025-03 2025-04 2025-05 2025-06]
-2025/06/17 17:44:16 ✅ 2025-02: previous_amount = -1.00 (del mes anterior 2025-01)
-2025/06/17 17:44:16 ✅ 2025-03: previous_amount = -2.00 (del mes anterior 2025-02)
-2025/06/17 17:44:16 ✅ 2025-04: previous_amount = -3.00 (del mes anterior 2025-03)
-2025/06/17 17:44:16 ✅ 2025-05: previous_amount = -4.00 (del mes anterior 2025-04)
-2025/06/17 17:44:16 ✅ 2025-06: previous_amount = 195.00 (del mes anterior 2025-05)
-2025/06/17 17:44:16 🔥 DEBUG: updateCascadeBillBalance completada exitosamente
-2025/06/17 17:44:16 🔥 DEBUG: updateCascadeBillBalance terminó con resultado: <nil>
-2025/06/17 17:44:26 🔥 DEBUG: addNewBillToMonthlyBalance llamada con userID=14, amount=1.00, durationMonths=1, paymentMethod=bank
-2025/06/17 17:44:26 🔥 DEBUG: Aplicando lógica simple para factura de un mes
-2025/06/17 17:44:35 🗑️ Eliminando factura: user_id=14, monto=1.00, duración=1 meses, fecha=2025-06-17, método=bank
-2025/06/17 17:44:35 🗑️ Factura de un solo mes, usando lógica simple
-2025/06/17 17:44:35 🗑️ Mes calculado para eliminación: 2025-06
-2025/06/17 17:44:35 ✅ Factura de un solo mes eliminada exitosamente
-2025/06/17 17:44:44 🗑️ Eliminando factura: user_id=14, monto=1.00, duración=6 meses, fecha=2025-01-01, método=bank
-2025/06/17 17:44:44 🗑️ Factura multi-mes detectada, usando reversión cascada
-2025/06/17 17:44:44 🔄 REVERT: Iniciando reversión cascada para factura de 1.00 desde 2025-01-01 durante 6 meses
-2025/06/17 17:44:44 🔄 REVERT: Meses a revertir: [2025-01 2025-02 2025-03 2025-04 2025-05 2025-06]
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-01 - impacto acumulado a revertir: +1.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-01 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-02 - impacto acumulado a revertir: +2.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-02 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-03 - impacto acumulado a revertir: +3.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-03 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-04 - impacto acumulado a revertir: +4.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-04 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-05 - impacto acumulado a revertir: +5.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-05 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-06 - impacto acumulado a revertir: +6.00
-2025/06/17 17:44:44 🔄 REVERT: Mes 2025-06 revertido exitosamente
-2025/06/17 17:44:44 🔄 REVERT: Actualizando previous_amounts después de reversión...
-2025/06/17 17:44:44 🔄 REVERT: Actualizando previous_amounts después de reversión para meses: [2025-01 2025-02 2025-03 2025-04 2025-05 2025-06]
-2025/06/17 17:44:44 ✅ REVERT: 2025-02: previous_amount = 0.00 (del mes anterior 2025-01)
-2025/06/17 17:44:44 ✅ REVERT: 2025-03: previous_amount = 0.00 (del mes anterior 2025-02)
-2025/06/17 17:44:44 ✅ REVERT: 2025-04: previous_amount = 0.00 (del mes anterior 2025-03)
-2025/06/17 17:44:44 ✅ REVERT: 2025-05: previous_amount = 0.00 (del mes anterior 2025-04)
-2025/06/17 17:44:44 ✅ REVERT: 2025-06: previous_amount = 200.00 (del mes anterior 2025-05)
-2025/06/17 17:44:44 🔄 REVERT: Reversión cascada completada exitosamente
+2025/06/17 18:40:13 🔥 DEBUG: addNewBillToMonthlyBalance llamada con userID=14, amount=1.00, durationMonths=1, paymentMethod=bank
+2025/06/17 18:40:13 🔥 DEBUG: Aplicando lógica simple para factura de un mes
+2025/06/17 19:50:50 🔍 fetchBillsForPeriod: userID=14, period=monthly, date=2025-06-01
+2025/06/17 19:50:50 📅 Target year-month: 2025-06
+2025/06/17 19:50:50 🔍 Executing query with targetYearMonth: 2025-06
+2025/06/17 19:50:50 📋 Bill ID 100 (hamburguer): period=2025-06, paid=true, dueDate=2025-06-17
+2025/06/17 19:50:50 📋 Bill ID 101 (Alquiler): period=2025-06, paid=false, dueDate=2025-06-17
+2025/06/17 19:50:50 ✅ fetchBillsForPeriod: Found 2 bills for period 2025-06

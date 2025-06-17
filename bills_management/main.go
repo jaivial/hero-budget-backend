@@ -79,7 +79,7 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 func main() {
 	http.HandleFunc("/bills", corsMiddleware(handleFetchBills))
 	http.HandleFunc("/bills/add", corsMiddleware(handleAddBill))
-	http.HandleFunc("/bills/pay", corsMiddleware(handleGenericEndpoint))
+	http.HandleFunc("/bills/pay", corsMiddleware(handlePayBill))
 	http.HandleFunc("/bills/payment-status", corsMiddleware(handleGenericEndpoint))
 	http.HandleFunc("/bills/update", corsMiddleware(handleUpdateBill))
 	http.HandleFunc("/bills/delete", corsMiddleware(handleDeleteBill))
@@ -189,6 +189,42 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 	}
 	sendSuccessResponse(w, "Bill updated successfully", map[string]interface{}{"bill_id": updateRequest.BillID, "status": "updated"})
 }
+func handlePayBill(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		UserID        string `json:"user_id"`
+		BillID        int    `json:"bill_id"`
+		YearMonth     string `json:"year_month"`
+		PaymentDate   string `json:"payment_date"`
+		PaymentMethod string `json:"payment_method"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate required fields
+	if req.UserID == "" || req.BillID <= 0 || req.YearMonth == "" {
+		sendErrorResponse(w, "Missing required fields: user_id, bill_id, year_month", http.StatusBadRequest)
+		return
+	}
+
+	// Use markBillPaid function from bill_pay_helper.go
+	paymentResponse, err := markBillPaid(db, req.BillID, req.UserID, req.YearMonth, req.PaymentDate)
+	if err != nil {
+		log.Printf("Error marking bill as paid: %v", err)
+		sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	sendSuccessResponse(w, "Bill payment processed successfully", paymentResponse)
+}
+
 func handleGenericEndpoint(w http.ResponseWriter, r *http.Request) {
 	sendSuccessResponse(w, "Endpoint available", map[string]string{"status": "available"})
 }
