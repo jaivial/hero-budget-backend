@@ -1,7 +1,7 @@
-2025/06/17 16:08:35 Configuration loaded successfully
-2025/06/17 16:08:35 Verification email templates loaded for 14 languages
-2025/06/17 16:08:35 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/17 16:08:35 Checking if table structure migration is needed...
-2025/06/17 16:08:35 Table structure is already up to date
-2025/06/17 16:08:35 Database connection established successfully
-2025/06/17 16:08:35 Signup service started on :8082
+2025/06/18 10:43:12 Configuration loaded successfully
+2025/06/18 10:43:12 Verification email templates loaded for 14 languages
+2025/06/18 10:43:12 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/18 10:43:12 Checking if table structure migration is needed...
+2025/06/18 10:43:12 Table structure is already up to date
+2025/06/18 10:43:12 Database connection established successfully
+2025/06/18 10:43:12 Signup service started on :8082

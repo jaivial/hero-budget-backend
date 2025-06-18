@@ -256,12 +256,12 @@ func handleDebugAddBill(w http.ResponseWriter, r *http.Request) {
 	})
 }
 func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(ApiResponse{Success: false, Message: message})
 }
 func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	json.NewEncoder(w).Encode(ApiResponse{Success: true, Message: message, Data: data})
 }
 func fetchBills(userID string) ([]Bill, error) {

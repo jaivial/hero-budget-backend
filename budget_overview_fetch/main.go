@@ -590,7 +590,7 @@ func formatDateForPeriod(date time.Time, period string) string {
 
 // sendSuccessResponse sends a successful JSON response
 func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(http.StatusOK)
 
 	response := ApiResponse{
@@ -604,7 +604,7 @@ func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}
 
 // sendErrorResponse sends an error JSON response
 func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
-	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(statusCode)
 
 	response := ApiResponse{
@@ -1389,6 +1389,9 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 			return nil, fmt.Errorf("failed to scan bill: %v", err)
 		}
 
+		// Debug log para verificar qué icono está leyendo de la base de datos
+		// log.Printf("🔍 DEBUG: Bill ID=%d, Name=%s, Icon from DB: '%s' (hex: %x)", t.ID, t.Name, t.Icon, []byte(t.Icon))
+
 		// Set transaction type and bill-specific fields
 		t.Type = "bill"
 		t.PaymentMethod = "cash" // Default value since bills table doesn't have payment_method
@@ -1442,6 +1445,11 @@ func fetchUpcomingBills(request TransactionRequest) (*UpcomingBillsResponse, err
 
 		bills = append(bills, t)
 	}
+
+	// Debug log para verificar el estado final de los iconos antes de enviar respuesta
+	// for _, bill := range bills {
+	//	log.Printf("🚀 DEBUG: Final bill ID=%d, Name=%s, Icon='%s' (hex: %x)", bill.ID, bill.Name, bill.Icon, []byte(bill.Icon))
+	// }
 
 	return &UpcomingBillsResponse{
 		Bills:     bills,
