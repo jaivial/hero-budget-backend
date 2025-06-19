@@ -52,6 +52,7 @@ func init() {
 func main() {
 	// Set up CORS middleware
 	http.HandleFunc("/user_locale/get", corsMiddleware(handleGetUserLocale))
+	http.HandleFunc("/user_locale/update", corsMiddleware(handleUpdateUserLocale))
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
 
 	port := 8099
@@ -63,7 +64,7 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Set headers
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
 		// If it's OPTIONS, return with just the headers (preflight request)
@@ -137,6 +138,68 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 		Success: true,
 		Message: "User locale retrieved successfully",
 		Locale:  userLocale,
+	})
+}
+
+func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req struct {
+		UserID string `json:"user_id"`
+		Locale string `json:"locale"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error decoding JSON: %v", err)
+		http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		return
+	}
+
+	if req.UserID == "" || req.Locale == "" {
+		log.Printf("Missing required fields: UserID=%s, Locale=%s", req.UserID, req.Locale)
+		http.Error(w, "User ID and locale are required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("Updating user locale for user ID: %s to locale: %s", req.UserID, req.Locale)
+
+	// Update the user's locale in the database
+	result, err := db.Exec(`UPDATE users SET locale = ? WHERE id = ?`, req.Locale, req.UserID)
+	if err != nil {
+		log.Printf("Database error updating user %s locale: %v", req.UserID, err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	// Check if any rows were affected
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("Error checking rows affected for user %s: %v", req.UserID, err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+
+	if rowsAffected == 0 {
+		log.Printf("No user found with ID: %s", req.UserID)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(UserLocaleResponse{
+			Success: false,
+			Message: "User not found",
+		})
+		return
+	}
+
+	log.Printf("Successfully updated locale for user %s to %s", req.UserID, req.Locale)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(UserLocaleResponse{
+		Success: true,
+		Message: "User locale updated successfully",
+		Locale:  req.Locale,
 	})
 }
 
