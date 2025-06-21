@@ -1,3 +1,25 @@
-2025/06/21 16:55:54 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/21 16:55:54 Database connection established successfully
-2025/06/21 16:55:54 Money Flow Sync service started on :8097
+2025/06/21 22:49:12 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/21 22:49:12 Database connection established successfully
+2025/06/21 22:49:12 Money Flow Sync service started on :8097
+2025/06/21 22:50:01 Getting money flow data for user user123 with period monthly
+2025/06/21 22:50:01 Syncing money flow for user user123 with period monthly
+2025/06/21 22:50:01 Date range: 2025-06-01 to 2025-06-30
+2025/06/21 22:50:01 🔍 DEBUG: Looking for previous_amounts for user user123, month 2025-06
+2025/06/21 22:50:01 🔍 DEBUG: No record found in monthly_cash_bank_balance for user user123, month 2025-06
+2025/06/21 22:50:01 Previous period: monthly, fromPrevious: 0.00
+2025/06/21 22:50:01 Total income: 0.00
+2025/06/21 22:50:01 Spent amount: 0.00
+2025/06/21 22:50:01 📋 Found upcoming bills for 2025-06: amount=0.00
+2025/06/21 22:50:01 Upcoming amount: 0.00
+2025/06/21 22:50:01 Total amount: 0.00, Remaining amount: 0.00, Percent: 0.00
+2025/06/21 23:05:07 Getting money flow data for user user123 with period monthly
+2025/06/21 23:05:07 Syncing money flow for user user123 with period monthly
+2025/06/21 23:05:07 Date range: 2025-06-01 to 2025-06-30
+2025/06/21 23:05:07 🔍 DEBUG: Looking for previous_amounts for user user123, month 2025-06
+2025/06/21 23:05:07 🔍 DEBUG: No record found in monthly_cash_bank_balance for user user123, month 2025-06
+2025/06/21 23:05:07 Previous period: monthly, fromPrevious: 0.00
+2025/06/21 23:05:07 Total income: 0.00
+2025/06/21 23:05:07 Spent amount: 0.00
+2025/06/21 23:05:07 📋 Found upcoming bills for 2025-06: amount=0.00
+2025/06/21 23:05:07 Upcoming amount: 0.00
+2025/06/21 23:05:07 Total amount: 0.00, Remaining amount: 0.00, Percent: 0.00

@@ -3,8 +3,20 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
+
+// parseFlexibleDate parsea fechas manejando múltiples formatos
+// Función auxiliar para compatibilidad con formatos ISO y estándar
+func parseFlexibleDatePart2(dateStr string) (time.Time, error) {
+	if strings.Contains(dateStr, "T") {
+		// Formato ISO con tiempo: "2025-01-15T00:00:00Z"
+		return time.Parse("2006-01-02T15:04:05Z", dateStr)
+	}
+	// Formato solo fecha: "2025-01-15"
+	return time.Parse("2006-01-02", dateStr)
+}
 
 // applyNewBillToMonthlyBalance aplica el nuevo bill con información actualizada
 // NUEVA FUNCIÓN: Aplica el bill con los nuevos parámetros tras el reseteo
@@ -46,7 +58,8 @@ func applyNewBillToMonthlyBalance(db *sql.DB, updateData BillUpdateData) error {
 	}
 	
 	// Recalcular previous_amounts en cascada desde el mes POSTERIOR al nuevo inicio
-	startDate, err := time.Parse("2006-01-02", updateData.NewStartDate)
+	// CORREGIDO: Usar parseFlexibleDate para manejo de formatos ISO
+	startDate, err := parseFlexibleDatePart2(updateData.NewStartDate)
 	if err != nil {
 		return fmt.Errorf("invalid new start date: %v", err)
 	}

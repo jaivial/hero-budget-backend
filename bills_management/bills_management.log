@@ -1,3 +1,19 @@
 Using database at: ../google_auth/users.db
-2025/06/21 16:55:45 Database connection established successfully
+2025/06/21 22:49:03 Database connection established successfully
 Bills Management service started on :8091
+2025/06/21 22:49:47 🔥 DEBUG: addNewBillToMonthlyBalance llamada con userID=user123, amount=100.00, durationMonths=0, paymentMethod=
+2025/06/21 22:49:47 🔥 DEBUG: Aplicando lógica simple para factura de un mes
+🔄 Revirtiendo efectos del bill anterior (ID: 118)
+🔄 Revirtiendo efectos del bill anterior (ID: 118)
+🔄 Revirtiendo efectos del bill anterior (ID: 118)
+✅ Reversión de efectos del bill anterior completada
+Cleaned up expenses for bill 118 with dates before 2024-04-15
+Updated bill payments for bill 118 - new period: 1 months starting 2024-04-15
+🔄 Aplicando nuevo bill con información actualizada
+✅ Aplicación del nuevo bill completada
+🔄 Revirtiendo efectos del bill anterior (ID: 118)
+✅ Reversión de efectos del bill anterior completada
+Cleaned up expenses for bill 118 with dates before 2024-04-15
+Updated bill payments for bill 118 - new period: 4 months starting 2024-04-15
+🔄 Aplicando nuevo bill con información actualizada
+✅ Aplicación del nuevo bill completada

@@ -3,8 +3,20 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 	"time"
 )
+
+// parseFlexibleDate parsea fechas manejando múltiples formatos
+// Soporta formato ISO con tiempo y formato solo fecha
+func parseFlexibleDate(dateStr string) (time.Time, error) {
+	if strings.Contains(dateStr, "T") {
+		// Formato ISO con tiempo: "2025-01-15T00:00:00Z"
+		return time.Parse("2006-01-02T15:04:05Z", dateStr)
+	}
+	// Formato solo fecha: "2025-01-15"
+	return time.Parse("2006-01-02", dateStr)
+}
 
 // revertOldBillEffects revierte los efectos del bill anterior en el sistema
 // Simula la eliminación completa del bill anterior para revertir todos sus efectos
@@ -65,9 +77,10 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 	}
 	
 	// Recalcular previous_amounts en cascada desde el mes POSTERIOR al inicio anterior
-	startDate, err := time.Parse("2006-01-02", updateData.OldStartDate)
+	// CORREGIDO: Usar función parseFlexibleDate centralizada
+	startDate, err := parseFlexibleDate(updateData.OldStartDate)
 	if err != nil {
-		return fmt.Errorf("invalid old start date: %v", err)
+		return fmt.Errorf("invalid old start date %s: %v", updateData.OldStartDate, err)
 	}
 	startMonth := startDate.Format("2006-01")
 	
@@ -135,8 +148,8 @@ func cleanupExpensesForNewPeriod(db *sql.DB, updateData BillUpdateData) error {
 // updateBillPaymentsForNewPeriod actualiza los bill_payments según el nuevo periodo
 // Elimina registros fuera del nuevo periodo y crea los faltantes
 func updateBillPaymentsForNewPeriod(db *sql.DB, updateData BillUpdateData) error {
-	// Importar time para cálculos de fechas
-	startDate, err := time.Parse("2006-01-02", updateData.NewStartDate)
+	// CORREGIDO: Usar parseFlexibleDate para cálculos de fechas
+	startDate, err := parseFlexibleDate(updateData.NewStartDate)
 	if err != nil {
 		return fmt.Errorf("invalid start date: %v", err)
 	}
