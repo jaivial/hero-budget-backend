@@ -1,19 +1,27 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
+	// Database connection for user data persistence
 	db *sql.DB
+	// Redis client for caching JWT tokens and session management
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 )
 
 func init() {
@@ -48,6 +56,43 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for JWT token caching and session management
+	initRedis()
+}
+
+// initRedis initializes Redis connection for JWT token caching and session management
+// Provides distributed caching for authentication tokens and user sessions
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address for local development
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 0 // Default Redis database index
+
+	// Create Redis client with connection pooling and automatic failover
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		DialTimeout:  5 * time.Second,  // Connection timeout for Redis dial
+		ReadTimeout:  3 * time.Second,  // Read timeout for Redis operations
+		WriteTimeout: 3 * time.Second,  // Write timeout for Redis operations
+		PoolSize:     10,               // Connection pool size for concurrent operations
+		MinIdleConns: 2,                // Minimum idle connections in pool
+	})
+
+	// Test Redis connection with ping command
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
+		return
+	}
+
+	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 func main() {
@@ -103,6 +148,13 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 	// Validate required fields
 	if req.IdentityToken == "" {
 		sendErrorResponse(w, "Identity token is required", http.StatusBadRequest)
+		return
+	}
+
+	// Check if token is blacklisted in Redis cache
+	if isTokenBlacklisted(req.IdentityToken) {
+		log.Printf("Blacklisted token used: %s", req.IdentityToken[:20]+"...")
+		sendErrorResponse(w, "Token has been revoked", http.StatusUnauthorized)
 		return
 	}
 
@@ -184,6 +236,10 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 
 	// User exists, update last login and return user data
 	updateUserLastLogin(existingUser.ID)
+
+	// Cache user session in Redis for quick access and session management
+	cacheUserSession(existingUser, req.IdentityToken)
+
 	log.Printf("Apple user logged in: %s", existingUser.Email)
 	sendSuccessResponse(w, "Login successful", existingUser)
 }
