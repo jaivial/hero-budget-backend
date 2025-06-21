@@ -262,7 +262,8 @@ restart_all_services() {
     echo -e "${WHITE}  • Bank Update: http://localhost:8090/cash-bank/bank/update${NC}"
     echo -e "${WHITE}  • Profile Update: http://localhost:8092/update/locale${NC}"
     echo -e "${WHITE}  • Money Flow: http://localhost:8097/money-flow/data${NC}"
-    echo -e "${WHITE}  • User Locale: http://localhost:8099/user_locale/get${NC}"
+    echo -e "${WHITE}  • User Locale Get: http://localhost:8099/user_locale/get${NC}"
+    echo -e "${WHITE}  • User Locale Update: http://localhost:8099/user_locale/update${NC}"
 }
 
 # Función principal

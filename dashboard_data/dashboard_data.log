@@ -1,4 +1,4 @@
-2025/06/19 15:23:03 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/19 15:23:03 Note: period column might already exist: duplicate column name: period
-2025/06/19 15:23:03 Database connection established successfully
-2025/06/19 15:23:03 Dashboard Data service started on :8087
+2025/06/21 16:55:49 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/21 16:55:49 Note: period column might already exist: duplicate column name: period
+2025/06/21 16:55:49 Database connection established successfully
+2025/06/21 16:55:49 Dashboard Data service started on :8087
