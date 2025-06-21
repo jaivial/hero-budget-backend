@@ -246,3 +246,68 @@ func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 		Message: message,
 	})
 }
+
+// isTokenBlacklisted checks if a JWT token is blacklisted in Redis cache
+// Returns true if token is blacklisted, false otherwise
+func isTokenBlacklisted(token string) bool {
+	if rdb == nil {
+		return false // Redis not available, skip blacklist check
+	}
+
+	// Check if token exists in blacklist set
+	blacklistKey := fmt.Sprintf("blacklist:token:%s", token)
+	exists, err := rdb.Exists(ctx, blacklistKey).Result()
+	if err != nil {
+		log.Printf("Redis error checking blacklist: %v", err)
+		return false // On error, allow token (fail open)
+	}
+
+	return exists > 0
+}
+
+// cacheUserSession stores user session data in Redis for quick access
+// Caches user information and authentication state for performance optimization
+func cacheUserSession(user *User, token string) {
+	if rdb == nil {
+		return // Redis not available, skip caching
+	}
+
+	// Create session data structure for caching
+	sessionData := map[string]interface{}{
+		"user_id":    user.ID,
+		"email":      user.Email,
+		"login_time": time.Now().Unix(),
+		"auth_type":  "apple",
+	}
+
+	if user.Name.Valid {
+		sessionData["name"] = user.Name.String
+	}
+	if user.AppleID.Valid {
+		sessionData["apple_id"] = user.AppleID.String
+	}
+
+	// Serialize session data to JSON for Redis storage
+	sessionJSON, err := json.Marshal(sessionData)
+	if err != nil {
+		log.Printf("Failed to marshal session data: %v", err)
+		return
+	}
+
+	// Cache session with 24-hour expiration for security and performance
+	sessionKey := fmt.Sprintf("session:apple:%d", user.ID)
+	err = rdb.Set(ctx, sessionKey, sessionJSON, 24*time.Hour).Err()
+	if err != nil {
+		log.Printf("Failed to cache user session: %v", err)
+		return
+	}
+
+	// Cache token to user ID mapping for quick lookups
+	tokenKey := fmt.Sprintf("token:apple:%s", token[:32]) // Use first 32 chars as key
+	err = rdb.Set(ctx, tokenKey, user.ID, 24*time.Hour).Err()
+	if err != nil {
+		log.Printf("Failed to cache token mapping: %v", err)
+	}
+
+	log.Printf("✅ Cached session for user %d (Apple)", user.ID)
+}
