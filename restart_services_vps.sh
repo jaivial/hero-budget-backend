@@ -8,6 +8,10 @@
 # Configuración de rutas del VPS
 BASE_PATH="/opt/hero_budget/backend"
 
+# Configuración de variables de entorno Redis
+export REDIS_ADDR=127.0.0.1:6379
+export REDIS_PASSWORD=Jva-Mvc-5171
+
 # Configuración de colores
 RED='\033[0;31m'
 GREEN='\033[0;32m'

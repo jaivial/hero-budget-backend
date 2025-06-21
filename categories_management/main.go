@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -10,8 +11,10 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 	"unicode/utf8"
 
+	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -53,7 +56,12 @@ type ApiResponse struct {
 }
 
 var (
+	// Database connection for category data persistence
 	db *sql.DB
+	// Redis client for caching category data
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 )
 
 func init() {
@@ -76,6 +84,123 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for category data caching
+	initRedis()
+}
+
+// initRedis initializes Redis connection for category data caching
+// Provides distributed caching for category lists and frequent queries
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address for local development
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 9 // Use DB 9 for categories_management service to avoid conflicts
+
+	// Create Redis client with connection pooling and timeout settings
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		PoolSize:     10,                // Connection pool size for concurrent requests
+		DialTimeout:  5 * time.Second,   // Connection establishment timeout
+		ReadTimeout:  3 * time.Second,   // Read operation timeout
+		WriteTimeout: 3 * time.Second,   // Write operation timeout
+		IdleTimeout:  5 * time.Minute,   // Idle connection timeout
+	})
+
+	// Test Redis connection with ping operation
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Redis connection failed (continuing without cache): %v", err)
+		rdb = nil // Disable Redis if connection fails
+		return
+	}
+
+	log.Println("Redis connection established successfully for category caching")
+}
+
+// getCategoriesFromCache retrieves cached category data for a user
+// Returns cached categories if available, reducing database load for frequent requests
+func getCategoriesFromCache(userID string) ([]Category, error) {
+	if rdb == nil {
+		return nil, fmt.Errorf("redis not available")
+	}
+
+	// Generate cache key with service namespace for data isolation
+	cacheKey := fmt.Sprintf("categories_management:categories:%s", userID)
+	
+	// Retrieve JSON data from Redis cache
+	val, err := rdb.Get(ctx, cacheKey).Result()
+	if err == redis.Nil {
+		log.Printf("Cache miss for categories: %s", userID)
+		return nil, fmt.Errorf("cache miss")
+	} else if err != nil {
+		log.Printf("Redis error retrieving categories cache for %s: %v", userID, err)
+		return nil, err
+	}
+
+	// Deserialize JSON data to Category slice
+	var categories []Category
+	err = json.Unmarshal([]byte(val), &categories)
+	if err != nil {
+		log.Printf("Error deserializing cached categories for %s: %v", userID, err)
+		return nil, err
+	}
+
+	log.Printf("Cache hit for categories: %s", userID)
+	return categories, nil
+}
+
+// cacheCategories stores category data in Redis cache with TTL
+// Implements 30-minute TTL for category data as it changes less frequently
+func cacheCategories(userID string, categories []Category) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key with service namespace
+	cacheKey := fmt.Sprintf("categories_management:categories:%s", userID)
+	
+	// Serialize category data to JSON for storage
+	categoriesData, err := json.Marshal(categories)
+	if err != nil {
+		log.Printf("Error serializing categories for cache: %v", err)
+		return
+	}
+
+	// Store in Redis with 30-minute TTL (1800 seconds)
+	// Categories change less frequently and can be cached for longer periods
+	err = rdb.Set(ctx, cacheKey, categoriesData, 30*time.Minute).Err()
+	if err != nil {
+		log.Printf("Error caching categories for %s: %v", userID, err)
+		return
+	}
+
+	log.Printf("Categories cached successfully for: %s", userID)
+}
+
+// invalidateCategoriesCache removes cached category data when categories are modified
+// Ensures cache consistency after category CRUD operations
+func invalidateCategoriesCache(userID string) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key for deletion
+	cacheKey := fmt.Sprintf("categories_management:categories:%s", userID)
+	
+	// Remove cached data to force fresh fetch on next request
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Error invalidating categories cache for %s: %v", userID, err)
+	} else {
+		log.Printf("Categories cache invalidated for: %s", userID)
+	}
 }
 
 func openDatabaseConnection() (*sql.DB, error) {

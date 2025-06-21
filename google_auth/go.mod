@@ -4,6 +4,7 @@ go 1.23.1
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.27
+	github.com/redis/go-redis/v9 v9.6.1
 	golang.org/x/oauth2 v0.29.0
 	google.golang.org/api v0.228.0
 )

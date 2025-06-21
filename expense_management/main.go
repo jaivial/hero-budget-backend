@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 )
 
 // Definición de estructuras de datos
@@ -62,9 +64,15 @@ type ApiResponse struct {
 
 var (
 	db *sql.DB
+	// Redis client and context for expense analytics caching
+	rdb *redis.Client
+	ctx = context.Background()
 )
 
 func init() {
+	// Initialize Redis connection for expense analytics caching
+	initRedis()
+	
 	var err error
 
 	// Get the current working directory
@@ -490,6 +498,14 @@ func handleFetchExpenses(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check cache for expense analytics first
+	cacheKey := fmt.Sprintf("expense_analytics:%s", userID)
+	if cachedExpenses, found := getExpenseAnalytics(cacheKey); found {
+		log.Printf("Expense analytics cache hit for user: %s", userID)
+		sendSuccessResponse(w, "Expenses fetched successfully (cached)", cachedExpenses)
+		return
+	}
+
 	// Get expenses from database
 	expenses, err := fetchExpenses(userID)
 	if err != nil {
@@ -497,6 +513,9 @@ func handleFetchExpenses(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error fetching expenses", http.StatusInternalServerError)
 		return
 	}
+
+	// Cache expense analytics for 15 minutes
+	setExpenseAnalytics(cacheKey, expenses, 15*time.Minute)
 
 	// Return expenses as JSON
 	sendSuccessResponse(w, "Expenses fetched successfully", expenses)
@@ -576,6 +595,9 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error recalculating balances: %v", err)
 		// Continue despite the error
 	}
+
+	// Invalidate expense analytics cache after adding new expense
+	invalidateExpenseAnalytics(expense.UserID)
 
 	// Return success response
 	sendSuccessResponse(w, "Expense added successfully", expense)
@@ -693,6 +715,9 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Invalidate expense analytics cache after updating expense
+	invalidateExpenseAnalytics(expense.UserID)
+
 	// Fetch the updated expense
 	updatedExpense, err := fetchExpenseByID(expense.ID, expense.UserID)
 	if err != nil {
@@ -765,6 +790,9 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error recalculating balances: %v", err)
 		// Continue despite the error
 	}
+
+	// Invalidate expense analytics cache after deleting expense
+	invalidateExpenseAnalytics(deleteRequest.UserID)
 
 	// Return success
 	sendSuccessResponse(w, "Expense deleted successfully", nil)
@@ -2722,4 +2750,87 @@ func updateSubsequentMonthlyBalances(userID string, startDate time.Time) error {
 	}
 
 	return nil
+}
+
+// initRedis initializes Redis client connection for expense analytics caching
+func initRedis() {
+	// Redis configuration for expense analytics caching
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379", // Redis server address
+		Password: "",               // No password set
+		DB:       1,                // Use DB 1 for expense analytics
+	})
+
+	// Test Redis connection
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Failed to connect to Redis: %v", err)
+		log.Println("Continuing without Redis caching...")
+		rdb = nil
+	} else {
+		log.Println("Successfully connected to Redis for expense analytics caching")
+	}
+}
+
+// getExpenseAnalytics retrieves expense analytics data from Redis cache
+func getExpenseAnalytics(key string) ([]Expense, bool) {
+	if rdb == nil {
+		return nil, false
+	}
+
+	// Get cached expense analytics data
+	val, err := rdb.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return nil, false // Cache miss
+	} else if err != nil {
+		log.Printf("Redis error getting expense analytics %s: %v", key, err)
+		return nil, false
+	}
+
+	// Deserialize cached expense data
+	var expenses []Expense
+	err = json.Unmarshal([]byte(val), &expenses)
+	if err != nil {
+		log.Printf("Error deserializing expense analytics %s: %v", key, err)
+		return nil, false
+	}
+
+	return expenses, true
+}
+
+// setExpenseAnalytics stores expense analytics data in Redis cache with TTL
+func setExpenseAnalytics(key string, expenses []Expense, ttl time.Duration) {
+	if rdb == nil {
+		return // Redis not available
+	}
+
+	// Serialize expense data for caching
+	expenseBytes, err := json.Marshal(expenses)
+	if err != nil {
+		log.Printf("Error serializing expense analytics %s: %v", key, err)
+		return
+	}
+
+	// Store in Redis with TTL (15 minutes for analytics)
+	err = rdb.Set(ctx, key, expenseBytes, ttl).Err()
+	if err != nil {
+		log.Printf("Error storing expense analytics %s: %v", key, err)
+	} else {
+		log.Printf("Expense analytics cached successfully: %s (TTL: %v)", key, ttl)
+	}
+}
+
+// invalidateExpenseAnalytics removes expense analytics from cache when data changes
+func invalidateExpenseAnalytics(userID string) {
+	if rdb == nil {
+		return // Redis not available
+	}
+
+	cacheKey := fmt.Sprintf("expense_analytics:%s", userID)
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Error invalidating expense analytics cache %s: %v", cacheKey, err)
+	} else {
+		log.Printf("Expense analytics cache invalidated: %s", cacheKey)
+	}
 }

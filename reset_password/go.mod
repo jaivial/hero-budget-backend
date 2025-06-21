@@ -4,6 +4,7 @@ go 1.21
 
 require (
 	github.com/mattn/go-sqlite3 v1.14.27
+	github.com/redis/go-redis/v9 v9.6.1
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
 

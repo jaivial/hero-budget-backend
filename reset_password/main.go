@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/json"
@@ -15,12 +16,18 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 	"gopkg.in/gomail.v2"
 )
 
 var (
+	// Database connection for user data and reset tokens
 	db *sql.DB
+	// Redis client for caching reset tokens and rate limiting
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 	// Email configuration - will be loaded from config.json
 	smtpHost     string
 	smtpPort     int
@@ -350,6 +357,140 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for token caching and rate limiting
+	initRedis()
+}
+
+// initRedis initializes Redis connection for password reset token caching
+// Provides distributed caching for reset tokens and rate limiting functionality
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address for local development
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 7 // Use DB 7 for reset_password service to avoid conflicts
+
+	// Create Redis client with connection pooling and timeout settings
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		PoolSize:     10,                // Connection pool size for concurrent requests
+		DialTimeout:  5 * time.Second,   // Connection establishment timeout
+		ReadTimeout:  3 * time.Second,   // Read operation timeout
+		WriteTimeout: 3 * time.Second,   // Write operation timeout
+		IdleTimeout:  5 * time.Minute,   // Idle connection timeout
+	})
+
+	// Test Redis connection with ping operation
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Redis connection failed (continuing without cache): %v", err)
+		rdb = nil // Disable Redis if connection fails
+		return
+	}
+
+	log.Println("Redis connection established successfully for password reset caching")
+}
+
+// cacheResetToken stores password reset token in Redis with TTL
+// Implements 15-minute TTL for security - tokens expire quickly
+func cacheResetToken(email, token string) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key with service namespace for data isolation
+	cacheKey := fmt.Sprintf("reset_password:token:%s", email)
+	
+	// Store token with 15-minute TTL (900 seconds)
+	// Security requirement: password reset tokens should expire quickly
+	err := rdb.Set(ctx, cacheKey, token, 15*time.Minute).Err()
+	if err != nil {
+		log.Printf("Error caching reset token for %s: %v", email, err)
+		return
+	}
+
+	log.Printf("Reset token cached successfully for: %s", email)
+}
+
+// getResetTokenFromCache retrieves cached reset token
+// Returns cached token if available and still valid
+func getResetTokenFromCache(email string) (string, error) {
+	if rdb == nil {
+		return "", fmt.Errorf("redis not available")
+	}
+
+	// Generate cache key with service namespace
+	cacheKey := fmt.Sprintf("reset_password:token:%s", email)
+	
+	// Retrieve token from Redis cache
+	token, err := rdb.Get(ctx, cacheKey).Result()
+	if err == redis.Nil {
+		log.Printf("Cache miss for reset token: %s", email)
+		return "", fmt.Errorf("cache miss")
+	} else if err != nil {
+		log.Printf("Redis error retrieving reset token for %s: %v", email, err)
+		return "", err
+	}
+
+	log.Printf("Cache hit for reset token: %s", email)
+	return token, nil
+}
+
+// invalidateResetToken removes cached reset token after successful password reset
+// Ensures token cannot be reused after password change
+func invalidateResetToken(email string) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key for deletion
+	cacheKey := fmt.Sprintf("reset_password:token:%s", email)
+	
+	// Remove cached token to prevent reuse
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Error invalidating reset token for %s: %v", email, err)
+	} else {
+		log.Printf("Reset token invalidated for: %s", email)
+	}
+}
+
+// checkRateLimit implements rate limiting for password reset requests
+// Prevents abuse by limiting requests per email address
+func checkRateLimit(email string) bool {
+	if rdb == nil {
+		return true // Allow if Redis not available
+	}
+
+	// Generate rate limit key
+	rateLimitKey := fmt.Sprintf("reset_password:rate_limit:%s", email)
+	
+	// Check current request count
+	count, err := rdb.Get(ctx, rateLimitKey).Int()
+	if err == redis.Nil {
+		// First request - set counter
+		rdb.Set(ctx, rateLimitKey, 1, 5*time.Minute)
+		return true
+	} else if err != nil {
+		log.Printf("Error checking rate limit for %s: %v", email, err)
+		return true // Allow on error
+	}
+
+	// Check if limit exceeded (max 3 requests per 5 minutes)
+	if count >= 3 {
+		log.Printf("Rate limit exceeded for: %s", email)
+		return false
+	}
+
+	// Increment counter
+	rdb.Incr(ctx, rateLimitKey)
+	return true
 }
 
 func main() {

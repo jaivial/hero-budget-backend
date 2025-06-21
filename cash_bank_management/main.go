@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -43,7 +45,12 @@ type ApiResponse struct {
 }
 
 var (
+	// Database connection for financial data persistence
 	db *sql.DB
+	// Redis client for caching cash/bank financial data
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 )
 
 func init() {
@@ -74,6 +81,123 @@ func init() {
 	createTablesIfNotExist()
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for financial data caching
+	initRedis()
+}
+
+// initRedis initializes Redis connection for financial data caching
+// Provides distributed caching for cash/bank calculations and frequent queries
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address for local development
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 8 // Use DB 8 for cash_bank_management service to avoid conflicts
+
+	// Create Redis client with connection pooling and timeout settings
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		PoolSize:     10,                // Connection pool size for concurrent requests
+		DialTimeout:  5 * time.Second,   // Connection establishment timeout
+		ReadTimeout:  3 * time.Second,   // Read operation timeout
+		WriteTimeout: 3 * time.Second,   // Write operation timeout
+		IdleTimeout:  5 * time.Minute,   // Idle connection timeout
+	})
+
+	// Test Redis connection with ping operation
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Redis connection failed (continuing without cache): %v", err)
+		rdb = nil // Disable Redis if connection fails
+		return
+	}
+
+	log.Println("Redis connection established successfully for financial data caching")
+}
+
+// getCashBankDataFromCache retrieves cached financial distribution data
+// Returns cached data if available, reducing database load for frequent queries
+func getCashBankDataFromCache(userID, month string) (*CashBankDistribution, error) {
+	if rdb == nil {
+		return nil, fmt.Errorf("redis not available")
+	}
+
+	// Generate cache key with service namespace for data isolation
+	cacheKey := fmt.Sprintf("cash_bank_management:distribution:%s:%s", userID, month)
+	
+	// Retrieve JSON data from Redis cache
+	val, err := rdb.Get(ctx, cacheKey).Result()
+	if err == redis.Nil {
+		log.Printf("Cache miss for cash/bank data: %s-%s", userID, month)
+		return nil, fmt.Errorf("cache miss")
+	} else if err != nil {
+		log.Printf("Redis error retrieving cash/bank cache for %s-%s: %v", userID, month, err)
+		return nil, err
+	}
+
+	// Deserialize JSON data to CashBankDistribution struct
+	var distribution CashBankDistribution
+	err = json.Unmarshal([]byte(val), &distribution)
+	if err != nil {
+		log.Printf("Error deserializing cached cash/bank data for %s-%s: %v", userID, month, err)
+		return nil, err
+	}
+
+	log.Printf("Cache hit for cash/bank data: %s-%s", userID, month)
+	return &distribution, nil
+}
+
+// cacheCashBankData stores financial distribution data in Redis cache with TTL
+// Implements 10-minute TTL for financial data to balance freshness and performance
+func cacheCashBankData(userID, month string, distribution *CashBankDistribution) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key with service namespace
+	cacheKey := fmt.Sprintf("cash_bank_management:distribution:%s:%s", userID, month)
+	
+	// Serialize distribution data to JSON for storage
+	distributionData, err := json.Marshal(distribution)
+	if err != nil {
+		log.Printf("Error serializing cash/bank data for cache: %v", err)
+		return
+	}
+
+	// Store in Redis with 10-minute TTL (600 seconds)
+	// Financial data needs to be relatively fresh but can be cached for performance
+	err = rdb.Set(ctx, cacheKey, distributionData, 10*time.Minute).Err()
+	if err != nil {
+		log.Printf("Error caching cash/bank data for %s-%s: %v", userID, month, err)
+		return
+	}
+
+	log.Printf("Cash/bank data cached successfully for: %s-%s", userID, month)
+}
+
+// invalidateCashBankCache removes cached financial data when transactions are updated
+// Ensures cache consistency after financial data modifications
+func invalidateCashBankCache(userID, month string) {
+	if rdb == nil {
+		return
+	}
+
+	// Generate cache key for deletion
+	cacheKey := fmt.Sprintf("cash_bank_management:distribution:%s:%s", userID, month)
+	
+	// Remove cached data to force fresh calculation on next request
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Error invalidating cash/bank cache for %s-%s: %v", userID, month, err)
+	} else {
+		log.Printf("Cash/bank cache invalidated for: %s-%s", userID, month)
+	}
 }
 
 func createTablesIfNotExist() {

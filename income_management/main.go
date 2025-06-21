@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -13,6 +14,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 )
 
 // Definición de estructuras de datos
@@ -60,9 +62,15 @@ type ApiResponse struct {
 
 var (
 	db *sql.DB
+	// Redis client and context for income analytics caching
+	rdb *redis.Client
+	ctx = context.Background()
 )
 
 func init() {
+	// Initialize Redis connection for income analytics caching
+	initRedis()
+	
 	var err error
 
 	// Get the current working directory
@@ -692,6 +700,14 @@ func handleFetchIncomes(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Check cache for income analytics first
+	cacheKey := fmt.Sprintf("income_analytics:%s", userID)
+	if cachedIncomes, found := getIncomeAnalytics(cacheKey); found {
+		log.Printf("Income analytics cache hit for user: %s", userID)
+		sendSuccessResponse(w, "Incomes fetched successfully (cached)", cachedIncomes)
+		return
+	}
+
 	// Get incomes from database
 	incomes, err := fetchIncomes(userID)
 	if err != nil {
@@ -699,6 +715,9 @@ func handleFetchIncomes(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error fetching incomes", http.StatusInternalServerError)
 		return
 	}
+
+	// Cache income analytics for 15 minutes
+	setIncomeAnalytics(cacheKey, incomes, 15*time.Minute)
 
 	// Return incomes as JSON
 	sendSuccessResponse(w, "Incomes fetched successfully", incomes)
@@ -782,6 +801,9 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error recalculating balances: %v", err)
 		// Don't fail the entire request, just log the error
 	}
+
+	// Invalidate income analytics cache after adding new income
+	invalidateIncomeAnalytics(income.UserID)
 
 	// Return success response
 	sendSuccessResponse(w, "Income added successfully", income)
@@ -887,6 +909,9 @@ func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Invalidate income analytics cache after updating income
+	invalidateIncomeAnalytics(oldIncome.UserID)
+
 	// Return success response
 	sendSuccessResponse(w, "Income updated successfully", oldIncome)
 }
@@ -951,6 +976,9 @@ func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error recalculating balances: %v", err)
 		// Don't fail the entire request, just log the error
 	}
+
+	// Invalidate income analytics cache after deleting income
+	invalidateIncomeAnalytics(deleteRequest.UserID)
 
 	// Return success response
 	sendSuccessResponse(w, "Income deleted successfully", nil)
@@ -2808,4 +2836,87 @@ func updateAnnualBalance(userID string, incomeAmount, expenseAmount, billsAmount
 	nextYear := date.Year() + 1
 	nextYearDate := time.Date(nextYear, 1, 1, 0, 0, 0, 0, date.Location())
 	return updateSubsequentAnnualBalances(userID, nextYearDate)
+}
+
+// initRedis initializes Redis client connection for income analytics caching
+func initRedis() {
+	// Redis configuration for income analytics caching
+	rdb = redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379", // Redis server address
+		Password: "",               // No password set
+		DB:       2,                // Use DB 2 for income analytics
+	})
+
+	// Test Redis connection
+	_, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("Failed to connect to Redis: %v", err)
+		log.Println("Continuing without Redis caching...")
+		rdb = nil
+	} else {
+		log.Println("Successfully connected to Redis for income analytics caching")
+	}
+}
+
+// getIncomeAnalytics retrieves income analytics data from Redis cache
+func getIncomeAnalytics(key string) ([]Income, bool) {
+	if rdb == nil {
+		return nil, false
+	}
+
+	// Get cached income analytics data
+	val, err := rdb.Get(ctx, key).Result()
+	if err == redis.Nil {
+		return nil, false // Cache miss
+	} else if err != nil {
+		log.Printf("Redis error getting income analytics %s: %v", key, err)
+		return nil, false
+	}
+
+	// Deserialize cached income data
+	var incomes []Income
+	err = json.Unmarshal([]byte(val), &incomes)
+	if err != nil {
+		log.Printf("Error deserializing income analytics %s: %v", key, err)
+		return nil, false
+	}
+
+	return incomes, true
+}
+
+// setIncomeAnalytics stores income analytics data in Redis cache with TTL
+func setIncomeAnalytics(key string, incomes []Income, ttl time.Duration) {
+	if rdb == nil {
+		return // Redis not available
+	}
+
+	// Serialize income data for caching
+	incomeBytes, err := json.Marshal(incomes)
+	if err != nil {
+		log.Printf("Error serializing income analytics %s: %v", key, err)
+		return
+	}
+
+	// Store in Redis with TTL (15 minutes for analytics)
+	err = rdb.Set(ctx, key, incomeBytes, ttl).Err()
+	if err != nil {
+		log.Printf("Error storing income analytics %s: %v", key, err)
+	} else {
+		log.Printf("Income analytics cached successfully: %s (TTL: %v)", key, ttl)
+	}
+}
+
+// invalidateIncomeAnalytics removes income analytics from cache when data changes
+func invalidateIncomeAnalytics(userID string) {
+	if rdb == nil {
+		return // Redis not available
+	}
+
+	cacheKey := fmt.Sprintf("income_analytics:%s", userID)
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Error invalidating income analytics cache %s: %v", cacheKey, err)
+	} else {
+		log.Printf("Income analytics cache invalidated: %s", cacheKey)
+	}
 }
