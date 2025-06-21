@@ -1,3 +1,22 @@
 2025/06/21 16:55:50 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
 2025/06/21 16:55:50 Database connection established successfully
 2025/06/21 16:55:50 Expense Management service started on :8094
+2025/06/21 18:37:27 Adding expense: UserID=13, Amount=333.00, Date=2025-06-21, Category=Cena, PaymentMethod=cash
+2025/06/21 18:37:27 updateBalance called with userID: 13, amount: -333.00, paymentMethod: cash
+2025/06/21 18:37:27 Found 1 records in balances table for user 13
+2025/06/21 18:37:27 Updating existing balance with amount: -333.00 for method: cash
+2025/06/21 18:37:27 Successfully updated balances table
+2025/06/21 18:37:27 Processing cash_bank for month: 2025-06
+2025/06/21 18:37:27 Record exists in cash_bank for user 13 and month 2025-06: true
+2025/06/21 18:37:27 Current cash_bank values - cash: 50.00, bank: 2440.00, total: 2490.00
+2025/06/21 18:37:27 Updated cash_bank values - cash: -283.00, bank: 2440.00, total: 2157.00
+2025/06/21 18:37:27 Calculated cash_bank percentages - cash: -13.12%, bank: 113.12%
+2025/06/21 18:37:27 Successfully updated cash_bank record
+2025/06/21 18:37:27 Recording transaction - type: expense_cash, amount: -333.00
+2025/06/21 18:37:27 Successfully recorded cash_bank_transaction
+2025/06/21 18:37:27 updateBalance completed successfully
+2025/06/21 18:37:27 Error updating daily balance: 12 values for 11 columns
+2025/06/21 18:37:27 Error updating weekly balance: 14 values for 13 columns
+2025/06/21 18:37:27 Error updating quarterly balance: table quarterly_balance has no column named start_date
+2025/06/21 18:37:27 Error updating semiannual balance: table semiannual_balance has no column named start_date
+2025/06/21 18:37:27 Error updating annual balance: 14 values for 11 columns

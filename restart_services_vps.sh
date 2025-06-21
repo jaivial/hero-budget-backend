@@ -104,8 +104,9 @@ start_service() {
     
     cd "$service_path" || return 1
     
-    if [ ! -f "main.go" ]; then
-        echo -e "${RED}❌ Error: main.go no encontrado en $service_path${NC}"
+    # Verificar si existe main.go o archivos main_part*.go (para servicios divididos)
+    if [ ! -f "main.go" ] && [ ! -f "main_part1.go" ]; then
+        echo -e "${RED}❌ Error: main.go o main_part1.go no encontrado en $service_path${NC}"
         cd "$BASE_PATH"
         return 1
     fi
