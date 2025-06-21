@@ -1,3 +1,1045 @@
 2025/06/21 22:49:19 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
 2025/06/21 22:49:19 Database connection established successfully
 2025/06/21 22:49:19 Budget Overview Fetch service starting on port 8098
+2025/06/21 23:38:18 📊 Balance data found: IncomeBank=11622.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003148.00
+2025/06/21 23:38:18 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:38:18    💰 Total Income: 11672.00 (Bank: 11622.00 + Cash: 50.00)
+2025/06/21 23:38:18    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:38:18    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:38:18    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:38:18    💵 Available Balance: -88002648.00 (Income: 11672.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:38:18    📋 Upcoming Bills: 1130.00
+2025/06/21 23:38:18 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22765.00 (0.0%), Total=-88003148.00
+2025/06/21 23:38:18 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:38:18 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:38:18 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:38:18 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:38:18 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:38:18 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:38:18 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:38:18 📊 Balance data found: IncomeBank=11622.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003148.00
+2025/06/21 23:38:18 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:38:18    💰 Total Income: 11672.00 (Bank: 11622.00 + Cash: 50.00)
+2025/06/21 23:38:18    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:38:18    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:38:18    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:38:18    💵 Available Balance: -88002648.00 (Income: 11672.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:38:18    📋 Upcoming Bills: 1130.00
+2025/06/21 23:38:18 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22765.00 (0.0%), Total=-88003148.00
+2025/06/21 23:38:18 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:38:18 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:38:18 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:38:18 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:38:18 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:38:18 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:38:18 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:38:18 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:38:18 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:38:19 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:38:19 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:38:19 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:38:19 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:38:19 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:38:19 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:38:19 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:38:19 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:38:19 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:38:31 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-88003998.00
+2025/06/21 23:38:31 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/21 23:38:31    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:38:31    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:38:31    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/21 23:38:31    📊 Combined Expense (expenses + bills): 850.00
+2025/06/21 23:38:31    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/21 23:38:31    📋 Upcoming Bills: 850.00
+2025/06/21 23:38:31 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-23615.00 (0.0%), Total=-88003998.00
+2025/06/21 23:38:32 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/21 23:38:32 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:38:32 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/21 23:38:32 🏠 Bill ID=103, Name=Coche, Month=2025-07, Paid=false
+2025/06/21 23:38:32 🏠 Bill ID=106, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:38:32 🏠 Bill ID=107, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:38:32 🏠 Bill ID=102, Name=Gimnasio, Month=2025-07, Paid=false
+2025/06/21 23:38:32 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-88003998.00
+2025/06/21 23:38:32 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/21 23:38:32    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:38:32    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:38:32    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/21 23:38:32    📊 Combined Expense (expenses + bills): 850.00
+2025/06/21 23:38:32    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/21 23:38:32    📋 Upcoming Bills: 850.00
+2025/06/21 23:38:32 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-23615.00 (0.0%), Total=-88003998.00
+2025/06/21 23:38:32 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:38:35 📊 Balance data found: IncomeBank=11622.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003148.00
+2025/06/21 23:38:35 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:38:35    💰 Total Income: 11672.00 (Bank: 11622.00 + Cash: 50.00)
+2025/06/21 23:38:35    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:38:35    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:38:35    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:38:35    💵 Available Balance: -88002648.00 (Income: 11672.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:38:35    📋 Upcoming Bills: 1130.00
+2025/06/21 23:38:35 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22765.00 (0.0%), Total=-88003148.00
+2025/06/21 23:38:35 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:38:35 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:38:35 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:38:35 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:38:35 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:38:35 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:38:35 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:38:35 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:02 📊 Balance data found: IncomeBank=11645.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003125.00
+2025/06/21 23:39:02 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:39:02    💰 Total Income: 11695.00 (Bank: 11645.00 + Cash: 50.00)
+2025/06/21 23:39:02    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:39:02    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:39:02    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:39:02    💵 Available Balance: -88002625.00 (Income: 11695.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:39:02    📋 Upcoming Bills: 1130.00
+2025/06/21 23:39:02 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22742.00 (0.0%), Total=-88003125.00
+2025/06/21 23:39:02 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:02 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:02 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:02 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:02 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:02 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:02 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:02 📊 Transaction history retrieved: 18 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:03 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:39:03 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:03 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:03 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:03 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:03 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:03 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:03 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:03 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:39:03 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:03 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:03 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:03 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:03 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:03 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:03 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:12 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-88003975.00
+2025/06/21 23:39:12 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/21 23:39:12    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:12    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:12    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/21 23:39:12    📊 Combined Expense (expenses + bills): 850.00
+2025/06/21 23:39:12    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/21 23:39:12    📋 Upcoming Bills: 850.00
+2025/06/21 23:39:12 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-23592.00 (0.0%), Total=-88003975.00
+2025/06/21 23:39:12 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/21 23:39:12 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:12 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/21 23:39:12 🏠 Bill ID=103, Name=Coche, Month=2025-07, Paid=false
+2025/06/21 23:39:12 🏠 Bill ID=106, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:39:12 🏠 Bill ID=107, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:39:12 🏠 Bill ID=102, Name=Gimnasio, Month=2025-07, Paid=false
+2025/06/21 23:39:12 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:14 📊 Balance data found: IncomeBank=11645.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003125.00
+2025/06/21 23:39:14 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:39:14    💰 Total Income: 11695.00 (Bank: 11645.00 + Cash: 50.00)
+2025/06/21 23:39:14    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:39:14    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:39:14    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:39:14    💵 Available Balance: -88002625.00 (Income: 11695.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:39:14    📋 Upcoming Bills: 1130.00
+2025/06/21 23:39:14 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22742.00 (0.0%), Total=-88003125.00
+2025/06/21 23:39:14 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:14 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:14 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:14 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:14 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:14 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:14 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:14 📊 Transaction history retrieved: 18 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:16 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=500.00, BillCash=0.00, TotalBalance=-500.00
+2025/06/21 23:39:16 🧮 Budget calculation breakdown for period monthly, date 2025-05:
+2025/06/21 23:39:16    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:16    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:16    🏷️ Bills Amount: 500.00 (Bank: 500.00 + Cash: 0.00)
+2025/06/21 23:39:16    📊 Combined Expense (expenses + bills): 500.00
+2025/06/21 23:39:16    💵 Available Balance: -500.00 (Income: 0.00 - Combined Expenses: 500.00)
+2025/06/21 23:39:16    📋 Upcoming Bills: 500.00
+2025/06/21 23:39:16 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-500.00 (0.0%), Total=-500.00
+2025/06/21 23:39:17 🔍 fetchUpcomingBills for month: 2025-05
+2025/06/21 23:39:17 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-05-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-05'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:17 🔍 Args: [13 2025-05 2025-05 2025-05]
+2025/06/21 23:39:17 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=500.00, BillCash=0.00, TotalBalance=-500.00
+2025/06/21 23:39:17 🧮 Budget calculation breakdown for period monthly, date 2025-05:
+2025/06/21 23:39:17    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:17    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:17    🏷️ Bills Amount: 500.00 (Bank: 500.00 + Cash: 0.00)
+2025/06/21 23:39:17    📊 Combined Expense (expenses + bills): 500.00
+2025/06/21 23:39:17    💵 Available Balance: -500.00 (Income: 0.00 - Combined Expenses: 500.00)
+2025/06/21 23:39:17    📋 Upcoming Bills: 500.00
+2025/06/21 23:39:17 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-500.00 (0.0%), Total=-500.00
+2025/06/21 23:39:17 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:18 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/21 23:39:18 ⚠️  No historical data found for user 13 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-04
+2025/06/21 23:39:18 🧮 Budget calculation breakdown for period monthly, date 2025-04:
+2025/06/21 23:39:18    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:18    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:18    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:18    📊 Combined Expense (expenses + bills): 0.00
+2025/06/21 23:39:18    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/21 23:39:18    📋 Upcoming Bills: 0.00
+2025/06/21 23:39:18 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+2025/06/21 23:39:19 🔍 fetchUpcomingBills for month: 2025-04
+2025/06/21 23:39:19 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-04-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-04'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:19 🔍 Args: [13 2025-04 2025-04 2025-04]
+2025/06/21 23:39:19 🔍 No data found for current period, searching for historical data to inherit...
+2025/06/21 23:39:19 ⚠️  No historical data found for user 13 in table monthly_cash_bank_balance after searching 24 periods backwards from 2025-04
+2025/06/21 23:39:19 🧮 Budget calculation breakdown for period monthly, date 2025-04:
+2025/06/21 23:39:19    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:19    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:19    🏷️ Bills Amount: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:19    📊 Combined Expense (expenses + bills): 0.00
+2025/06/21 23:39:19    💵 Available Balance: 0.00 (Income: 0.00 - Combined Expenses: 0.00)
+2025/06/21 23:39:19    📋 Upcoming Bills: 0.00
+2025/06/21 23:39:19 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=0.00 (0.0%), Total=0.00
+2025/06/21 23:39:19 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:21 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=500.00, BillCash=0.00, TotalBalance=-500.00
+2025/06/21 23:39:21 🧮 Budget calculation breakdown for period monthly, date 2025-05:
+2025/06/21 23:39:21    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:21    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:21    🏷️ Bills Amount: 500.00 (Bank: 500.00 + Cash: 0.00)
+2025/06/21 23:39:21    📊 Combined Expense (expenses + bills): 500.00
+2025/06/21 23:39:21    💵 Available Balance: -500.00 (Income: 0.00 - Combined Expenses: 500.00)
+2025/06/21 23:39:21    📋 Upcoming Bills: 500.00
+2025/06/21 23:39:21 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-500.00 (0.0%), Total=-500.00
+2025/06/21 23:39:21 🔍 fetchUpcomingBills for month: 2025-05
+2025/06/21 23:39:21 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-05-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-05'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:21 🔍 Args: [13 2025-05 2025-05 2025-05]
+2025/06/21 23:39:21 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:23 📊 Balance data found: IncomeBank=11645.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003125.00
+2025/06/21 23:39:23 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:39:23    💰 Total Income: 11695.00 (Bank: 11645.00 + Cash: 50.00)
+2025/06/21 23:39:23    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:39:23    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:39:23    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:39:23    💵 Available Balance: -88002625.00 (Income: 11695.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:39:23    📋 Upcoming Bills: 1130.00
+2025/06/21 23:39:23 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22742.00 (0.0%), Total=-88003125.00
+2025/06/21 23:39:23 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:23 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:23 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:23 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:23 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:23 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:23 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:23 📊 Transaction history retrieved: 18 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:25 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-88003975.00
+2025/06/21 23:39:25 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/21 23:39:25    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:25    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:39:25    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/21 23:39:25    📊 Combined Expense (expenses + bills): 850.00
+2025/06/21 23:39:25    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/21 23:39:25    📋 Upcoming Bills: 850.00
+2025/06/21 23:39:25 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-23592.00 (0.0%), Total=-88003975.00
+2025/06/21 23:39:25 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/21 23:39:25 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:25 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/21 23:39:25 🏠 Bill ID=103, Name=Coche, Month=2025-07, Paid=false
+2025/06/21 23:39:25 🏠 Bill ID=106, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:39:25 🏠 Bill ID=107, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:39:25 🏠 Bill ID=102, Name=Gimnasio, Month=2025-07, Paid=false
+2025/06/21 23:39:25 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:39:27 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:39:27 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:39:27 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:39:27 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:39:27 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:39:27 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:39:27 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:39:27 📊 Balance data found: IncomeBank=11645.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-88003125.00
+2025/06/21 23:39:27 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:39:27    💰 Total Income: 11695.00 (Bank: 11645.00 + Cash: 50.00)
+2025/06/21 23:39:27    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:39:27    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:39:27    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:39:27    💵 Available Balance: -88002625.00 (Income: 11695.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:39:27    📋 Upcoming Bills: 1130.00
+2025/06/21 23:39:27 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=-22742.00 (0.0%), Total=-88003125.00
+2025/06/21 23:39:27 📊 Transaction history retrieved: 18 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:41:42 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:41:45 📊 Transaction history retrieved: 16 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:41:55 📊 Balance data found: IncomeBank=244748.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87770022.00
+2025/06/21 23:41:55 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/21 23:41:55    💰 Total Income: 244798.00 (Bank: 244748.00 + Cash: 50.00)
+2025/06/21 23:41:55    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/21 23:41:55    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/21 23:41:55    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/21 23:41:55    💵 Available Balance: -87769522.00 (Income: 244798.00 - Combined Expenses: 88014320.00)
+2025/06/21 23:41:55    📋 Upcoming Bills: 1130.00
+2025/06/21 23:41:55 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210361.00 (0.0%), Total=-87770022.00
+2025/06/21 23:41:55 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:41:55 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:41:55 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:41:55 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:41:55 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:41:55 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:41:55 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:41:55 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:41:55 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:41:55 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:41:55 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:41:55 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:41:55 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:41:55 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:41:55 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:41:55 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:41:55 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/21 23:41:55 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/21 23:41:55 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:41:55 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/21 23:41:55 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/21 23:41:55 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-21)
+2025/06/21 23:41:55 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/21 23:41:55 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/21 23:42:02 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-87770872.00
+2025/06/21 23:42:02 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/21 23:42:02    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:42:02    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:42:02    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/21 23:42:02    📊 Combined Expense (expenses + bills): 850.00
+2025/06/21 23:42:02    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/21 23:42:02    📋 Upcoming Bills: 850.00
+2025/06/21 23:42:02 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=209511.00 (0.0%), Total=-87770872.00
+2025/06/21 23:42:02 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/21 23:42:02 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:42:02 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/21 23:42:02 🏠 Bill ID=103, Name=Coche, Month=2025-07, Paid=false
+2025/06/21 23:42:02 🏠 Bill ID=106, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:42:02 🏠 Bill ID=107, Name=Cena, Month=2025-07, Paid=false
+2025/06/21 23:42:02 🏠 Bill ID=102, Name=Gimnasio, Month=2025-07, Paid=false
+2025/06/21 23:42:03 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/21 23:42:05 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=500.00, BillCash=0.00, TotalBalance=-500.00
+2025/06/21 23:42:05 🧮 Budget calculation breakdown for period monthly, date 2025-05:
+2025/06/21 23:42:05    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:42:05    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/21 23:42:05    🏷️ Bills Amount: 500.00 (Bank: 500.00 + Cash: 0.00)
+2025/06/21 23:42:05    📊 Combined Expense (expenses + bills): 500.00
+2025/06/21 23:42:05    💵 Available Balance: -500.00 (Income: 0.00 - Combined Expenses: 500.00)
+2025/06/21 23:42:05    📋 Upcoming Bills: 500.00
+2025/06/21 23:42:05 💳 Cash/Bank Distribution: Cash=0.00 (0.0%), Bank=-500.00 (0.0%), Total=-500.00
+2025/06/21 23:42:05 🔍 fetchUpcomingBills for month: 2025-05
+2025/06/21 23:42:05 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-05-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-05'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/21 23:42:05 🔍 Args: [13 2025-05 2025-05 2025-05]
+2025/06/21 23:42:05 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:32 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:32 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:32 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:32 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:32 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:32 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:32 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:32 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:32 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:32 📊 Balance data found: IncomeBank=244748.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87770022.00
+2025/06/22 00:30:32 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 00:30:32    💰 Total Income: 244798.00 (Bank: 244748.00 + Cash: 50.00)
+2025/06/22 00:30:32    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 00:30:32    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 00:30:32    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 00:30:32    💵 Available Balance: -87769522.00 (Income: 244798.00 - Combined Expenses: 88014320.00)
+2025/06/22 00:30:32    📋 Upcoming Bills: 1130.00
+2025/06/22 00:30:32 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210361.00 (0.0%), Total=-87770022.00
+2025/06/22 00:30:32 📊 Balance data found: IncomeBank=244748.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87770022.00
+2025/06/22 00:30:32 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 00:30:32    💰 Total Income: 244798.00 (Bank: 244748.00 + Cash: 50.00)
+2025/06/22 00:30:32    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 00:30:32    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 00:30:32    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 00:30:32    💵 Available Balance: -87769522.00 (Income: 244798.00 - Combined Expenses: 88014320.00)
+2025/06/22 00:30:32    📋 Upcoming Bills: 1130.00
+2025/06/22 00:30:32 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210361.00 (0.0%), Total=-87770022.00
+2025/06/22 00:30:32 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:33 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:33 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 00:30:33 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:33 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:33 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:33 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:33 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:33 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:33 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:33 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:33 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:33 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 00:30:33 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:33 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:33 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:33 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:33 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:33 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:33 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:33 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:33 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:41 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-87770872.00
+2025/06/22 00:30:41 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/22 00:30:41    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 00:30:41    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 00:30:41    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/22 00:30:41    📊 Combined Expense (expenses + bills): 850.00
+2025/06/22 00:30:41    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/22 00:30:41    📋 Upcoming Bills: 850.00
+2025/06/22 00:30:41 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=209511.00 (0.0%), Total=-87770872.00
+2025/06/22 00:30:42 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-87770872.00
+2025/06/22 00:30:42 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/22 00:30:42    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 00:30:42    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 00:30:42    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/22 00:30:42    📊 Combined Expense (expenses + bills): 850.00
+2025/06/22 00:30:42    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/22 00:30:42    📋 Upcoming Bills: 850.00
+2025/06/22 00:30:42 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=209511.00 (0.0%), Total=-87770872.00
+2025/06/22 00:30:42 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/22 00:30:42 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:42 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/22 00:30:42 🏠 Bill ID=103, Name=Coche, Month=2025-07, Paid=false
+2025/06/22 00:30:42 🏠 Bill ID=119, Name=Factura Test, Month=2025-07, Paid=false
+2025/06/22 00:30:42 🏠 Bill ID=106, Name=Cena, Month=2025-07, Paid=false
+2025/06/22 00:30:42 🏠 Bill ID=107, Name=Cena, Month=2025-07, Paid=false
+2025/06/22 00:30:42 🏠 Bill ID=102, Name=Gimnasio, Month=2025-07, Paid=false
+2025/06/22 00:30:42 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:44 📊 Balance data found: IncomeBank=244748.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87770022.00
+2025/06/22 00:30:44 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 00:30:44    💰 Total Income: 244798.00 (Bank: 244748.00 + Cash: 50.00)
+2025/06/22 00:30:44    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 00:30:44    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 00:30:44    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 00:30:44    💵 Available Balance: -87769522.00 (Income: 244798.00 - Combined Expenses: 88014320.00)
+2025/06/22 00:30:44    📋 Upcoming Bills: 1130.00
+2025/06/22 00:30:44 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210361.00 (0.0%), Total=-87770022.00
+2025/06/22 00:30:44 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:44 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:44 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:44 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:44 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:44 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:44 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:44 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:44 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:44 📊 Transaction history retrieved: 17 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:56 📊 Balance data found: IncomeBank=244982.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87769788.00
+2025/06/22 00:30:56 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 00:30:56    💰 Total Income: 245032.00 (Bank: 244982.00 + Cash: 50.00)
+2025/06/22 00:30:56    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 00:30:56    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 00:30:56    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 00:30:56    💵 Available Balance: -87769288.00 (Income: 245032.00 - Combined Expenses: 88014320.00)
+2025/06/22 00:30:56    📋 Upcoming Bills: 1130.00
+2025/06/22 00:30:56 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210595.00 (0.0%), Total=-87769788.00
+2025/06/22 00:30:56 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:56 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:56 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:56 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:56 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:56 📊 Transaction history retrieved: 18 transactions (incomes + expenses only, bills excluded)
+2025/06/22 00:30:56 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 00:30:56 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:56 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:56 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:56 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:56 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true
+2025/06/22 00:30:56 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 00:30:56 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 00:30:56 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 00:30:56 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 00:30:56 🏠 Bill ID=119, Name=Factura Test, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=119 is overdue by 6 days (due: 2025-06-15, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=107, Name=Cena, Month=2025-06, Paid=false
+2025/06/22 00:30:56 📅 Bill ID=107 is overdue by 0 days (due: 2025-06-21, now: 2025-06-22)
+2025/06/22 00:30:56 🏠 Bill ID=102, Name=Gimnasio, Month=2025-06, Paid=false
+2025/06/22 00:30:56 🏠 Bill ID=103, Name=Coche, Month=2025-06, Paid=true

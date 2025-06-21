@@ -174,6 +174,9 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		// Cache new user session in Redis for immediate access
+		cacheUserSession(newUser, req.IdentityToken)
+
 		log.Printf("Created new Apple user: %s with type 'apple'", newUser.Email)
 		sendSuccessResponse(w, "User created successfully", newUser)
 		return

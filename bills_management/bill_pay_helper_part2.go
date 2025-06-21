@@ -191,7 +191,7 @@ func undoBillPayment(db *sql.DB, billID int, userID, yearMonth string) error {
 		return fmt.Errorf("error undoing payment status: %v", err)
 	}
 
-	// Revertir transferencia en monthly_cash_bank_balance
+	// Revertir transferencia en monthly_balance
 	if err = revertBillAmountToMonth(tx, userID, yearMonth, amount, paymentMethod); err != nil {
 		return fmt.Errorf("error reverting bill amount: %v", err)
 	}
@@ -218,16 +218,16 @@ func revertBillAmountToMonth(tx *sql.Tx, userID, yearMonth string, amount float6
 	// Determinar columnas según método de pago
 	var billColumn, expenseColumn string
 	if paymentMethod == "cash" {
-		billColumn = "bill_cash_amount"
-		expenseColumn = "expense_cash_amount"
+		billColumn = "bills_amount"
+		expenseColumn = "expense_amount"
 	} else {
-		billColumn = "bill_bank_amount"
-		expenseColumn = "expense_bank_amount"
+		billColumn = "bills_amount"
+		expenseColumn = "expense_amount"
 	}
 
 	// Revertir transferencia: de expense_amount a bill_amount
 	query := fmt.Sprintf(`
-		UPDATE monthly_cash_bank_balance 
+		UPDATE monthly_balance 
 		SET %s = %s + ?, 
 		    %s = %s - ?
 		WHERE user_id = ? AND year_month = ?

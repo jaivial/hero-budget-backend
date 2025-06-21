@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -10,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -44,7 +46,12 @@ type ApiResponse struct {
 }
 
 var (
+	// Database connection for budget data persistence
 	db *sql.DB
+	// Redis client for caching budget calculations and frequent queries
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 )
 
 func init() {
@@ -75,6 +82,43 @@ func init() {
 	createTablesIfNotExist()
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for budget data caching
+	initRedis()
+}
+
+// initRedis initializes Redis connection for budget calculation caching
+// Provides distributed caching for expensive budget calculations and frequent queries
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address for local development
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	redisDB := 0 // Default Redis database index
+
+	// Create Redis client with connection pooling and automatic failover
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		DialTimeout:  5 * time.Second,  // Connection timeout for Redis dial
+		ReadTimeout:  3 * time.Second,  // Read timeout for Redis operations
+		WriteTimeout: 3 * time.Second,  // Write timeout for Redis operations
+		PoolSize:     10,               // Connection pool size for concurrent operations
+		MinIdleConns: 2,                // Minimum idle connections in pool
+	})
+
+	// Test Redis connection with ping command
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
+		return
+	}
+
+	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 func createTablesIfNotExist() {
@@ -166,12 +210,22 @@ func handleFetchBudget(w http.ResponseWriter, r *http.Request) {
 		period = "monthly"
 	}
 
-	// Get budget data from database
-	budget, err := fetchBudgetData(userID, period)
-	if err != nil {
-		log.Printf("Error fetching budget data: %v", err)
-		sendErrorResponse(w, "Error fetching budget data", http.StatusInternalServerError)
-		return
+	// Try to get budget data from Redis cache first for performance optimization
+	cacheKey := fmt.Sprintf("budget:%s:%s", userID, period)
+	budget, cached := getCachedBudget(cacheKey)
+
+	if !cached {
+		// Cache miss - get budget data from database
+		var err error
+		budget, err = fetchBudgetData(userID, period)
+		if err != nil {
+			log.Printf("Error fetching budget data: %v", err)
+			sendErrorResponse(w, "Error fetching budget data", http.StatusInternalServerError)
+			return
+		}
+
+		// Cache the budget data for future requests (15 minutes TTL)
+		cacheBudgetData(cacheKey, budget)
 	}
 
 	// Return budget data as JSON
@@ -232,6 +286,13 @@ func handleUpdateBudget(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error updating budget data", http.StatusInternalServerError)
 		return
 	}
+
+	// Invalidate cache after budget update to ensure data consistency
+	cacheKey := fmt.Sprintf("budget:%s:%s", budget.UserID, budget.Period)
+	invalidateBudgetCache(cacheKey)
+
+	// Cache the updated budget data for immediate future requests
+	cacheBudgetData(cacheKey, budget)
 
 	// Return success response
 	sendSuccessResponse(w, "Budget updated successfully", budget)
@@ -440,6 +501,76 @@ func updateBudgetData(budget BudgetData) error {
 	}
 
 	return err
+}
+
+// getCachedBudget retrieves budget data from Redis cache
+// Returns the cached budget data and a boolean indicating if data was found in cache
+func getCachedBudget(cacheKey string) (BudgetData, bool) {
+	var budget BudgetData
+	
+	if rdb == nil {
+		return budget, false // Redis not available, return cache miss
+	}
+
+	// Get budget data from Redis cache
+	budgetJSON, err := rdb.Get(ctx, cacheKey).Result()
+	if err != nil {
+		if err.Error() != "redis: nil" {
+			log.Printf("Redis cache get error: %v", err)
+		}
+		return budget, false // Cache miss or error
+	}
+
+	// Deserialize budget data from JSON
+	err = json.Unmarshal([]byte(budgetJSON), &budget)
+	if err != nil {
+		log.Printf("Failed to unmarshal cached budget data: %v", err)
+		return budget, false
+	}
+
+	log.Printf("📦 Budget cache hit for key: %s", cacheKey)
+	return budget, true
+}
+
+// cacheBudgetData stores budget data in Redis cache with TTL
+// Caches budget calculations for performance optimization with 15-minute expiration
+func cacheBudgetData(cacheKey string, budget BudgetData) {
+	if rdb == nil {
+		return // Redis not available, skip caching
+	}
+
+	// Serialize budget data to JSON for Redis storage
+	budgetJSON, err := json.Marshal(budget)
+	if err != nil {
+		log.Printf("Failed to marshal budget data for caching: %v", err)
+		return
+	}
+
+	// Cache budget data with 15-minute TTL for optimal balance of performance and freshness
+	err = rdb.Set(ctx, cacheKey, budgetJSON, 15*time.Minute).Err()
+	if err != nil {
+		log.Printf("Failed to cache budget data: %v", err)
+		return
+	}
+
+	log.Printf("💾 Cached budget data for key: %s", cacheKey)
+}
+
+// invalidateBudgetCache removes budget data from Redis cache
+// Ensures data consistency by invalidating cache when budget is updated
+func invalidateBudgetCache(cacheKey string) {
+	if rdb == nil {
+		return // Redis not available, nothing to invalidate
+	}
+
+	// Delete the cached budget data
+	err := rdb.Del(ctx, cacheKey).Err()
+	if err != nil {
+		log.Printf("Failed to invalidate budget cache: %v", err)
+		return
+	}
+
+	log.Printf("🗑️ Invalidated budget cache for key: %s", cacheKey)
 }
 
 func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {

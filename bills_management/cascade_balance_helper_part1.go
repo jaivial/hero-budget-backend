@@ -32,7 +32,7 @@ func updateCascadeBillBalance(db *sql.DB, userID, startDate string, durationMont
 		log.Printf("🔥 DEBUG: Mes %s - impacto acumulado: %.2f", month, accumulatedImpact)
 
 		// Asegurar que el registro existe
-		_, err = db.Exec("INSERT OR IGNORE INTO monthly_cash_bank_balance (user_id, year_month) VALUES (?, ?)", userID, month)
+		_, err = db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", userID, month)
 		if err != nil {
 			log.Printf("🔥 DEBUG: Error creando registro para mes %s: %v", month, err)
 			return err
@@ -69,7 +69,7 @@ func updateCascadeBalanceForMonth(db *sql.DB, userID, month string, monthlyAmoun
 	// CORRECCIÓN: Restar el impacto acumulado de los valores EXISTENTES en lugar de sobrescribir
 	if paymentMethod == "bank" {
 		_, err := db.Exec(`
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET bank_amount = bank_amount + ?, 
 			    balance_bank_amount = balance_bank_amount + ?, 
 			    total_balance = cash_amount + (bank_amount + ?)
@@ -78,7 +78,7 @@ func updateCascadeBalanceForMonth(db *sql.DB, userID, month string, monthlyAmoun
 		return err
 	} else {
 		_, err := db.Exec(`
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET cash_amount = cash_amount + ?, 
 			    balance_cash_amount = balance_cash_amount + ?, 
 			    total_balance = (cash_amount + ?) + bank_amount
@@ -102,9 +102,9 @@ func updatePreviousAmountsCorrectly(db *sql.DB, userID string, months []string, 
 		var previousAmount float64
 		var query string
 		if paymentMethod == "bank" {
-			query = "SELECT bank_amount FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?"
+			query = "SELECT bank_amount FROM monthly_balance WHERE user_id = ? AND year_month = ?"
 		} else {
-			query = "SELECT cash_amount FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?"
+			query = "SELECT cash_amount FROM monthly_balance WHERE user_id = ? AND year_month = ?"
 		}
 
 		err := db.QueryRow(query, userID, previousMonth).Scan(&previousAmount)
@@ -116,14 +116,14 @@ func updatePreviousAmountsCorrectly(db *sql.DB, userID string, months []string, 
 		// Actualizar previous_amounts en el mes actual
 		if paymentMethod == "bank" {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET previous_bank_amount = ?, 
 				    total_previous_balance = ? 
 				WHERE user_id = ? AND year_month = ?
 			`, previousAmount, previousAmount, userID, currentMonth)
 		} else {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET previous_cash_amount = ?, 
 				    total_previous_balance = ? 
 				WHERE user_id = ? AND year_month = ?
@@ -144,7 +144,7 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 	log.Printf("🔄 Recalculando balances desde mes: %s", startMonth)
 	
 	// Obtener todos los meses desde el startMonth
-	rows, err := db.Query("SELECT year_month FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month >= ? ORDER BY year_month", userID, startMonth)
+	rows, err := db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month >= ? ORDER BY year_month", userID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching months for recalculation: %v", err)
 	}
@@ -160,7 +160,7 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 	
 	// Recalcular total_balance para cada mes
 	for _, month := range months {
-		_, err = db.Exec("UPDATE monthly_cash_bank_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
+		_, err = db.Exec("UPDATE monthly_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
 		if err != nil {
 			log.Printf("Error recalculando balance para mes %s: %v", month, err)
 		}
@@ -169,24 +169,24 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 	return nil
 }
 
-// debugPrintMonthlyBalance imprime estado de monthly_cash_bank_balance para depuración
+// debugPrintMonthlyBalance imprime estado de monthly_balance para depuración
 // Útil para verificar el estado de las tablas durante desarrollo
 func debugPrintMonthlyBalance(db *sql.DB, userID, month string) {
-	log.Printf("🔍 DEBUG: Estado de monthly_cash_bank_balance para user=%s, month=%s", userID, month)
+	log.Printf("🔍 DEBUG: Estado de monthly_balance para user=%s, month=%s", userID, month)
 	
 	var cashAmount, bankAmount, billCash, billBank, expenseCash, expenseBank, balanceCash, balanceBank, totalBalance float64
 	err := db.QueryRow(`
 		SELECT 
 			COALESCE(cash_amount, 0),
 			COALESCE(bank_amount, 0),
-			COALESCE(bill_cash_amount, 0),
-			COALESCE(bill_bank_amount, 0),
-			COALESCE(expense_cash_amount, 0),
-			COALESCE(expense_bank_amount, 0),
+			COALESCE(bills_amount, 0),
+			COALESCE(bills_amount, 0),
+			COALESCE(expense_amount, 0),
+			COALESCE(expense_amount, 0),
 			COALESCE(balance_cash_amount, 0),
 			COALESCE(balance_bank_amount, 0),
 			COALESCE(total_balance, 0)
-		FROM monthly_cash_bank_balance 
+		FROM monthly_balance 
 		WHERE user_id = ? AND year_month = ?
 	`, userID, month).Scan(
 		&cashAmount, &bankAmount, &billCash, &billBank,

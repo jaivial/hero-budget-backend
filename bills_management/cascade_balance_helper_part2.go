@@ -83,7 +83,7 @@ func revertCascadeBalanceForMonth(db *sql.DB, userID, month string, monthlyAmoun
 	// REVERSIÓN: Sumar el impacto acumulado a los valores existentes
 	if paymentMethod == "bank" {
 		_, err := db.Exec(`
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET bank_amount = bank_amount + ?, 
 			    balance_bank_amount = balance_bank_amount + ?, 
 			    total_balance = cash_amount + (bank_amount + ?)
@@ -92,7 +92,7 @@ func revertCascadeBalanceForMonth(db *sql.DB, userID, month string, monthlyAmoun
 		return err
 	} else {
 		_, err := db.Exec(`
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET cash_amount = cash_amount + ?, 
 			    balance_cash_amount = balance_cash_amount + ?, 
 			    total_balance = (cash_amount + ?) + bank_amount
@@ -116,9 +116,9 @@ func updatePreviousAmountsCorrectlyAfterRevert(db *sql.DB, userID string, months
 		var previousAmount float64
 		var query string
 		if paymentMethod == "bank" {
-			query = "SELECT bank_amount FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?"
+			query = "SELECT bank_amount FROM monthly_balance WHERE user_id = ? AND year_month = ?"
 		} else {
-			query = "SELECT cash_amount FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?"
+			query = "SELECT cash_amount FROM monthly_balance WHERE user_id = ? AND year_month = ?"
 		}
 
 		err := db.QueryRow(query, userID, previousMonth).Scan(&previousAmount)
@@ -130,14 +130,14 @@ func updatePreviousAmountsCorrectlyAfterRevert(db *sql.DB, userID string, months
 		// Actualizar previous_amounts en el mes actual
 		if paymentMethod == "bank" {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET previous_bank_amount = ?, 
 				    total_previous_balance = ? 
 				WHERE user_id = ? AND year_month = ?
 			`, previousAmount, previousAmount, userID, currentMonth)
 		} else {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET previous_cash_amount = ?, 
 				    total_previous_balance = ? 
 				WHERE user_id = ? AND year_month = ?
@@ -152,21 +152,21 @@ func updatePreviousAmountsCorrectlyAfterRevert(db *sql.DB, userID string, months
 	return nil
 }
 
-// cleanupOrphanedMonthlyRecords limpia registros huérfanos en monthly_cash_bank_balance
+// cleanupOrphanedMonthlyRecords limpia registros huérfanos en monthly_balance
 // Útil para mantener la base de datos limpia tras operaciones complejas
 func cleanupOrphanedMonthlyRecords(db *sql.DB, userID string) error {
 	log.Printf("🧹 Limpiando registros huérfanos para user_id: %s", userID)
 	
 	// Eliminar registros con todos los valores en 0
 	_, err := db.Exec(`
-		DELETE FROM monthly_cash_bank_balance 
+		DELETE FROM monthly_balance 
 		WHERE user_id = ? 
 		  AND cash_amount = 0 
 		  AND bank_amount = 0 
-		  AND bill_cash_amount = 0 
-		  AND bill_bank_amount = 0 
-		  AND expense_cash_amount = 0 
-		  AND expense_bank_amount = 0 
+		  AND bills_amount = 0 
+		  AND bills_amount = 0 
+		  AND expense_amount = 0 
+		  AND expense_amount = 0 
 		  AND balance_cash_amount = 0 
 		  AND balance_bank_amount = 0 
 		  AND total_balance = 0
@@ -181,15 +181,15 @@ func cleanupOrphanedMonthlyRecords(db *sql.DB, userID string) error {
 	return nil
 }
 
-// validateMonthlyBalanceConsistency valida la consistencia de monthly_cash_bank_balance
+// validateMonthlyBalanceConsistency valida la consistencia de monthly_balance
 // Verifica que los cálculos sean coherentes y detecta posibles errores
 func validateMonthlyBalanceConsistency(db *sql.DB, userID string) error {
-	log.Printf("🔍 Validando consistencia de monthly_cash_bank_balance para user_id: %s", userID)
+	log.Printf("🔍 Validando consistencia de monthly_balance para user_id: %s", userID)
 	
 	// Obtener todos los registros del usuario
 	rows, err := db.Query(`
 		SELECT year_month, cash_amount, bank_amount, total_balance
-		FROM monthly_cash_bank_balance 
+		FROM monthly_balance 
 		WHERE user_id = ? 
 		ORDER BY year_month
 	`, userID)

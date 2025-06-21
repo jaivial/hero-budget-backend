@@ -1,3 +1,7 @@
 2025/06/21 22:49:21 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
 2025/06/21 22:49:21 User Locale service - Database connection established successfully
 2025/06/21 22:49:21 User Locale service started on :8099
+2025/06/21 23:38:17 Getting user locale for user ID: 13
+2025/06/21 23:38:17 Successfully retrieved locale for user 13: es
+2025/06/22 00:30:31 Getting user locale for user ID: 13
+2025/06/22 00:30:31 Successfully retrieved locale for user 13: es

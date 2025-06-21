@@ -7,7 +7,7 @@ import (
 )
 
 // updateBalanceColumns actualiza columnas de balance de forma unificada
-// Función centralizada para actualizar diferentes tipos de columnas en monthly_cash_bank_balance
+// Función centralizada para actualizar diferentes tipos de columnas en monthly_balance
 // columnType: "bill", "expense", "main" - determina qué columna actualizar
 // multiplier: 1 para sumar, -1 para restar
 func updateBalanceColumns(db *sql.DB, userID, month string, amount float64, paymentMethod, columnType string, multiplier int) {
@@ -17,17 +17,9 @@ func updateBalanceColumns(db *sql.DB, userID, month string, amount float64, paym
 	// Determinar columna a actualizar según tipo y método de pago
 	switch columnType {
 	case "bill":
-		if paymentMethod == "cash" {
-			column = "bill_cash_amount"
-		} else {
-			column = "bill_bank_amount"
-		}
+		column = "bills_amount" // Usar columna unificada bills_amount
 	case "expense":
-		if paymentMethod == "cash" {
-			column = "expense_cash_amount"
-		} else {
-			column = "expense_bank_amount"
-		}
+		column = "expense_amount" // Usar columna unificada expense_amount
 	case "main":
 		if paymentMethod == "cash" {
 			column = "cash_amount"
@@ -39,7 +31,7 @@ func updateBalanceColumns(db *sql.DB, userID, month string, amount float64, paym
 	}
 
 	// Ejecutar actualización con recalculo de total_balance
-	query := fmt.Sprintf("UPDATE monthly_cash_bank_balance SET %s = %s + ?, total_balance = bank_amount + cash_amount WHERE user_id = ? AND year_month = ?", column, column)
+	query := fmt.Sprintf("UPDATE monthly_balance SET %s = %s + ?, total_balance = bank_amount + cash_amount WHERE user_id = ? AND year_month = ?", column, column)
 	if _, err := db.Exec(query, finalAmount, userID, month); err != nil {
 		log.Printf("Error updating %s: %v", column, err)
 	}
@@ -57,7 +49,7 @@ func updateExpenseAmountForBillDifference(db *sql.DB, billID int, userID, month 
 	db.Exec("UPDATE expenses SET amount = amount + ? WHERE bill_id = ? AND user_id = ? AND strftime('%Y-%m', date) = ?", amountDiff, billID, userID, month)
 }
 
-// addNewBillToMonthlyBalance agrega nuevo bill a monthly_cash_bank_balance
+// addNewBillToMonthlyBalance agrega nuevo bill a monthly_balance
 // Función principal para registrar una nueva factura en el sistema de balance mensual
 // CORREGIDO: Implementa lógica diferenciada según duración de la factura
 func addNewBillToMonthlyBalance(db *sql.DB, userID string, amount float64, startDate string, durationMonths int, paymentMethod string) error {
@@ -82,7 +74,7 @@ func addNewBillToMonthlyBalance(db *sql.DB, userID string, amount float64, start
 	// Procesar cada mes del periodo de la factura
 	for _, month := range months {
 		// Asegurar que existe fila para el mes
-		db.Exec("INSERT OR IGNORE INTO monthly_cash_bank_balance (user_id, year_month) VALUES (?, ?)", userID, month)
+		db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", userID, month)
 
 		// Registrar el importe de la factura en bill_amount
 		updateBalanceColumns(db, userID, month, amount, paymentMethod, "bill", 1)
@@ -94,14 +86,14 @@ func addNewBillToMonthlyBalance(db *sql.DB, userID string, amount float64, start
 		// Esto es necesario porque updateBalanceColumns no maneja balance_* columns
 		if paymentMethod == "bank" {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET balance_bank_amount = bank_amount, 
 				    total_balance = cash_amount + bank_amount
 				WHERE user_id = ? AND year_month = ?
 			`, userID, month)
 		} else {
 			_, err = db.Exec(`
-				UPDATE monthly_cash_bank_balance 
+				UPDATE monthly_balance 
 				SET balance_cash_amount = cash_amount, 
 				    total_balance = cash_amount + bank_amount
 				WHERE user_id = ? AND year_month = ?
@@ -159,7 +151,7 @@ func findEarliestMonth(months []string) string {
 func updatePreviousBalancesFromMonth(db *sql.DB, userID, startMonth string, amountDiff float64, paymentMethod string) error {
 	// CORREGIDO: Obtener meses posteriores al mes de inicio (excluyendo el mes de inicio)
 	// Si el startMonth es enero, empezamos desde febrero
-	rows, err := db.Query("SELECT year_month FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", userID, startMonth)
+	rows, err := db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", userID, startMonth)
 	if err != nil {
 		return err
 	}
@@ -179,17 +171,17 @@ func updatePreviousBalancesFromMonth(db *sql.DB, userID, startMonth string, amou
 	for _, month := range posteriorMonths {
 		if paymentMethod == "cash" {
 			// Actualizar previous_cash_amount y total_previous_balance
-			query := "UPDATE monthly_cash_bank_balance SET previous_cash_amount = previous_cash_amount + ?, total_previous_balance = total_previous_balance + ? WHERE user_id = ? AND year_month = ?"
+			query := "UPDATE monthly_balance SET previous_cash_amount = previous_cash_amount + ?, total_previous_balance = total_previous_balance + ? WHERE user_id = ? AND year_month = ?"
 			db.Exec(query, amountDiff, amountDiff, userID, month)
 		} else {
 			// Actualizar previous_bank_amount y total_previous_balance
-			query := "UPDATE monthly_cash_bank_balance SET previous_bank_amount = previous_bank_amount + ?, total_previous_balance = total_previous_balance + ? WHERE user_id = ? AND year_month = ?"
+			query := "UPDATE monthly_balance SET previous_bank_amount = previous_bank_amount + ?, total_previous_balance = total_previous_balance + ? WHERE user_id = ? AND year_month = ?"
 			db.Exec(query, amountDiff, amountDiff, userID, month)
 		}
 
 		// CORREGIDO: Recalcular total_balance para el mes
 		// Mantener consistencia en el balance total
-		db.Exec("UPDATE monthly_cash_bank_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
+		db.Exec("UPDATE monthly_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
 	}
 
 	return nil

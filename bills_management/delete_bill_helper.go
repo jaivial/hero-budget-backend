@@ -191,13 +191,13 @@ func updateMainBalanceColumnsForDeletedBill(billData BillData, targetMonth strin
 	switch billData.PaymentMethod {
 	case "bank":
 		updateQuery = `
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET bank_amount = bank_amount + ?,
 				total_balance = bank_amount + cash_amount
 			WHERE user_id = ? AND year_month = ?`
 	case "cash":
 		updateQuery = `
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET cash_amount = cash_amount + ?,
 				total_balance = bank_amount + cash_amount
 			WHERE user_id = ? AND year_month = ?`

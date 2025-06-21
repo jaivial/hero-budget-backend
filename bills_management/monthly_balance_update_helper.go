@@ -90,14 +90,14 @@ func updateMonthlyBalanceForDeletedBill(db *sql.DB, billData BillData) error {
 	var updateQuery string
 	if billData.PaymentMethod == "bank" {
 		updateQuery = `
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET bank_amount = bank_amount + ?, 
 			    balance_bank_amount = balance_bank_amount + ?, 
 			    total_balance = cash_amount + (bank_amount + ?)
 			WHERE user_id = ? AND year_month = ?`
 	} else {
 		updateQuery = `
-			UPDATE monthly_cash_bank_balance 
+			UPDATE monthly_balance 
 			SET cash_amount = cash_amount + ?, 
 			    balance_cash_amount = balance_cash_amount + ?, 
 			    total_balance = (cash_amount + ?) + bank_amount
@@ -134,23 +134,23 @@ func updateMonthBalance(billData *BillData, yearMonth string, isExpenseMonth boo
 	var expenseAmountCol, billAmountCol string
 
 	if billData.PaymentMethod == "bank" {
-		expenseAmountCol = "expense_bank_amount"
-		billAmountCol = "bill_bank_amount"
+		expenseAmountCol = "expense_amount"
+		billAmountCol = "bills_amount"
 	} else {
-		expenseAmountCol = "expense_cash_amount"
-		billAmountCol = "bill_cash_amount"
+		expenseAmountCol = "expense_amount"
+		billAmountCol = "bills_amount"
 	}
 
 	var query string
 	if isExpenseMonth {
 		// Month with expense: subtract from expense amount only
-		query = fmt.Sprintf(`UPDATE monthly_cash_bank_balance 
+		query = fmt.Sprintf(`UPDATE monthly_balance 
 			SET %s = %s - ?
 			WHERE year_month = ? AND user_id = ?`,
 			expenseAmountCol, expenseAmountCol)
 	} else {
 		// Month without expense: subtract from bill amount only
-		query = fmt.Sprintf(`UPDATE monthly_cash_bank_balance 
+		query = fmt.Sprintf(`UPDATE monthly_balance 
 			SET %s = %s - ?
 			WHERE year_month = ? AND user_id = ?`,
 			billAmountCol, billAmountCol)

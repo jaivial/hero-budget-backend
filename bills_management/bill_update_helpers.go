@@ -86,15 +86,15 @@ func updateExpenseAmountForBill(db *sql.DB, billID int, userID, yearMonth string
 	return err
 }
 
-// updateExpenseAmountInMonthlyBalance actualiza las columnas expense_* en monthly_cash_bank_balance
+// updateExpenseAmountInMonthlyBalance actualiza las columnas expense_* en monthly_balance
 func updateExpenseAmountInMonthlyBalance(db *sql.DB, userID, yearMonth string, amountDifference float64, paymentMethod string) error {
 	var column string
 	if paymentMethod == "cash" {
-		column = "expense_cash_amount"
+		column = "expense_amount"
 	} else {
-		column = "expense_bank_amount"
+		column = "expense_amount"
 	}
-	query := fmt.Sprintf("UPDATE monthly_cash_bank_balance SET %s = %s + ? WHERE user_id = ? AND year_month = ?", column, column)
+	query := fmt.Sprintf("UPDATE monthly_balance SET %s = %s + ? WHERE user_id = ? AND year_month = ?", column, column)
 	_, err := db.Exec(query, amountDifference, userID, yearMonth)
 	return err
 }
@@ -132,15 +132,15 @@ func updateMonthlyBalancesForAmount(db *sql.DB, updateData BillUpdateData, amoun
 	return nil
 }
 
-// updateBillAmountInMonthlyBalance actualiza las columnas bill_* en monthly_cash_bank_balance
+// updateBillAmountInMonthlyBalance actualiza las columnas bill_* en monthly_balance
 func updateBillAmountInMonthlyBalance(db *sql.DB, userID, yearMonth string, amountDifference float64, paymentMethod string) error {
 	var column string
 	if paymentMethod == "cash" {
-		column = "bill_cash_amount"
+		column = "bills_amount"
 	} else {
-		column = "bill_bank_amount"
+		column = "bills_amount"
 	}
-	query := fmt.Sprintf("UPDATE monthly_cash_bank_balance SET %s = %s + ? WHERE user_id = ? AND year_month = ?", column, column)
+	query := fmt.Sprintf("UPDATE monthly_balance SET %s = %s + ? WHERE user_id = ? AND year_month = ?", column, column)
 	_, err := db.Exec(query, amountDifference, userID, yearMonth)
 	return err
 }
@@ -149,9 +149,9 @@ func updateBillAmountInMonthlyBalance(db *sql.DB, userID, yearMonth string, amou
 func updateMainBalanceColumns(db *sql.DB, userID, yearMonth string, amountDifference float64, paymentMethod string) error {
 	var query string
 	if paymentMethod == "cash" {
-		query = "UPDATE monthly_cash_bank_balance SET cash_amount = cash_amount - ?, balance_cash_amount = balance_cash_amount - ?, total_balance = total_balance - ? WHERE user_id = ? AND year_month = ?"
+		query = "UPDATE monthly_balance SET cash_amount = cash_amount - ?, balance_cash_amount = balance_cash_amount - ?, total_balance = total_balance - ? WHERE user_id = ? AND year_month = ?"
 	} else {
-		query = "UPDATE monthly_cash_bank_balance SET bank_amount = bank_amount - ?, balance_bank_amount = balance_bank_amount - ?, total_balance = total_balance - ? WHERE user_id = ? AND year_month = ?"
+		query = "UPDATE monthly_balance SET bank_amount = bank_amount - ?, balance_bank_amount = balance_bank_amount - ?, total_balance = total_balance - ? WHERE user_id = ? AND year_month = ?"
 	}
 	_, err := db.Exec(query, amountDifference, amountDifference, amountDifference, userID, yearMonth)
 	return err
@@ -159,7 +159,7 @@ func updateMainBalanceColumns(db *sql.DB, userID, yearMonth string, amountDiffer
 
 // updatePreviousBalancesForAmount actualiza las columnas previous_* para cambios de importe
 func updatePreviousBalancesForAmount(db *sql.DB, userID string, startMonth string, amountDifference float64, paymentMethod string) error {
-	rows, err := db.Query("SELECT year_month FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", userID, startMonth)
+	rows, err := db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", userID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching subsequent months: %v", err)
 	}
@@ -176,9 +176,9 @@ func updatePreviousBalancesForAmount(db *sql.DB, userID string, startMonth strin
 	for _, month := range subsequentMonths {
 		var query string
 		if paymentMethod == "cash" {
-			query = "UPDATE monthly_cash_bank_balance SET previous_cash_amount = previous_cash_amount - ?, total_previous_balance = total_previous_balance - ? WHERE user_id = ? AND year_month = ?"
+			query = "UPDATE monthly_balance SET previous_cash_amount = previous_cash_amount - ?, total_previous_balance = total_previous_balance - ? WHERE user_id = ? AND year_month = ?"
 		} else {
-			query = "UPDATE monthly_cash_bank_balance SET previous_bank_amount = previous_bank_amount - ?, total_previous_balance = total_previous_balance - ? WHERE user_id = ? AND year_month = ?"
+			query = "UPDATE monthly_balance SET previous_bank_amount = previous_bank_amount - ?, total_previous_balance = total_previous_balance - ? WHERE user_id = ? AND year_month = ?"
 		}
 		db.Exec(query, amountDifference, amountDifference, userID, month)
 	}

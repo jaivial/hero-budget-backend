@@ -156,8 +156,8 @@ func processRemovedMonths(db *sql.DB, updateData BillUpdateData, removedMonths [
 // Aplica efectos de la factura en los nuevos meses del periodo
 func processAddedMonths(db *sql.DB, updateData BillUpdateData, addedMonths []string) error {
 	for _, month := range addedMonths {
-		// Asegurar que existe fila para el mes en monthly_cash_bank_balance
-		db.Exec("INSERT OR IGNORE INTO monthly_cash_bank_balance (user_id, year_month) VALUES (?, ?)", updateData.UserID, month)
+		// Asegurar que existe fila para el mes en monthly_balance
+		db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", updateData.UserID, month)
 		
 		// Añadir al bill_amount del mes
 		updateBalanceColumns(db, updateData.UserID, month, updateData.NewAmount, updateData.NewPaymentMethod, "bill", 1)

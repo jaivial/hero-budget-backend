@@ -135,22 +135,22 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 }
 
 // removeBillAmountFromMonth resta el importe del bill de las columnas bill_*
-// y suma el importe a las columnas expense_* en monthly_cash_bank_balance
+// y suma el importe a las columnas expense_* en monthly_balance
 // CORREGIDO: Implementa transferencia precisa de bill_amount a expense_amount
 func removeBillAmountFromMonth(tx *sql.Tx, userID, yearMonth string, amount float64, paymentMethod string) error {
 	// Determinar columnas según método de pago
 	var billColumn, expenseColumn string
 	if paymentMethod == "cash" {
-		billColumn = "bill_cash_amount"
-		expenseColumn = "expense_cash_amount"
+		billColumn = "bills_amount"
+		expenseColumn = "expense_amount"
 	} else {
-		billColumn = "bill_bank_amount"
-		expenseColumn = "expense_bank_amount"
+		billColumn = "bills_amount"
+		expenseColumn = "expense_amount"
 	}
 
 	// Transferir de bill_amount a expense_amount
 	query := fmt.Sprintf(`
-		UPDATE monthly_cash_bank_balance 
+		UPDATE monthly_balance 
 		SET %s = %s - ?, 
 		    %s = %s + ?
 		WHERE user_id = ? AND year_month = ?
