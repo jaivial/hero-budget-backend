@@ -129,8 +129,8 @@ start_service() {
     /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
-    # Verificar compilación con manejo mejorado de errores
-    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+    # Verificar compilación con manejo mejorado de errores y flag -buildvcs=false
+    if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
         echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
         echo -e "${YELLOW}    📋 Error de compilación:${NC}"
         # Mostrar las últimas líneas del log para debugging
@@ -140,8 +140,8 @@ start_service() {
     fi
     rm -f "/tmp/test_${service_name}"
     
-    # Ejecutar en background
-    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run . > "/tmp/${service_name}.log" 2>&1 &
+    # Ejecutar en background con flag -buildvcs=false
+    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run -buildvcs=false . > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"
