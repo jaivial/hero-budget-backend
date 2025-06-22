@@ -1,3 +1,199 @@
 Using database at: ../google_auth/users.db
-2025/06/22 02:12:36 Database connection established successfully
+2025/06/22 03:14:25 Database connection established successfully
 Bills Management service started on :8091
+2025/06/22 03:14:39 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:14:39 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:15:38 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:15:38 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:15:38 🔄 Revirtiendo efectos del bill anterior (ID: 162) en monthly_cash_bank_balance
+2025/06/22 03:15:38 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 162 with dates before 2025-01
+2025/06/22 03:15:38 Updated bill payments for bill 162 - new period: 3 months starting 2025-01
+2025/06/22 03:15:38 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:15:38 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:16:55 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:16:55 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:16:55 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:16:55 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:16:55 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:16:55 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:16:55 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:16:55 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:16:55 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:16:55 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:17:31 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:17:31 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:17:31 🔄 Revirtiendo efectos del bill anterior (ID: 168) en monthly_cash_bank_balance
+2025/06/22 03:17:31 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 168 with dates before 2025-01
+2025/06/22 03:17:31 Updated bill payments for bill 168 - new period: 3 months starting 2025-01
+2025/06/22 03:17:31 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:17:31 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:35 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:35 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:35 🔄 Revirtiendo efectos del bill anterior (ID: 169) en monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 169 with dates before 2025-01
+2025/06/22 03:20:35 Updated bill payments for bill 169 - new period: 3 months starting 2025-01
+2025/06/22 03:20:35 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:35 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:35 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:35 🔄 Revirtiendo efectos del bill anterior (ID: 170) en monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 170 with dates before 2025-01
+2025/06/22 03:20:35 Updated bill payments for bill 170 - new period: 6 months starting 2025-01
+2025/06/22 03:20:35 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:35 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:35 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:35 🔄 Revirtiendo efectos del bill anterior (ID: 171) en monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 171 with dates before 2025-02
+2025/06/22 03:20:35 Updated bill payments for bill 171 - new period: 3 months starting 2025-02
+2025/06/22 03:20:35 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:35 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:35 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:35 🔄 Revirtiendo efectos del bill anterior (ID: 172) en monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 172 with dates before 2025-01
+2025/06/22 03:20:35 Updated bill payments for bill 172 - new period: 3 months starting 2025-01
+2025/06/22 03:20:35 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:35 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:35 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:35 🔄 Revirtiendo efectos del bill anterior (ID: 173) en monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 173 with dates before 2025-01
+2025/06/22 03:20:35 Updated bill payments for bill 173 - new period: 3 months starting 2025-01
+2025/06/22 03:20:35 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:35 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 174) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 174 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 174 - new period: 5 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 175) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 175 with dates before 2025-02
+2025/06/22 03:20:36 Updated bill payments for bill 175 - new period: 3 months starting 2025-02
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 176) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 176 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 176 - new period: 3 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 177) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 177 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 177 - new period: 3 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 178) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 178 with dates before 2025-03
+2025/06/22 03:20:36 Updated bill payments for bill 178 - new period: 4 months starting 2025-03
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 179) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 179 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 179 - new period: 6 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 180) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 180 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 180 - new period: 5 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 181) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 181 with dates before 2025-02
+2025/06/22 03:20:36 Updated bill payments for bill 181 - new period: 3 months starting 2025-02
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 182) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 182 with dates before 2025-02
+2025/06/22 03:20:36 Updated bill payments for bill 182 - new period: 3 months starting 2025-02
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 183) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 183 with dates before 2025-03
+2025/06/22 03:20:36 Updated bill payments for bill 183 - new period: 2 months starting 2025-03
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 184) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 184 with dates before 2025-02
+2025/06/22 03:20:36 Updated bill payments for bill 184 - new period: 4 months starting 2025-02
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:36 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:36 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:36 🔄 Revirtiendo efectos del bill anterior (ID: 185) en monthly_cash_bank_balance
+2025/06/22 03:20:36 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 185 with dates before 2025-01
+2025/06/22 03:20:36 Updated bill payments for bill 185 - new period: 7 months starting 2025-01
+2025/06/22 03:20:36 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:37 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:37 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:37 🔄 Revirtiendo efectos del bill anterior (ID: 186) en monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 186 with dates before 2025-03
+2025/06/22 03:20:37 Updated bill payments for bill 186 - new period: 3 months starting 2025-03
+2025/06/22 03:20:37 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:37 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:37 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:37 🔄 Revirtiendo efectos del bill anterior (ID: 187) en monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 187 with dates before 2025-02
+2025/06/22 03:20:37 Updated bill payments for bill 187 - new period: 5 months starting 2025-02
+2025/06/22 03:20:37 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:37 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:37 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:37 🔄 Revirtiendo efectos del bill anterior (ID: 188) en monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 188 with dates before 2025-01
+2025/06/22 03:20:37 Updated bill payments for bill 188 - new period: 3 months starting 2025-01
+2025/06/22 03:20:37 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance
+2025/06/22 03:20:37 🔄 Añadiendo bill a monthly_cash_bank_balance: user=test_user, amount=100.00, start=2025-01, duration=3, method=bank
+2025/06/22 03:20:37 ✅ Bill añadido a monthly_cash_bank_balance correctamente
+2025/06/22 03:20:37 🔄 Revirtiendo efectos del bill anterior (ID: 189) en monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Reversión de efectos del bill anterior completada en monthly_cash_bank_balance
+Cleaned up expenses for bill 189 with dates before 2025-02
+2025/06/22 03:20:37 Updated bill payments for bill 189 - new period: 8 months starting 2025-02
+2025/06/22 03:20:37 🔄 Aplicando nuevo bill con información actualizada a monthly_cash_bank_balance
+2025/06/22 03:20:37 ✅ Aplicación del nuevo bill completada en monthly_cash_bank_balance

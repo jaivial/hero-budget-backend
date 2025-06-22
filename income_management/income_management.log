@@ -1,5 +1,5 @@
-2025/06/22 02:12:44 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
-2025/06/22 02:12:44 Continuing without Redis caching...
-2025/06/22 02:12:44 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 02:12:44 Database connection established successfully
-2025/06/22 02:12:44 Income Management service started on :8093
+2025/06/22 02:51:30 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 02:51:30 Continuing without Redis caching...
+2025/06/22 02:51:30 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 02:51:30 Database connection established successfully
+2025/06/22 02:51:30 Income Management service started on :8093

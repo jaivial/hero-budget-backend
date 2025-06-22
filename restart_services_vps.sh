@@ -115,10 +115,6 @@ start_service() {
         return 1
     fi
     
-    # Limpiar cache de Go para evitar problemas de duplicación
-    /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
-    /usr/local/go/bin/go clean -modcache >> "/tmp/${service_name}.log" 2>&1
-    
     # Inicializar go.mod si no existe
     if [ ! -f "go.mod" ]; then
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
@@ -129,11 +125,11 @@ start_service() {
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
     # Verificar compilación con manejo mejorado de errores
-    if ! /usr/local/go/bin/go build -a -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
         echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
         echo -e "${YELLOW}    📋 Error de compilación:${NC}"
         # Mostrar las últimas líneas del log para debugging
-        tail -10 "/tmp/${service_name}.log" | sed 's/^/    /'
+        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
         cd "$BASE_PATH"
         return 1
     fi

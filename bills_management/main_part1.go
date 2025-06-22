@@ -95,9 +95,11 @@ func main() {
 	// Configurar rutas de la API
 	http.HandleFunc("/bills", corsMiddleware(handleFetchBills))
 	http.HandleFunc("/bills/add", corsMiddleware(handleAddBill))
+	http.HandleFunc("/bills/add-cash-bank", corsMiddleware(handleAddBillCashBank))
 	http.HandleFunc("/bills/pay", corsMiddleware(handlePayBill))
 	http.HandleFunc("/bills/payment-status", corsMiddleware(handleGenericEndpoint))
 	http.HandleFunc("/bills/update", corsMiddleware(handleUpdateBill))
+	http.HandleFunc("/bills/update-cash-bank", corsMiddleware(handleUpdateBillCashBank))
 	http.HandleFunc("/bills/delete", corsMiddleware(handleDeleteBill))
 	http.HandleFunc("/bills/upcoming", corsMiddleware(handleGenericEndpoint))
 	http.HandleFunc("/bills/debug-add", corsMiddleware(handleDebugAddBill))
