@@ -153,8 +153,6 @@ start_service() {
 REDIS_SERVICES=(
     "apple-auth"
     "google_auth"
-    "signup"
-    "signin"
     "expense_management"
     "income_management"
     "reset_password"
@@ -165,6 +163,9 @@ REDIS_SERVICES=(
     "budget_overview_fetch"
     "budget_management"
     "dashboard_data"
+    "user_locale"
+    "money_flow_sync"
+    "bills_management"
 )
 
 # Función para verificar conexión Redis en un servicio
@@ -174,11 +175,11 @@ check_redis_connection() {
     
     if [[ " ${REDIS_SERVICES[@]} " =~ " ${service_name} " ]]; then
         if [ -f "$log_file" ]; then
-            # Buscar múltiples patrones de conexión exitosa Redis
-            if grep -q -E "(Successfully connected to Redis|✅ Redis connected successfully|Redis connection established successfully)" "$log_file" 2>/dev/null; then
+            # Buscar múltiples patrones de conexión exitosa Redis (incluyendo los nuevos servicios)
+            if grep -q -E "(Successfully connected to Redis|✅ Redis connected successfully|Redis connection established successfully|PONG)" "$log_file" 2>/dev/null; then
                 echo -e "${GREEN}    🟢 Redis conectado${NC}"
                 return 0
-            elif grep -q "Failed to connect to Redis" "$log_file" 2>/dev/null; then
+            elif grep -q -E "(Failed to connect to Redis|⚠️ Redis connection failed|Redis connection failed)" "$log_file" 2>/dev/null; then
                 echo -e "${RED}    🔴 Redis desconectado${NC}"
                 return 1
             else
@@ -517,14 +518,9 @@ update_all_dependencies() {
         "fetch_dashboard"
         "google_auth"
         "income_management"
-        "language_cookie"
         "money_flow_sync"
         "profile_management"
         "reset_password"
-        "savings_management"
-        "signin"
-        "signup"
-        "transaction_delete_service"
         "user_locale"
     )
     

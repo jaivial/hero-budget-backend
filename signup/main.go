@@ -25,15 +25,11 @@ import (
 	"github.com/chai2010/webp"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nfnt/resize"
-	"github.com/redis/go-redis/v9"
 	"gopkg.in/gomail.v2"
 )
 
 var (
 	db *sql.DB
-	// Redis client and context for verification code caching
-	rdb *redis.Client
-	ctx = context.Background()
 	// Email configuration - will be loaded from config.json
 	smtpHost     string
 	smtpPort     int
@@ -362,9 +358,6 @@ func migrateTableStructure(db *sql.DB) error {
 }
 
 func init() {
-	// Initialize Redis connection for verification code caching
-	initRedis()
-	
 	// Load configuration
 	loadConfig()
 
@@ -920,9 +913,8 @@ func handleSignup(w http.ResponseWriter, r *http.Request) {
 	userID, _ := result.LastInsertId()
 	log.Printf("User created with ID: %d", userID)
 
-	// Cache verification code for 10 minutes
-	cacheKey := fmt.Sprintf("verification_code:%s", verificationCode)
-	setVerificationCode(cacheKey, fmt.Sprintf("%d", userID), 10*time.Minute)
+	// Note: Verification code Redis caching removed to improve signup speed
+	// Verification codes are stored in database and checked directly
 
 	// Send verification email
 	if smtpHost != "smtp.example.com" { // Only send if SMTP is configured
@@ -1017,34 +1009,7 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Attempting to verify email - Code: %s, UserID: %s, Email: %s",
 		code, userID, emailParam)
 
-	// Check cache for verification code first
-	cacheKey := fmt.Sprintf("verification_code:%s", code)
-	if cachedUserID, found := getVerificationCode(cacheKey); found {
-		log.Printf("Verification code cache hit for code: %s", code)
-		// Verify that the user ID matches if provided
-		if userID != "" && userID != cachedUserID {
-			http.Error(w, "Invalid verification code", http.StatusBadRequest)
-			return
-		}
-		
-		// Mark user as verified and invalidate cache
-		if err := markUserAsVerified(cachedUserID); err != nil {
-			log.Printf("Error marking user as verified: %v", err)
-			http.Error(w, "Error verifying email", http.StatusInternalServerError)
-			return
-		}
-		
-		// Invalidate verification code cache
-		invalidateVerificationCode(cacheKey)
-		
-		// Send success response
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]interface{}{
-			"success": true,
-			"message": "Email verified successfully (cached)",
-		})
-		return
-	}
+	// Note: Direct database verification for better performance
 
 	// First try to find the user with the verification code
 	var dbUserID int
@@ -1249,9 +1214,7 @@ func handleResendVerification(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Cache new verification code for 10 minutes
-		cacheKey := fmt.Sprintf("verification_code:%s", verificationCode)
-		setVerificationCode(cacheKey, fmt.Sprintf("%d", userID), 10*time.Minute)
+		// Note: Direct database storage for verification codes
 	}
 
 	// Send the verification email
@@ -1349,79 +1312,5 @@ func handlePing(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// initRedis initializes Redis client connection for verification code caching
-func initRedis() {
-	// Redis configuration for verification code caching
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
-		Password: "Jva-Mvc-5171",      // Redis AUTH password
-		DB:       4,                   // Use DB 4 for verification codes
-	})
-
-	// Test Redis connection
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("Failed to connect to Redis: %v", err)
-		log.Println("Continuing without Redis caching...")
-		rdb = nil
-	} else {
-		log.Println("Successfully connected to Redis for verification code management")
-	}
-}
-
-// getVerificationCode retrieves verification code data from Redis cache
-func getVerificationCode(key string) (string, bool) {
-	if rdb == nil {
-		return "", false
-	}
-
-	// Get cached verification code data
-	val, err := rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return "", false // Cache miss
-	} else if err != nil {
-		log.Printf("Redis error getting verification code %s: %v", key, err)
-		return "", false
-	}
-
-	return val, true
-}
-
-// setVerificationCode stores verification code data in Redis cache with TTL
-func setVerificationCode(key string, userID string, ttl time.Duration) {
-	if rdb == nil {
-		return // Redis not available
-	}
-
-	// Store in Redis with TTL (10 minutes for verification codes)
-	err := rdb.Set(ctx, key, userID, ttl).Err()
-	if err != nil {
-		log.Printf("Error storing verification code %s: %v", key, err)
-	} else {
-		log.Printf("Verification code cached successfully: %s (TTL: %v)", key, ttl)
-	}
-}
-
-// invalidateVerificationCode removes verification code from cache when used
-func invalidateVerificationCode(key string) {
-	if rdb == nil {
-		return // Redis not available
-	}
-
-	err := rdb.Del(ctx, key).Err()
-	if err != nil {
-		log.Printf("Error invalidating verification code cache %s: %v", key, err)
-	} else {
-		log.Printf("Verification code cache invalidated: %s", key)
-	}
-}
-
-// markUserAsVerified marks a user as verified in the database
-func markUserAsVerified(userID string) error {
-	_, err := db.Exec("UPDATE users SET verified_email = ?, verification_code = ? WHERE id = ?", true, "", userID)
-	if err != nil {
-		return err
-	}
-	log.Printf("User %s marked as verified", userID)
-	return nil
-}
+// Note: Redis verification code caching removed to improve signup performance
+// All verification codes are now handled directly through the database for better speed

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -8,12 +9,17 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 )
 
 var (
 	db *sql.DB
+	// Redis client for caching user locale data
+	rdb *redis.Client
+	ctx = context.Background()
 )
 
 type UserLocaleResponse struct {
@@ -47,6 +53,46 @@ func init() {
 	}
 
 	log.Println("User Locale service - Database connection established successfully")
+
+	// Initialize Redis connection for caching user locale data
+	initRedis()
+}
+
+// initRedis initializes Redis connection for caching user locale queries
+// Provides fast access to frequently requested locale data
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address (localhost on VPS)
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		redisPassword = "Jva-Mvc-5171" // Default Redis AUTH password
+	}
+	redisDB := 0 // Default Redis database index
+
+	// Create Redis client with connection pooling and automatic failover
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		DialTimeout:  5 * time.Second, // Connection timeout for Redis dial
+		ReadTimeout:  3 * time.Second, // Read timeout for Redis operations
+		WriteTimeout: 3 * time.Second, // Write timeout for Redis operations
+		PoolSize:     10,              // Connection pool size for concurrent operations
+		MinIdleConns: 2,               // Minimum idle connections in pool
+	})
+
+	// Test Redis connection with ping command
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
+		return
+	}
+
+	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 func main() {
@@ -93,6 +139,23 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Getting user locale for user ID: %s", userID)
 
+	// Try to get locale from Redis cache first for improved performance
+	if rdb != nil {
+		cacheKey := fmt.Sprintf("user_locale:%s", userID)
+		cachedLocale, err := rdb.Get(ctx, cacheKey).Result()
+		if err == nil && cachedLocale != "" {
+			log.Printf("Cache hit: retrieved locale for user %s from Redis: %s", userID, cachedLocale)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(UserLocaleResponse{
+				Success: true,
+				Message: "User locale retrieved successfully from cache",
+				Locale:  cachedLocale,
+			})
+			return
+		}
+		log.Printf("Cache miss: locale not found in Redis for user %s", userID)
+	}
+
 	// Get only the locale from the database
 	var locale sql.NullString
 	err := db.QueryRow(`
@@ -121,6 +184,17 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 	if locale.Valid && locale.String != "" {
 		userLocale = locale.String
 		log.Printf("Successfully retrieved locale for user %s: %s", userID, userLocale)
+
+		// Cache the locale in Redis for future requests (24-hour expiration)
+		if rdb != nil {
+			cacheKey := fmt.Sprintf("user_locale:%s", userID)
+			err = rdb.Set(ctx, cacheKey, userLocale, 24*time.Hour).Err()
+			if err != nil {
+				log.Printf("Failed to cache locale for user %s: %v", userID, err)
+			} else {
+				log.Printf("✅ Cached locale for user %s in Redis", userID)
+			}
+		}
 	} else {
 		log.Printf("No locale set for user %s", userID)
 		w.Header().Set("Content-Type", "application/json")
@@ -194,6 +268,18 @@ func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Successfully updated locale for user %s to %s", req.UserID, req.Locale)
+
+	// Invalidate cache for this user and update with new locale
+	if rdb != nil {
+		cacheKey := fmt.Sprintf("user_locale:%s", req.UserID)
+		// Update cache with new locale (24-hour expiration)
+		err = rdb.Set(ctx, cacheKey, req.Locale, 24*time.Hour).Err()
+		if err != nil {
+			log.Printf("Failed to update locale cache for user %s: %v", req.UserID, err)
+		} else {
+			log.Printf("✅ Updated locale cache for user %s with new value: %s", req.UserID, req.Locale)
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(UserLocaleResponse{

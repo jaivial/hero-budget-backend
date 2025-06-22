@@ -7,6 +7,20 @@ import (
 	"net/http"
 )
 
+// invalidateBillsCache removes cached bills data for a specific user
+// Called whenever bills are added, updated, or deleted to ensure cache consistency
+func invalidateBillsCache(userID string) {
+	if rdb != nil {
+		cacheKey := fmt.Sprintf("bills_list:%s", userID)
+		err := rdb.Del(ctx, cacheKey).Err()
+		if err != nil {
+			log.Printf("Failed to invalidate bills cache for user %s: %v", userID, err)
+		} else {
+			log.Printf("✅ Invalidated bills cache for user %s", userID)
+		}
+	}
+}
+
 // handleFetchBills maneja las solicitudes GET para obtener facturas
 // Soporta filtrado por periodo y fecha para consultas específicas
 func handleFetchBills(w http.ResponseWriter, r *http.Request) {
@@ -90,6 +104,9 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	// Crear registros de pago para la factura
 	createBillPaymentRecords(db, int(billID), req.UserID, req.StartDate, req.DurationMonths, req.PaymentMethod)
 	
+	// Invalidate bills cache for this user since a new bill was added
+	invalidateBillsCache(req.UserID)
+	
 	sendSuccessResponse(w, "Bill added successfully", map[string]interface{}{
 		"id": billID, "user_id": req.UserID, "name": req.Name, "amount": req.Amount,
 	})
@@ -163,6 +180,9 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
+	// Invalidate bills cache for this user since a bill was updated
+	invalidateBillsCache(updateRequest.UserID)
+	
 	sendSuccessResponse(w, "Bill updated successfully", map[string]interface{}{
 		"bill_id": updateRequest.BillID, "status": "updated",
 	})
@@ -204,6 +224,9 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Invalidate bills cache for this user since bill payment status changed
+	invalidateBillsCache(req.UserID)
 
 	sendSuccessResponse(w, "Bill payment processed successfully", paymentResponse)
 }

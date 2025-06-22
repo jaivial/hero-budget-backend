@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,14 +10,10 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/redis/go-redis/v9"
 )
 
 var (
 	db *sql.DB
-	// Redis client and context for session management
-	rdb *redis.Client
-	ctx = context.Background()
 )
 
 type User struct {
@@ -51,9 +45,6 @@ type SignInResponse struct {
 }
 
 func init() {
-	// Initialize Redis connection for session management
-	initRedis()
-	
 	var err error
 
 	// Get the current working directory
@@ -164,18 +155,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check cache for user session first
-	cacheKey := fmt.Sprintf("signin_session:%s", req.Email)
-	if cachedUser, found := getSigninSession(cacheKey); found {
-		log.Printf("Signin session cache hit for user: %s", req.Email)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(SignInResponse{
-			Success: true,
-			Message: "User signed in successfully (cached)",
-			User:    cachedUser,
-		})
-		return
-	}
+	// Note: Redis session caching removed to improve API speed
 
 	// Check if user exists and password is correct - ONLY for email users (type='email')
 	var user User
@@ -289,8 +269,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Cache signin session for 24 hours
-	setSigninSession(cacheKey, user, 24*time.Hour)
+	// Note: Redis session caching removed to improve API speed
 
 	// Return user data
 	w.Header().Set("Content-Type", "application/json")
@@ -302,70 +281,5 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	log.Printf("User %s logged in successfully", user.Email)
 }
 
-// initRedis initializes Redis client connection for session management
-func initRedis() {
-	// Redis configuration for signin session caching
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
-		Password: "Jva-Mvc-5171",      // Redis AUTH password
-		DB:       3,                   // Use DB 3 for signin sessions
-	})
-
-	// Test Redis connection
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("Failed to connect to Redis: %v", err)
-		log.Println("Continuing without Redis caching...")
-		rdb = nil
-	} else {
-		log.Println("Successfully connected to Redis for signin session management")
-	}
-}
-
-// getSigninSession retrieves signin session data from Redis cache
-func getSigninSession(key string) (User, bool) {
-	if rdb == nil {
-		return User{}, false
-	}
-
-	// Get cached signin session data
-	val, err := rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return User{}, false // Cache miss
-	} else if err != nil {
-		log.Printf("Redis error getting signin session %s: %v", key, err)
-		return User{}, false
-	}
-
-	// Deserialize cached user data
-	var user User
-	err = json.Unmarshal([]byte(val), &user)
-	if err != nil {
-		log.Printf("Error deserializing signin session %s: %v", key, err)
-		return User{}, false
-	}
-
-	return user, true
-}
-
-// setSigninSession stores signin session data in Redis cache with TTL
-func setSigninSession(key string, user User, ttl time.Duration) {
-	if rdb == nil {
-		return // Redis not available
-	}
-
-	// Serialize user data for caching
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		log.Printf("Error serializing signin session %s: %v", key, err)
-		return
-	}
-
-	// Store in Redis with TTL (24 hours for signin sessions)
-	err = rdb.Set(ctx, key, userBytes, ttl).Err()
-	if err != nil {
-		log.Printf("Error storing signin session %s: %v", key, err)
-	} else {
-		log.Printf("Signin session cached successfully: %s (TTL: %v)", key, ttl)
-	}
-}
+// Note: Redis session management removed to improve API performance
+// Signin operations are typically one-time actions that don't benefit from caching

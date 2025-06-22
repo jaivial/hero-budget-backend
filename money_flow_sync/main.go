@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/redis/go-redis/v9"
 )
 
 // Definición de estructuras de datos
@@ -47,6 +49,10 @@ type Bill struct {
 
 var (
 	db *sql.DB
+	// Redis client for caching complex money flow calculations
+	rdb *redis.Client
+	// Context for Redis operations with timeout handling
+	ctx = context.Background()
 )
 
 func init() {
@@ -74,6 +80,46 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Initialize Redis connection for caching complex calculations
+	initRedis()
+}
+
+// initRedis initializes Redis connection for caching money flow calculations
+// Provides performance optimization for complex financial computations
+func initRedis() {
+	// Redis connection configuration with environment variable support
+	redisAddr := os.Getenv("REDIS_ADDR")
+	if redisAddr == "" {
+		redisAddr = "localhost:6379" // Default Redis address (localhost on VPS)
+	}
+
+	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		redisPassword = "Jva-Mvc-5171" // Default Redis AUTH password
+	}
+	redisDB := 0 // Default Redis database index
+
+	// Create Redis client with connection pooling and automatic failover
+	rdb = redis.NewClient(&redis.Options{
+		Addr:         redisAddr,
+		Password:     redisPassword,
+		DB:           redisDB,
+		DialTimeout:  5 * time.Second, // Connection timeout for Redis dial
+		ReadTimeout:  3 * time.Second, // Read timeout for Redis operations
+		WriteTimeout: 3 * time.Second, // Write timeout for Redis operations
+		PoolSize:     10,              // Connection pool size for concurrent operations
+		MinIdleConns: 2,               // Minimum idle connections in pool
+	})
+
+	// Test Redis connection with ping command
+	pong, err := rdb.Ping(ctx).Result()
+	if err != nil {
+		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
+		return
+	}
+
+	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 func main() {
@@ -176,6 +222,20 @@ func handleGetMoneyFlowData(w http.ResponseWriter, r *http.Request) {
 func syncMoneyFlow(userID, period string) (*BudgetData, error) {
 	log.Printf("Syncing money flow for user %s with period %s", userID, period)
 
+	// Try to get cached money flow data first for improved performance
+	if rdb != nil {
+		cacheKey := fmt.Sprintf("money_flow:%s:%s", userID, period)
+		cachedData, err := rdb.Get(ctx, cacheKey).Result()
+		if err == nil && cachedData != "" {
+			var budget BudgetData
+			if json.Unmarshal([]byte(cachedData), &budget) == nil {
+				log.Printf("Cache hit: retrieved money flow data for user %s period %s from Redis", userID, period)
+				return &budget, nil
+			}
+		}
+		log.Printf("Cache miss: money flow data not found in Redis for user %s period %s", userID, period)
+	}
+
 	// Get date range for the period
 	startDate, endDate := getDateRangeForPeriod(period)
 	log.Printf("Date range: %s to %s", startDate, endDate)
@@ -243,6 +303,22 @@ func syncMoneyFlow(userID, period string) (*BudgetData, error) {
 	if err != nil {
 		log.Printf("Warning: error updating finance metrics: %v", err)
 		// Don't fail the entire operation if updating finance metrics fails
+	}
+
+	// Cache the calculated budget data in Redis for future requests (1-hour expiration)
+	if rdb != nil {
+		cacheKey := fmt.Sprintf("money_flow:%s:%s", userID, period)
+		budgetJSON, err := json.Marshal(budget)
+		if err != nil {
+			log.Printf("Failed to marshal budget data for caching: %v", err)
+		} else {
+			err = rdb.Set(ctx, cacheKey, budgetJSON, 1*time.Hour).Err()
+			if err != nil {
+				log.Printf("Failed to cache money flow data for user %s period %s: %v", userID, period, err)
+			} else {
+				log.Printf("✅ Cached money flow data for user %s period %s", userID, period)
+			}
+		}
 	}
 
 	return budget, nil
