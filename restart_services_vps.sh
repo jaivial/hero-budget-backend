@@ -174,7 +174,8 @@ check_redis_connection() {
     
     if [[ " ${REDIS_SERVICES[@]} " =~ " ${service_name} " ]]; then
         if [ -f "$log_file" ]; then
-            if grep -q "Successfully connected to Redis" "$log_file" 2>/dev/null; then
+            # Buscar múltiples patrones de conexión exitosa Redis
+            if grep -q -E "(Successfully connected to Redis|✅ Redis connected successfully|Redis connection established successfully)" "$log_file" 2>/dev/null; then
                 echo -e "${GREEN}    🟢 Redis conectado${NC}"
                 return 0
             elif grep -q "Failed to connect to Redis" "$log_file" 2>/dev/null; then
@@ -621,6 +622,11 @@ restart_all_services() {
                 echo -e "${GREEN}✅ $service_name: Redis conectado${NC}"
             else
                 echo -e "${RED}❌ $service_name: Redis desconectado${NC}"
+                # Mostrar últimas líneas del log para debugging
+                if [ -f "/tmp/${service_name}.log" ]; then
+                    echo -e "${YELLOW}    📜 Últimas líneas del log:${NC}"
+                    tail -3 "/tmp/${service_name}.log" | sed 's/^/      /'
+                fi
             fi
         fi
     done
