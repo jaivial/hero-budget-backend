@@ -231,16 +231,15 @@ update_code_from_repository() {
         rm -f "bills_management/main.go"
     fi
     
-    # No eliminar main.go en transaction_delete_service (debe existir)
-    # pero verificar si hay duplicaciones específicas
+    # Limpiar duplicaciones en transaction_delete_service
     if [ -f "transaction_delete_service/main.go" ] && [ -f "transaction_delete_service/transaction_operations.go" ]; then
         # Verificar si hay duplicaciones en main.go
-        if grep -q "func getTransactionDetails\|func deleteTransaction" "transaction_delete_service/main.go" 2>/dev/null; then
-            echo -e "${YELLOW}  Eliminando funciones duplicadas en transaction_delete_service/main.go${NC}"
+        if grep -q "func getTransactionDetails\|func deleteTransaction\|type TransactionDetails" "transaction_delete_service/main.go" 2>/dev/null; then
+            echo -e "${YELLOW}  Eliminando duplicaciones en transaction_delete_service/main.go${NC}"
             # Crear backup temporal
             cp "transaction_delete_service/main.go" "transaction_delete_service/main.go.backup"
-            # Eliminar funciones duplicadas manteniendo el resto del archivo
-            sed '/^func getTransactionDetails/,/^}/d; /^func deleteTransaction/,/^}/d' "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
+            # Eliminar funciones y structs duplicados manteniendo el resto del archivo
+            sed '/^type TransactionDetails/,/^}/d; /^func getTransactionDetails/,/^}/d; /^func deleteTransaction/,/^}/d' "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
             rm -f "transaction_delete_service/main.go.backup"
         fi
     fi
