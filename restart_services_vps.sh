@@ -115,6 +115,10 @@ start_service() {
         return 1
     fi
     
+    # Limpiar cache de Go para evitar problemas de duplicación
+    /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
+    /usr/local/go/bin/go clean -modcache >> "/tmp/${service_name}.log" 2>&1
+    
     # Inicializar go.mod si no existe
     if [ ! -f "go.mod" ]; then
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
@@ -125,11 +129,11 @@ start_service() {
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
     # Verificar compilación con manejo mejorado de errores
-    if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+    if ! /usr/local/go/bin/go build -a -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
         echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
         echo -e "${YELLOW}    📋 Error de compilación:${NC}"
         # Mostrar las últimas líneas del log para debugging
-        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+        tail -10 "/tmp/${service_name}.log" | sed 's/^/    /'
         cd "$BASE_PATH"
         return 1
     fi
@@ -230,6 +234,7 @@ update_all_dependencies() {
     # Lista de servicios que tienen Redis implementado
     local redis_services=(
         "apple-auth"
+        "bills_management"
         "budget_management" 
         "budget_overview_fetch"
         "cash_bank_management"
@@ -239,11 +244,15 @@ update_all_dependencies() {
         "fetch_dashboard"
         "google_auth"
         "income_management"
+        "language_cookie"
+        "money_flow_sync"
         "profile_management"
         "reset_password"
         "savings_management"
         "signin"
         "signup"
+        "transaction_delete_service"
+        "user_locale"
     )
     
     for service in "${redis_services[@]}"; do
