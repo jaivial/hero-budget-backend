@@ -2843,7 +2843,7 @@ func initRedis() {
 	// Redis configuration for income analytics caching
 	rdb = redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password set
+		Password: "Jva-Mvc-5171",   // Redis AUTH password
 		DB:       2,                // Use DB 2 for income analytics
 	})
 
