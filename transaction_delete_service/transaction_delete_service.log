@@ -1,3 +1,27 @@
 2025/06/22 03:25:56 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
 2025/06/22 03:25:56 Transaction Delete Service - Database connection established successfully
 2025/06/22 03:25:56 Transaction Delete Service starting on port 8095
+2025/06/22 03:31:38 Deleting transaction ID 149 of type income for user 13
+2025/06/22 03:31:38 Updating balances for user 13 after deleting income transaction (amount: 234.00, method: bank, bill_id: <nil>)
+2025/06/22 03:31:38 Updated daily_cash_bank_balance balance for period 2025-06-22 (amount change: 234.00 bank, type: income)
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)
+2025/06/22 03:31:38 Period 2025-W25 not found in weekly_cash_bank_balance for user 13
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)
+2025/06/22 03:31:38 Updated monthly_cash_bank_balance balance for period 2025-06 (amount change: 234.00 bank, type: income)
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-07: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-08: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-09: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-10: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-11: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2025-12: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2026-01: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2026-02: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2026-03: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated cascade for income in period 2026-04: amount 234.00 (bank)
+2025/06/22 03:31:38 Updated quarterly_cash_bank_balance balance for period 2025-Q2 (amount change: 234.00 bank, type: income)
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)
+2025/06/22 03:31:38 Updated semiannual_cash_bank_balance balance for period 2025-H1 (amount change: 234.00 bank, type: income)
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)
+2025/06/22 03:31:38 Updated annual_cash_bank_balance balance for period 2025 (amount change: 234.00 bank, type: income)
+2025/06/22 03:31:38 Updating subsequent periods for deleted income (cascade effect)

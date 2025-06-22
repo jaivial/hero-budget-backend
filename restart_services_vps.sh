@@ -221,6 +221,31 @@ update_code_from_repository() {
     
     # Volver al directorio backend
     cd "$BASE_PATH"
+    
+    # Limpiar archivos conflictivos que causan duplicaciones
+    echo -e "${YELLOW}🧹 Limpiando archivos conflictivos...${NC}"
+    
+    # Eliminar main.go en bills_management si existe (debe usar main_part*.go)
+    if [ -f "bills_management/main.go" ]; then
+        echo -e "${YELLOW}  Eliminando bills_management/main.go conflictivo${NC}"
+        rm -f "bills_management/main.go"
+    fi
+    
+    # No eliminar main.go en transaction_delete_service (debe existir)
+    # pero verificar si hay duplicaciones específicas
+    if [ -f "transaction_delete_service/main.go" ] && [ -f "transaction_delete_service/transaction_operations.go" ]; then
+        # Verificar si hay duplicaciones en main.go
+        if grep -q "func getTransactionDetails\|func deleteTransaction" "transaction_delete_service/main.go" 2>/dev/null; then
+            echo -e "${YELLOW}  Eliminando funciones duplicadas en transaction_delete_service/main.go${NC}"
+            # Crear backup temporal
+            cp "transaction_delete_service/main.go" "transaction_delete_service/main.go.backup"
+            # Eliminar funciones duplicadas manteniendo el resto del archivo
+            sed '/^func getTransactionDetails/,/^}/d; /^func deleteTransaction/,/^}/d' "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
+            rm -f "transaction_delete_service/main.go.backup"
+        fi
+    fi
+    
+    echo -e "${GREEN}✅ Limpieza de archivos conflictivos completada${NC}"
 }
 
 # Función para actualizar dependencias de todos los servicios
