@@ -1,3 +1,5 @@
-2025/06/21 22:49:08 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/21 22:49:08 Database connection established successfully
-2025/06/21 22:49:08 Expense Management service started on :8094
+2025/06/22 02:12:42 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 02:12:42 Continuing without Redis caching...
+2025/06/22 02:12:42 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 02:12:42 Database connection established successfully
+2025/06/22 02:12:42 Expense Management service started on :8094

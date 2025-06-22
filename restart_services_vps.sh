@@ -124,9 +124,12 @@ start_service() {
     /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
-    # Verificar compilación
+    # Verificar compilación con manejo mejorado de errores
     if ! /usr/local/go/bin/go build -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
         echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
+        echo -e "${YELLOW}    📋 Error de compilación:${NC}"
+        # Mostrar las últimas líneas del log para debugging
+        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
         cd "$BASE_PATH"
         return 1
     fi
@@ -195,9 +198,85 @@ show_help() {
     echo -e "  $0 --status        # Ver estado de servicios"
 }
 
+# Función para actualizar código desde repositorio
+update_code_from_repository() {
+    echo -e "\n${CYAN}🔄 Actualizando código desde repositorio...${NC}"
+    
+    # Navegar al directorio del proyecto (un nivel arriba del backend)
+    cd "$(dirname "$BASE_PATH")"
+    
+    # Hacer stash de cambios locales si existen
+    if git status --porcelain | grep -q .; then
+        echo -e "${YELLOW}📦 Guardando cambios locales...${NC}"
+        git stash push -m "Auto-stash before restart $(date)" > /dev/null 2>&1
+    fi
+    
+    # Actualizar desde el repositorio
+    echo -e "${CYAN}⬇️  Descargando últimos cambios...${NC}"
+    if git pull origin main > /dev/null 2>&1; then
+        echo -e "${GREEN}✅ Código actualizado exitosamente${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No se pudo actualizar el código (continuando con versión actual)${NC}"
+    fi
+    
+    # Volver al directorio backend
+    cd "$BASE_PATH"
+}
+
+# Función para actualizar dependencias de todos los servicios
+update_all_dependencies() {
+    echo -e "\n${CYAN}🔧 Actualizando dependencias Redis en todos los servicios...${NC}"
+    
+    # Lista de servicios que tienen Redis implementado
+    local redis_services=(
+        "apple-auth"
+        "budget_management" 
+        "budget_overview_fetch"
+        "cash_bank_management"
+        "categories_management"
+        "dashboard_data"
+        "expense_management"
+        "fetch_dashboard"
+        "google_auth"
+        "income_management"
+        "profile_management"
+        "reset_password"
+        "savings_management"
+        "signin"
+        "signup"
+    )
+    
+    for service in "${redis_services[@]}"; do
+        if [ -d "$service" ]; then
+            echo -e "${BLUE}  🔧 Actualizando dependencias: $service${NC}"
+            cd "$service"
+            
+            # Verificar y actualizar go.mod si es necesario
+            if ! grep -q "github.com/redis/go-redis/v9" go.mod 2>/dev/null; then
+                echo -e "${YELLOW}    📦 Agregando dependencia Redis...${NC}"
+                /usr/local/go/bin/go get github.com/redis/go-redis/v9 > /dev/null 2>&1
+            fi
+            
+            # Actualizar dependencias
+            /usr/local/go/bin/go mod tidy > /dev/null 2>&1
+            /usr/local/go/bin/go mod download > /dev/null 2>&1
+            
+            cd "$BASE_PATH"
+        fi
+    done
+    
+    echo -e "${GREEN}✅ Dependencias actualizadas${NC}"
+}
+
 # Función principal de reinicio
 restart_all_services() {
     echo -e "\n${WHITE}=== REINICIANDO TODOS LOS SERVICIOS - VPS ===${NC}"
+    
+    # Actualizar código desde repositorio
+    update_code_from_repository
+    
+    # Actualizar dependencias Redis
+    update_all_dependencies
     
     # Verificar directorio base
     if [ ! -d "$BASE_PATH" ]; then

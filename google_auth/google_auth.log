@@ -1,7 +1,9 @@
-2025/06/21 22:49:02 Successfully loaded environment variables from ../.env
-2025/06/21 22:49:02 Column 'type' may already exist: duplicate column name: type
-2025/06/21 22:49:02 Registering routes:
-2025/06/21 22:49:02 - POST /auth/google
-2025/06/21 22:49:02 - POST /update/locale
-2025/06/21 22:49:02 - GET /health
-2025/06/21 22:49:02 Server started on :8081
+2025/06/22 02:12:35 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 02:12:35 Continuing without Redis caching...
+2025/06/22 02:12:35 Successfully loaded environment variables from ../.env
+2025/06/22 02:12:35 Column 'type' may already exist: duplicate column name: type
+2025/06/22 02:12:35 Registering routes:
+2025/06/22 02:12:35 - POST /auth/google
+2025/06/22 02:12:35 - POST /update/locale
+2025/06/22 02:12:35 - GET /health
+2025/06/22 02:12:35 Server started on :8081

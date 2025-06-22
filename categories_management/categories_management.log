@@ -1,19 +1,6 @@
-2025/06/21 22:49:04 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/21 22:49:04 Database connection established successfully
-2025/06/21 22:49:04 Categories Management service started on :8096
-2025/06/21 23:38:18 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:38:18 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:38:19 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:38:19 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:38:59 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:39:03 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:39:03 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:39:03 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:39:03 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:41:52 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:41:55 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:41:55 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:41:55 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/21 23:41:55 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/22 00:30:33 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/22 00:30:33 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/22 02:12:37 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 02:12:37 Database connection established successfully
+2025/06/22 02:12:38 Redis connection failed (continuing without cache): dial tcp [::1]:6379: connect: connection refused
+2025/06/22 02:12:38 Categories Management service started on :8096
+2025/06/22 02:13:15 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/22 02:13:15 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'

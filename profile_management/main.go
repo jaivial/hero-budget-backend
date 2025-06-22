@@ -125,7 +125,7 @@ func initRedis() {
 		DialTimeout:  5 * time.Second,   // Connection establishment timeout
 		ReadTimeout:  3 * time.Second,   // Read operation timeout
 		WriteTimeout: 3 * time.Second,   // Write operation timeout
-		IdleTimeout:  5 * time.Minute,   // Idle connection timeout
+		ConnMaxIdleTime: 5 * time.Minute, // Idle connection timeout
 	})
 
 	// Test Redis connection with ping operation

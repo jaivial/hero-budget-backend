@@ -1,4 +1,5 @@
-2025/06/21 22:49:06 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/21 22:49:06 Column 'type' may already exist: duplicate column name: type
-2025/06/21 22:49:06 Database connection established successfully
-2025/06/21 22:49:06 Apple Auth service started on :8100
+2025/06/22 02:12:40 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 02:12:40 Column 'type' may already exist: duplicate column name: type
+2025/06/22 02:12:40 Database connection established successfully
+2025/06/22 02:12:40 ⚠️ Redis connection failed: dial tcp [::1]:6379: connect: connection refused (continuing without cache)
+2025/06/22 02:12:40 Apple Auth service started on :8100
