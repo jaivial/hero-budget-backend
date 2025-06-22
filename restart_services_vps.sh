@@ -115,6 +115,11 @@ start_service() {
         return 1
     fi
     
+    # Limpiar archivos conflictivos específicos para este servicio
+    cd "$BASE_PATH"
+    clean_conflicting_files "$service_name"
+    cd "$service_path"
+    
     # Inicializar go.mod si no existe
     if [ ! -f "go.mod" ]; then
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
@@ -221,57 +226,65 @@ update_code_from_repository() {
     
     # Volver al directorio backend
     cd "$BASE_PATH"
+}
+
+# Función para limpiar archivos conflictivos específicos de un servicio
+clean_conflicting_files() {
+    local service_name=$1
     
-    # Limpiar archivos conflictivos que causan duplicaciones
-    echo -e "${YELLOW}🧹 Limpiando archivos conflictivos...${NC}"
-    
-    # Eliminar main.go en bills_management si existe (debe usar main_part*.go)
-    if [ -f "bills_management/main.go" ]; then
-        echo -e "${YELLOW}  Eliminando bills_management/main.go conflictivo${NC}"
-        rm -f "bills_management/main.go"
-    fi
-    
-    # Limpiar duplicaciones en transaction_delete_service
-    if [ -f "transaction_delete_service/main.go" ]; then
-        # Lista de funciones y tipos que pueden estar duplicados
-        duplicated_items=(
-            "type TransactionDetails"
-            "func getTransactionDetails"
-            "func deleteTransaction"
-            "func updatePreviousBalanceForPeriod"
-            "func parsePeriodIdentifier"
-            "func calculatePeriodIdentifier"
-        )
-        
-        # Verificar si hay duplicaciones en main.go
-        has_duplications=false
-        for item in "${duplicated_items[@]}"; do
-            if grep -q "^${item}" "transaction_delete_service/main.go" 2>/dev/null; then
-                has_duplications=true
-                break
+    case "$service_name" in
+        "bills_management")
+            # Eliminar main.go en bills_management si existe (debe usar main_part*.go)
+            if [ -f "bills_management/main.go" ]; then
+                echo -e "${YELLOW}  Limpiando bills_management/main.go conflictivo${NC}"
+                rm -f "bills_management/main.go"
             fi
-        done
-        
-        if [ "$has_duplications" = true ]; then
-            echo -e "${YELLOW}  Eliminando todas las duplicaciones en transaction_delete_service/main.go${NC}"
-            # Crear backup temporal
-            cp "transaction_delete_service/main.go" "transaction_delete_service/main.go.backup"
-            
-            # Eliminar todas las funciones y structs duplicados manteniendo el resto del archivo
-            sed_command=""
-            for item in "${duplicated_items[@]}"; do
-                if [ -n "$sed_command" ]; then
-                    sed_command="${sed_command}; "
+            ;;
+        "transaction_delete_service")
+            # Limpiar duplicaciones en transaction_delete_service
+            if [ -f "transaction_delete_service/main.go" ]; then
+                # Lista de funciones y tipos que pueden estar duplicados
+                duplicated_items=(
+                    "type TransactionDetails"
+                    "func getTransactionDetails"
+                    "func deleteTransaction"
+                    "func updatePreviousBalanceForPeriod"
+                    "func parsePeriodIdentifier"
+                    "func calculatePeriodIdentifier"
+                    "func recalculateAllBalances"
+                    "func updatePeriodBalance"
+                    "func updateSubsequentPeriods"
+                )
+                
+                # Verificar si hay duplicaciones en main.go
+                has_duplications=false
+                for item in "${duplicated_items[@]}"; do
+                    if grep -q "^${item}" "transaction_delete_service/main.go" 2>/dev/null; then
+                        has_duplications=true
+                        break
+                    fi
+                done
+                
+                if [ "$has_duplications" = true ]; then
+                    echo -e "${YELLOW}  Limpiando duplicaciones en transaction_delete_service/main.go${NC}"
+                    # Crear backup temporal
+                    cp "transaction_delete_service/main.go" "transaction_delete_service/main.go.backup"
+                    
+                    # Eliminar todas las funciones y structs duplicados manteniendo el resto del archivo
+                    sed_command=""
+                    for item in "${duplicated_items[@]}"; do
+                        if [ -n "$sed_command" ]; then
+                            sed_command="${sed_command}; "
+                        fi
+                        sed_command="${sed_command}/^${item}/,/^}/d"
+                    done
+                    
+                    sed "$sed_command" "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
+                    rm -f "transaction_delete_service/main.go.backup"
                 fi
-                sed_command="${sed_command}/^${item}/,/^}/d"
-            done
-            
-            sed "$sed_command" "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
-            rm -f "transaction_delete_service/main.go.backup"
-        fi
-    fi
-    
-    echo -e "${GREEN}✅ Limpieza de archivos conflictivos completada${NC}"
+            fi
+            ;;
+    esac
 }
 
 # Función para actualizar dependencias de todos los servicios
