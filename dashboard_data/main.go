@@ -11,7 +11,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -84,9 +83,7 @@ type Bill struct {
 var (
 	// Database connection for dashboard data persistence
 	db *sql.DB
-	// Redis client for caching dashboard metrics and aggregated data
-	rdb *redis.Client
-	// Context for Redis operations with timeout handling
+	// Context for database operations
 	ctx = context.Background()
 )
 
@@ -118,43 +115,6 @@ func init() {
 	createTablesIfNotExist()
 
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for dashboard data caching
-	initRedis()
-}
-
-// initRedis initializes Redis connection for dashboard metrics caching
-// Provides distributed caching for expensive dashboard calculations and aggregated data
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address for local development
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisDB := 0 // Default Redis database index
-
-	// Create Redis client with connection pooling and automatic failover
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		DialTimeout:  5 * time.Second,  // Connection timeout for Redis dial
-		ReadTimeout:  3 * time.Second,  // Read timeout for Redis operations
-		WriteTimeout: 3 * time.Second,  // Write timeout for Redis operations
-		PoolSize:     10,               // Connection pool size for concurrent operations
-		MinIdleConns: 2,                // Minimum idle connections in pool
-	})
-
-	// Test Redis connection with ping command
-	pong, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
-		return
-	}
-
-	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 func createTablesIfNotExist() {

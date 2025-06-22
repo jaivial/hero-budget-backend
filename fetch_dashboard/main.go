@@ -11,16 +11,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
 	// Database connection for user data persistence
 	db *sql.DB
-	// Redis client for caching dashboard data and user info queries
-	rdb *redis.Client
-	// Context for Redis operations with timeout handling
+	// Context for database operations
 	ctx = context.Background()
 )
 
@@ -79,124 +76,9 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for dashboard data caching
-	initRedis()
+	log.Println("Fetch Dashboard service initialized successfully")
 }
 
-// initRedis initializes Redis connection for dashboard data caching
-// Provides distributed caching for user info queries and dashboard data aggregation
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address for local development
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisDB := 5 // Use DB 5 for fetch_dashboard service to avoid conflicts
-
-	// Create Redis client with connection pooling and timeout settings
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		PoolSize:     10,                // Connection pool size for concurrent requests
-		DialTimeout:  5 * time.Second,   // Connection establishment timeout
-		ReadTimeout:  3 * time.Second,   // Read operation timeout
-		WriteTimeout: 3 * time.Second,   // Write operation timeout
-		ConnMaxIdleTime: 5 * time.Minute, // Idle connection timeout
-	})
-
-	// Test Redis connection with ping operation
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("Redis connection failed (continuing without cache): %v", err)
-		rdb = nil // Disable Redis if connection fails
-		return
-	}
-
-	log.Println("Redis connection established successfully for dashboard caching")
-}
-
-// getUserInfoFromCache retrieves cached user info data with JSON deserialization
-// Returns cached user data if available, reducing database load for frequent requests
-func getUserInfoFromCache(userID string) (*User, error) {
-	if rdb == nil {
-		return nil, fmt.Errorf("redis not available")
-	}
-
-	// Generate cache key with service namespace for data isolation
-	cacheKey := fmt.Sprintf("fetch_dashboard:user_info:%s", userID)
-	
-	// Retrieve JSON data from Redis cache
-	val, err := rdb.Get(ctx, cacheKey).Result()
-	if err == redis.Nil {
-		log.Printf("Cache miss for user info: %s", userID)
-		return nil, fmt.Errorf("cache miss")
-	} else if err != nil {
-		log.Printf("Redis error retrieving user info cache for %s: %v", userID, err)
-		return nil, err
-	}
-
-	// Deserialize JSON data to User struct
-	var user User
-	err = json.Unmarshal([]byte(val), &user)
-	if err != nil {
-		log.Printf("Error deserializing cached user info for %s: %v", userID, err)
-		return nil, err
-	}
-
-	log.Printf("Cache hit for user info: %s", userID)
-	return &user, nil
-}
-
-// cacheUserInfo stores user info data in Redis cache with TTL
-// Implements 5-minute TTL for dashboard data to balance freshness and performance
-func cacheUserInfo(userID string, user *User) {
-	if rdb == nil {
-		return
-	}
-
-	// Generate cache key with service namespace
-	cacheKey := fmt.Sprintf("fetch_dashboard:user_info:%s", userID)
-	
-	// Serialize user data to JSON for storage
-	userData, err := json.Marshal(user)
-	if err != nil {
-		log.Printf("Error serializing user info for cache: %v", err)
-		return
-	}
-
-	// Store in Redis with 5-minute TTL (300 seconds)
-	// Dashboard data changes infrequently but should stay reasonably fresh
-	err = rdb.Set(ctx, cacheKey, userData, 5*time.Minute).Err()
-	if err != nil {
-		log.Printf("Error caching user info for %s: %v", userID, err)
-		return
-	}
-
-	log.Printf("User info cached successfully for: %s", userID)
-}
-
-// invalidateUserCache removes cached user data when user info is updated
-// Ensures cache consistency after user profile modifications
-func invalidateUserCache(userID string) {
-	if rdb == nil {
-		return
-	}
-
-	// Generate cache key for deletion
-	cacheKey := fmt.Sprintf("fetch_dashboard:user_info:%s", userID)
-	
-	// Remove cached data to force fresh fetch on next request
-	err := rdb.Del(ctx, cacheKey).Err()
-	if err != nil {
-		log.Printf("Error invalidating user cache for %s: %v", userID, err)
-	} else {
-		log.Printf("User cache invalidated for: %s", userID)
-	}
-}
 
 func main() {
 	// Set up CORS middleware
@@ -261,16 +143,7 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 	// Log for debugging
 	log.Printf("Getting user info for user ID: %s", userID)
 
-	// Try to get user info from cache first to reduce database load
-	cachedUser, err := getUserInfoFromCache(userID)
-	if err == nil && cachedUser != nil {
-		log.Printf("Returning cached user info for user ID: %s", userID)
-		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(cachedUser)
-		return
-	}
-
-	// Cache miss or error - fetch from database with proper null handling
+	// Fetch user info from database with proper null handling
 	var user User
 	var createdAtStr, updatedAtStr sql.NullString
 	err = db.QueryRow(`
@@ -346,9 +219,6 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 	log.Printf("Successfully retrieved user %s: %s (%s) - DisplayImage set: %v",
 		userID, user.Name, user.Email, user.DisplayImage != "")
 
-	// Cache the user info for future requests to improve performance
-	go cacheUserInfo(userID, &user)
-
 	// Return user info as JSON
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(user)
@@ -400,9 +270,6 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Successfully updated user %s", updateRequest.ID)
 
-	// Invalidate cache after successful update to ensure data consistency
-	go invalidateUserCache(updateRequest.ID)
-
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ApiResponse{Success: true, Message: "User updated successfully"})
@@ -421,19 +288,7 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Test Redis connection if available
-	redisStatus := "disabled"
-	if rdb != nil {
-		_, err := rdb.Ping(ctx).Result()
-		if err != nil {
-			redisStatus = "error"
-			log.Printf("Health check - Redis connection error: %v", err)
-		} else {
-			redisStatus = "healthy"
-		}
-	}
-
-	// Return success response with Redis status
+	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(ApiResponse{
 		Success: true,
@@ -441,7 +296,6 @@ func handleHealth(w http.ResponseWriter, r *http.Request) {
 		Data: map[string]string{
 			"status":      "healthy",
 			"service":     "fetch_dashboard",
-			"redis":       redisStatus,
 			"timestamp":   fmt.Sprintf("%d", time.Now().Unix()),
 		},
 	})

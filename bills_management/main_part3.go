@@ -12,19 +12,6 @@ import (
 // fetchBills obtiene todas las facturas de un usuario específico
 // Retorna una lista completa de facturas ordenadas por ID
 func fetchBills(userID string) ([]Bill, error) {
-	// Try to get bills from Redis cache first for improved performance
-	if rdb != nil {
-		cacheKey := fmt.Sprintf("bills_list:%s", userID)
-		cachedData, err := rdb.Get(ctx, cacheKey).Result()
-		if err == nil && cachedData != "" {
-			var bills []Bill
-			if json.Unmarshal([]byte(cachedData), &bills) == nil {
-				log.Printf("Cache hit: retrieved bills list for user %s from Redis (%d bills)", userID, len(bills))
-				return bills, nil
-			}
-		}
-		log.Printf("Cache miss: bills list not found in Redis for user %s", userID)
-	}
 
 	// Consulta SQL con COALESCE para manejar valores nulos
 	query := `SELECT 
@@ -58,22 +45,6 @@ func fetchBills(userID string) ([]Bill, error) {
 			&bill.CreatedAt, &bill.UpdatedAt,
 		); err == nil {
 			bills = append(bills, bill)
-		}
-	}
-
-	// Cache the bills list in Redis for future requests (30-minute expiration)
-	if rdb != nil && len(bills) > 0 {
-		cacheKey := fmt.Sprintf("bills_list:%s", userID)
-		billsJSON, err := json.Marshal(bills)
-		if err != nil {
-			log.Printf("Failed to marshal bills data for caching: %v", err)
-		} else {
-			err = rdb.Set(ctx, cacheKey, billsJSON, 30*time.Minute).Err()
-			if err != nil {
-				log.Printf("Failed to cache bills list for user %s: %v", userID, err)
-			} else {
-				log.Printf("✅ Cached bills list for user %s (%d bills)", userID, len(bills))
-			}
 		}
 	}
 

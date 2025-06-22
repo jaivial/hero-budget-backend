@@ -97,6 +97,12 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Getting user locale for user ID: %s", userID)
 
+	// Try to get locale from Redis cache first for improved performance
+			return
+		}
+		log.Printf("Cache miss: locale not found in Redis for user %s", userID)
+	}
+
 	// Get only the locale from the database
 	var locale sql.NullString
 	err := db.QueryRow(`
@@ -126,6 +132,10 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 		userLocale = locale.String
 		log.Printf("Successfully retrieved locale for user %s: %s", userID, userLocale)
 
+		// Cache the locale in Redis for future requests (24-hour expiration)
+				log.Printf("✅ Cached locale for user %s in Redis", userID)
+			}
+		}
 	} else {
 		log.Printf("No locale set for user %s", userID)
 		w.Header().Set("Content-Type", "application/json")
@@ -199,6 +209,11 @@ func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Successfully updated locale for user %s to %s", req.UserID, req.Locale)
+
+	// Invalidate cache for this user and update with new locale
+			log.Printf("✅ Updated locale cache for user %s with new value: %s", req.UserID, req.Locale)
+		}
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(UserLocaleResponse{

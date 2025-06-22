@@ -11,16 +11,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
 	// Database connection for user data persistence
 	db *sql.DB
-	// Redis client for caching JWT tokens and session management
-	rdb *redis.Client
-	// Context for Redis operations with timeout handling
+	// Context for database operations
 	ctx = context.Background()
 )
 
@@ -56,47 +53,8 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for JWT token caching and session management
-	initRedis()
 }
 
-// initRedis initializes Redis connection for JWT token caching and session management
-// Provides distributed caching for authentication tokens and user sessions
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address (localhost on VPS)
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	if redisPassword == "" {
-		redisPassword = "Jva-Mvc-5171" // Default Redis AUTH password
-	}
-	redisDB := 0 // Default Redis database index
-
-	// Create Redis client with connection pooling and automatic failover
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		DialTimeout:  5 * time.Second,  // Connection timeout for Redis dial
-		ReadTimeout:  3 * time.Second,  // Read timeout for Redis operations
-		WriteTimeout: 3 * time.Second,  // Write timeout for Redis operations
-		PoolSize:     10,               // Connection pool size for concurrent operations
-		MinIdleConns: 2,                // Minimum idle connections in pool
-	})
-
-	// Test Redis connection with ping command
-	pong, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
-		return
-	}
-
-	log.Printf("✅ Redis connected successfully: %s", pong)
-}
 
 func main() {
 	// Set up CORS middleware
@@ -154,12 +112,6 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check if token is blacklisted in Redis cache
-	if isTokenBlacklisted(req.IdentityToken) {
-		log.Printf("Blacklisted token used: %s", req.IdentityToken[:20]+"...")
-		sendErrorResponse(w, "Token has been revoked", http.StatusUnauthorized)
-		return
-	}
 
 	// Parse and validate the Apple JWT token
 	claims, err := validateAppleToken(req.IdentityToken)
@@ -229,8 +181,6 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Cache new user session in Redis for immediate access
-		cacheUserSession(newUser, req.IdentityToken)
 
 		log.Printf("Created new Apple user: %s with type 'apple'", newUser.Email)
 		sendSuccessResponse(w, "User created successfully", newUser)
@@ -239,9 +189,6 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 
 	// User exists, update last login and return user data
 	updateUserLastLogin(existingUser.ID)
-
-	// Cache user session in Redis for quick access and session management
-	cacheUserSession(existingUser, req.IdentityToken)
 
 	log.Printf("Apple user logged in: %s", existingUser.Email)
 	sendSuccessResponse(w, "Login successful", existingUser)
@@ -306,67 +253,3 @@ func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 	})
 }
 
-// isTokenBlacklisted checks if a JWT token is blacklisted in Redis cache
-// Returns true if token is blacklisted, false otherwise
-func isTokenBlacklisted(token string) bool {
-	if rdb == nil {
-		return false // Redis not available, skip blacklist check
-	}
-
-	// Check if token exists in blacklist set
-	blacklistKey := fmt.Sprintf("blacklist:token:%s", token)
-	exists, err := rdb.Exists(ctx, blacklistKey).Result()
-	if err != nil {
-		log.Printf("Redis error checking blacklist: %v", err)
-		return false // On error, allow token (fail open)
-	}
-
-	return exists > 0
-}
-
-// cacheUserSession stores user session data in Redis for quick access
-// Caches user information and authentication state for performance optimization
-func cacheUserSession(user *User, token string) {
-	if rdb == nil {
-		return // Redis not available, skip caching
-	}
-
-	// Create session data structure for caching
-	sessionData := map[string]interface{}{
-		"user_id":    user.ID,
-		"email":      user.Email,
-		"login_time": time.Now().Unix(),
-		"auth_type":  "apple",
-	}
-
-	if user.Name.Valid {
-		sessionData["name"] = user.Name.String
-	}
-	if user.AppleID.Valid {
-		sessionData["apple_id"] = user.AppleID.String
-	}
-
-	// Serialize session data to JSON for Redis storage
-	sessionJSON, err := json.Marshal(sessionData)
-	if err != nil {
-		log.Printf("Failed to marshal session data: %v", err)
-		return
-	}
-
-	// Cache session with 24-hour expiration for security and performance
-	sessionKey := fmt.Sprintf("session:apple:%d", user.ID)
-	err = rdb.Set(ctx, sessionKey, sessionJSON, 24*time.Hour).Err()
-	if err != nil {
-		log.Printf("Failed to cache user session: %v", err)
-		return
-	}
-
-	// Cache token to user ID mapping for quick lookups
-	tokenKey := fmt.Sprintf("token:apple:%s", token[:32]) // Use first 32 chars as key
-	err = rdb.Set(ctx, tokenKey, user.ID, 24*time.Hour).Err()
-	if err != nil {
-		log.Printf("Failed to cache token mapping: %v", err)
-	}
-
-	log.Printf("✅ Cached session for user %d (Apple)", user.ID)
-}

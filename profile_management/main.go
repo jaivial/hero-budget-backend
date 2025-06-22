@@ -18,7 +18,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nfnt/resize"
 )
@@ -68,9 +67,7 @@ type ApiResponse struct {
 var (
 	// Database connection for profile data persistence
 	db *sql.DB
-	// Redis client for caching profile data and image metadata
-	rdb *redis.Client
-	// Context for Redis operations with timeout handling
+	// Context for database operations
 	ctx = context.Background()
 )
 
@@ -99,150 +96,6 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for profile data caching
-	initRedis()
-}
-
-// initRedis initializes Redis connection for profile data caching
-// Provides distributed caching for profile data and image metadata storage
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address for local development
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisDB := 6 // Use DB 6 for profile_management service to avoid conflicts
-
-	// Create Redis client with connection pooling and timeout settings
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		PoolSize:     10,                // Connection pool size for concurrent requests
-		DialTimeout:  5 * time.Second,   // Connection establishment timeout
-		ReadTimeout:  3 * time.Second,   // Read operation timeout
-		WriteTimeout: 3 * time.Second,   // Write operation timeout
-		ConnMaxIdleTime: 5 * time.Minute, // Idle connection timeout
-	})
-
-	// Test Redis connection with ping operation
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("Redis connection failed (continuing without cache): %v", err)
-		rdb = nil // Disable Redis if connection fails
-		return
-	}
-
-	log.Println("Redis connection established successfully for profile caching")
-}
-
-// getProfileFromCache retrieves cached profile data with JSON deserialization
-// Returns cached profile data if available, reducing database load for frequent requests
-func getProfileFromCache(userID int) (*User, error) {
-	if rdb == nil {
-		return nil, fmt.Errorf("redis not available")
-	}
-
-	// Generate cache key with service namespace for data isolation
-	cacheKey := fmt.Sprintf("profile_management:profile:%d", userID)
-	
-	// Retrieve JSON data from Redis cache
-	val, err := rdb.Get(ctx, cacheKey).Result()
-	if err == redis.Nil {
-		log.Printf("Cache miss for profile: %d", userID)
-		return nil, fmt.Errorf("cache miss")
-	} else if err != nil {
-		log.Printf("Redis error retrieving profile cache for %d: %v", userID, err)
-		return nil, err
-	}
-
-	// Deserialize JSON data to User struct
-	var user User
-	err = json.Unmarshal([]byte(val), &user)
-	if err != nil {
-		log.Printf("Error deserializing cached profile for %d: %v", userID, err)
-		return nil, err
-	}
-
-	log.Printf("Cache hit for profile: %d", userID)
-	return &user, nil
-}
-
-// cacheProfile stores profile data in Redis cache with TTL
-// Implements 1-hour TTL for profile data to balance freshness and performance
-func cacheProfile(userID int, user *User) {
-	if rdb == nil {
-		return
-	}
-
-	// Generate cache key with service namespace
-	cacheKey := fmt.Sprintf("profile_management:profile:%d", userID)
-	
-	// Serialize profile data to JSON for storage
-	profileData, err := json.Marshal(user)
-	if err != nil {
-		log.Printf("Error serializing profile for cache: %v", err)
-		return
-	}
-
-	// Store in Redis with 1-hour TTL (3600 seconds)
-	// Profile data changes less frequently and can be cached longer
-	err = rdb.Set(ctx, cacheKey, profileData, 1*time.Hour).Err()
-	if err != nil {
-		log.Printf("Error caching profile for %d: %v", userID, err)
-		return
-	}
-
-	log.Printf("Profile cached successfully for: %d", userID)
-}
-
-// invalidateProfileCache removes cached profile data when profile is updated
-// Ensures cache consistency after profile modifications
-func invalidateProfileCache(userID int) {
-	if rdb == nil {
-		return
-	}
-
-	// Generate cache key for deletion
-	cacheKey := fmt.Sprintf("profile_management:profile:%d", userID)
-	
-	// Remove cached data to force fresh fetch on next request
-	err := rdb.Del(ctx, cacheKey).Err()
-	if err != nil {
-		log.Printf("Error invalidating profile cache for %d: %v", userID, err)
-	} else {
-		log.Printf("Profile cache invalidated for: %d", userID)
-	}
-}
-
-// cacheImageMetadata stores image processing metadata in Redis
-// Caches image dimensions and processing status to avoid reprocessing
-func cacheImageMetadata(userID int, metadata map[string]interface{}) {
-	if rdb == nil {
-		return
-	}
-
-	// Generate cache key for image metadata
-	cacheKey := fmt.Sprintf("profile_management:image_meta:%d", userID)
-	
-	// Serialize metadata to JSON for storage
-	metaData, err := json.Marshal(metadata)
-	if err != nil {
-		log.Printf("Error serializing image metadata for cache: %v", err)
-		return
-	}
-
-	// Store metadata with 30-minute TTL
-	err = rdb.Set(ctx, cacheKey, metaData, 30*time.Minute).Err()
-	if err != nil {
-		log.Printf("Error caching image metadata for %d: %v", userID, err)
-		return
-	}
-
-	log.Printf("Image metadata cached for user: %d", userID)
 }
 
 func main() {

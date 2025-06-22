@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/redis/go-redis/v9"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -149,9 +148,7 @@ type UpcomingBillsResponse struct {
 var (
 	// Database connection for budget overview data persistence
 	db *sql.DB
-	// Redis client for caching complex budget overview calculations
-	rdb *redis.Client
-	// Context for Redis operations with timeout handling
+	// Context for database operations
 	ctx = context.Background()
 )
 
@@ -180,44 +177,8 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for budget overview caching
-	initRedis()
 }
 
-// initRedis initializes Redis connection for budget overview calculation caching
-// Provides distributed caching for expensive budget calculations and aggregations
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address for local development
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	redisDB := 0 // Default Redis database index
-
-	// Create Redis client with connection pooling and automatic failover
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		DialTimeout:  5 * time.Second,  // Connection timeout for Redis dial
-		ReadTimeout:  3 * time.Second,  // Read timeout for Redis operations
-		WriteTimeout: 3 * time.Second,  // Write timeout for Redis operations
-		PoolSize:     10,               // Connection pool size for concurrent operations
-		MinIdleConns: 2,                // Minimum idle connections in pool
-	})
-
-	// Test Redis connection with ping command
-	pong, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
-		return
-	}
-
-	log.Printf("✅ Redis connected successfully: %s", pong)
-}
 
 func main() {
 	// Set up HTTP routes
@@ -305,22 +266,12 @@ func handleBudgetOverview(w http.ResponseWriter, r *http.Request) {
 		request.Date = formatDateForPeriod(time.Now(), request.Period)
 	}
 
-	// Try to get budget overview from Redis cache first for performance optimization
-	cacheKey := fmt.Sprintf("budget_overview:%s:%s:%s", request.UserID, request.Period, request.Date)
-	overview, cached := getCachedBudgetOverview(cacheKey)
-
-	if !cached {
-		// Cache miss - fetch budget overview data from database
-		var err error
-		overview, err = fetchBudgetOverview(request)
-		if err != nil {
-			log.Printf("Error fetching budget overview: %v", err)
-			sendErrorResponse(w, "Failed to fetch budget overview", http.StatusInternalServerError)
-			return
-		}
-
-		// Cache the budget overview data for future requests (10 minutes TTL)
-		cacheBudgetOverview(cacheKey, overview)
+	// Fetch budget overview data from database
+	overview, err := fetchBudgetOverview(request)
+	if err != nil {
+		log.Printf("Error fetching budget overview: %v", err)
+		sendErrorResponse(w, "Failed to fetch budget overview", http.StatusInternalServerError)
+		return
 	}
 
 	sendSuccessResponse(w, "Budget overview fetched successfully", overview)
@@ -1639,54 +1590,3 @@ func handleBudgetOverviewHealth(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// getCachedBudgetOverview retrieves budget overview data from Redis cache
-// Returns the cached budget overview and a boolean indicating if data was found in cache
-func getCachedBudgetOverview(cacheKey string) (*BudgetOverview, bool) {
-	if rdb == nil {
-		return nil, false // Redis not available, return cache miss
-	}
-
-	// Get budget overview data from Redis cache
-	overviewJSON, err := rdb.Get(ctx, cacheKey).Result()
-	if err != nil {
-		if err.Error() != "redis: nil" {
-			log.Printf("Redis cache get error: %v", err)
-		}
-		return nil, false // Cache miss or error
-	}
-
-	// Deserialize budget overview data from JSON
-	var overview BudgetOverview
-	err = json.Unmarshal([]byte(overviewJSON), &overview)
-	if err != nil {
-		log.Printf("Failed to unmarshal cached budget overview data: %v", err)
-		return nil, false
-	}
-
-	log.Printf("📦 Budget overview cache hit for key: %s", cacheKey)
-	return &overview, true
-}
-
-// cacheBudgetOverview stores budget overview data in Redis cache with TTL
-// Caches complex budget calculations for performance optimization with 10-minute expiration
-func cacheBudgetOverview(cacheKey string, overview *BudgetOverview) {
-	if rdb == nil {
-		return // Redis not available, skip caching
-	}
-
-	// Serialize budget overview data to JSON for Redis storage
-	overviewJSON, err := json.Marshal(overview)
-	if err != nil {
-		log.Printf("Failed to marshal budget overview data for caching: %v", err)
-		return
-	}
-
-	// Cache budget overview data with 10-minute TTL for optimal balance of performance and freshness
-	err = rdb.Set(ctx, cacheKey, overviewJSON, 10*time.Minute).Err()
-	if err != nil {
-		log.Printf("Failed to cache budget overview data: %v", err)
-		return
-	}
-
-	log.Printf("💾 Cached budget overview data for key: %s", cacheKey)
-}

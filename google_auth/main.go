@@ -12,7 +12,6 @@ import (
 
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/redis/go-redis/v9"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/idtoken"
@@ -21,9 +20,7 @@ import (
 var (
 	googleOauthConfig *oauth2.Config
 	db                *sql.DB
-	// Redis client and context for OAuth session management
-	rdb *redis.Client
-	ctx = context.Background()
+	ctx               = context.Background()
 )
 
 type User struct {
@@ -48,9 +45,6 @@ type ApiResponse struct {
 }
 
 func init() {
-	// Initialize Redis connection for OAuth session management
-	initRedis()
-	
 	// Load environment variables from .env file in parent directory
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Printf("Warning: Error loading .env file: %v", err)
@@ -148,13 +142,7 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check cache for OAuth session data using IDToken hash
-	cacheKey := fmt.Sprintf("oauth_session:%s", data.IDToken[:20]) // Use first 20 chars as key
-	if cachedUser, found := getOAuthSession(cacheKey); found {
-		log.Printf("OAuth session cache hit for key: %s", cacheKey)
-		json.NewEncoder(w).Encode(cachedUser)
-		return
-	}
+	// Proceed directly with token verification without cache
 
 	// Verify the ID token
 	payload, err := idtoken.Validate(r.Context(), data.IDToken, googleOauthConfig.ClientID)
@@ -271,9 +259,6 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 	// Verify the user's locale one final time before sending response
 	log.Printf("User locale in final response: '%s'", user.Locale)
 
-	// Cache OAuth session data for 24 hours
-	setOAuthSession(cacheKey, user, 24*time.Hour)
-
 	// Return user information
 	json.NewEncoder(w).Encode(user)
 }
@@ -387,70 +372,3 @@ func updateUserLocale(userID int, locale string) error {
 	return nil
 }
 
-// initRedis initializes Redis client connection for OAuth session management
-func initRedis() {
-	// Redis configuration for OAuth session caching
-	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
-		Password: "Jva-Mvc-5171",      // Redis AUTH password
-		DB:       0,                   // Use default DB for OAuth sessions
-	})
-
-	// Test Redis connection
-	_, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("Failed to connect to Redis: %v", err)
-		log.Println("Continuing without Redis caching...")
-		rdb = nil
-	} else {
-		log.Println("Successfully connected to Redis for OAuth session management")
-	}
-}
-
-// getOAuthSession retrieves OAuth session data from Redis cache
-func getOAuthSession(key string) (User, bool) {
-	if rdb == nil {
-		return User{}, false
-	}
-
-	// Get cached OAuth session data
-	val, err := rdb.Get(ctx, key).Result()
-	if err == redis.Nil {
-		return User{}, false // Cache miss
-	} else if err != nil {
-		log.Printf("Redis error getting OAuth session %s: %v", key, err)
-		return User{}, false
-	}
-
-	// Deserialize cached user data
-	var user User
-	err = json.Unmarshal([]byte(val), &user)
-	if err != nil {
-		log.Printf("Error deserializing OAuth session %s: %v", key, err)
-		return User{}, false
-	}
-
-	return user, true
-}
-
-// setOAuthSession stores OAuth session data in Redis cache with TTL
-func setOAuthSession(key string, user User, ttl time.Duration) {
-	if rdb == nil {
-		return // Redis not available
-	}
-
-	// Serialize user data for caching
-	userBytes, err := json.Marshal(user)
-	if err != nil {
-		log.Printf("Error serializing OAuth session %s: %v", key, err)
-		return
-	}
-
-	// Store in Redis with TTL (24 hours for OAuth sessions)
-	err = rdb.Set(ctx, key, userBytes, ttl).Err()
-	if err != nil {
-		log.Printf("Error storing OAuth session %s: %v", key, err)
-	} else {
-		log.Printf("OAuth session cached successfully: %s (TTL: %v)", key, ttl)
-	}
-}

@@ -11,16 +11,12 @@ import (
 	"time"
 
 	_ "github.com/mattn/go-sqlite3"
-	"github.com/redis/go-redis/v9"
 )
 
 // Variable global para la conexión a la base de datos
 var db *sql.DB
 
-// Redis client for caching frequently accessed bill lists and bill data
-var rdb *redis.Client
-
-// Context for Redis operations with timeout handling
+// Context for database operations
 var ctx = context.Background()
 
 // Bill estructura que representa una factura en el sistema
@@ -82,46 +78,6 @@ func init() {
 	fmt.Printf("Using database at: %s\n", dbPath)
 	createTablesIfNotExist()
 	log.Println("Database connection established successfully")
-
-	// Initialize Redis connection for caching bill data
-	initRedis()
-}
-
-// initRedis initializes Redis connection for caching bill lists and data
-// Provides performance optimization for frequently accessed bill information
-func initRedis() {
-	// Redis connection configuration with environment variable support
-	redisAddr := os.Getenv("REDIS_ADDR")
-	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address (localhost on VPS)
-	}
-
-	redisPassword := os.Getenv("REDIS_PASSWORD")
-	if redisPassword == "" {
-		redisPassword = "Jva-Mvc-5171" // Default Redis AUTH password
-	}
-	redisDB := 0 // Default Redis database index
-
-	// Create Redis client with connection pooling and automatic failover
-	rdb = redis.NewClient(&redis.Options{
-		Addr:         redisAddr,
-		Password:     redisPassword,
-		DB:           redisDB,
-		DialTimeout:  5 * time.Second, // Connection timeout for Redis dial
-		ReadTimeout:  3 * time.Second, // Read timeout for Redis operations
-		WriteTimeout: 3 * time.Second, // Write timeout for Redis operations
-		PoolSize:     10,              // Connection pool size for concurrent operations
-		MinIdleConns: 2,               // Minimum idle connections in pool
-	})
-
-	// Test Redis connection with ping command
-	pong, err := rdb.Ping(ctx).Result()
-	if err != nil {
-		log.Printf("⚠️ Redis connection failed: %v (continuing without cache)", err)
-		return
-	}
-
-	log.Printf("✅ Redis connected successfully: %s", pong)
 }
 
 // corsMiddleware maneja las cabeceras CORS para permitir solicitudes desde el frontend
