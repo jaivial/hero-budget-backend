@@ -2,7 +2,6 @@ package main
 
 import (
 	"bytes"
-	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/base64"
