@@ -2,11 +2,8 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"log"
 	"strings"
-	"time"
 )
 
 // fetchBills obtiene todas las facturas de un usuario específico

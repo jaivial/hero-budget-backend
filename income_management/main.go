@@ -2833,3 +2833,27 @@ func updateAnnualBalance(userID string, incomeAmount, expenseAmount, billsAmount
 	return updateSubsequentAnnualBalances(userID, nextYearDate)
 }
 
+// Redis stub functions - replace Redis functionality with no-op implementations
+// These functions maintain API compatibility while removing Redis dependency
+
+// getIncomeAnalytics attempts to retrieve cached income analytics
+// Returns empty slice and false since Redis is disabled
+func getIncomeAnalytics(cacheKey string) ([]Income, bool) {
+	// Redis cache disabled - always return cache miss
+	return nil, false
+}
+
+// setIncomeAnalytics would cache income analytics data  
+// No-op implementation since Redis is disabled
+func setIncomeAnalytics(cacheKey string, data []Income, duration time.Duration) {
+	// Redis cache disabled - no operation performed
+	log.Printf("Cache set skipped for key: %s (Redis disabled)", cacheKey)
+}
+
+// invalidateIncomeAnalytics would remove cached analytics for a user
+// No-op implementation since Redis is disabled  
+func invalidateIncomeAnalytics(userID string) {
+	// Redis cache disabled - no operation performed
+	log.Printf("Cache invalidation skipped for user: %s (Redis disabled)", userID)
+}
+

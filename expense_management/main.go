@@ -2747,3 +2747,27 @@ func updateSubsequentMonthlyBalances(userID string, startDate time.Time) error {
 	return nil
 }
 
+// Redis stub functions - replace Redis functionality with no-op implementations
+// These functions maintain API compatibility while removing Redis dependency
+
+// getExpenseAnalytics attempts to retrieve cached expense analytics
+// Returns empty slice and false since Redis is disabled
+func getExpenseAnalytics(cacheKey string) ([]Expense, bool) {
+	// Redis cache disabled - always return cache miss
+	return nil, false
+}
+
+// setExpenseAnalytics would cache expense analytics data  
+// No-op implementation since Redis is disabled
+func setExpenseAnalytics(cacheKey string, data []Expense, duration time.Duration) {
+	// Redis cache disabled - no operation performed
+	log.Printf("Cache set skipped for key: %s (Redis disabled)", cacheKey)
+}
+
+// invalidateExpenseAnalytics would remove cached analytics for a user
+// No-op implementation since Redis is disabled  
+func invalidateExpenseAnalytics(userID string) {
+	// Redis cache disabled - no operation performed
+	log.Printf("Cache invalidation skipped for user: %s (Redis disabled)", userID)
+}
+

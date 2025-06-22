@@ -146,7 +146,7 @@ func handleGetUserInfo(w http.ResponseWriter, r *http.Request) {
 	// Fetch user info from database with proper null handling
 	var user User
 	var createdAtStr, updatedAtStr sql.NullString
-	err = db.QueryRow(`
+	err := db.QueryRow(`
 		SELECT id, google_id, email, name, given_name, family_name, 
 		picture, profile_image_blob, locale, verified_email, 
 		COALESCE(created_at, datetime('now')) as created_at,

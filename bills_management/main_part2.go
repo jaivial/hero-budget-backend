@@ -9,16 +9,10 @@ import (
 
 // invalidateBillsCache removes cached bills data for a specific user
 // Called whenever bills are added, updated, or deleted to ensure cache consistency
+// Redis functionality disabled - no-op implementation
 func invalidateBillsCache(userID string) {
-	if rdb != nil {
-		cacheKey := fmt.Sprintf("bills_list:%s", userID)
-		err := rdb.Del(ctx, cacheKey).Err()
-		if err != nil {
-			log.Printf("Failed to invalidate bills cache for user %s: %v", userID, err)
-		} else {
-			log.Printf("✅ Invalidated bills cache for user %s", userID)
-		}
-	}
+	// Redis cache disabled - no operation performed
+	log.Printf("Cache invalidation skipped for user: %s (Redis disabled)", userID)
 }
 
 // handleFetchBills maneja las solicitudes GET para obtener facturas
