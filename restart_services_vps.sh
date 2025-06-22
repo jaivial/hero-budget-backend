@@ -203,6 +203,7 @@ show_help() {
     echo -e "  $0 --status        # Ver estado de servicios"
 }
 
+
 # Función para actualizar código desde repositorio
 update_code_from_repository() {
     echo -e "\n${CYAN}🔄 Actualizando código desde repositorio...${NC}"
