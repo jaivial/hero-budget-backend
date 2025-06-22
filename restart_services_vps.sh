@@ -149,7 +149,52 @@ start_service() {
     sleep 1
 }
 
-# Función para verificar servicio
+# Lista de servicios que usan Redis
+REDIS_SERVICES=(
+    "apple-auth"
+    "google_auth"
+    "signup"
+    "signin"
+    "expense_management"
+    "income_management"
+    "reset_password"
+    "profile_management"
+    "fetch_dashboard"
+    "categories_management"
+    "cash_bank_management"
+    "budget_overview_fetch"
+    "budget_management"
+    "dashboard_data"
+)
+
+# Función para verificar conexión Redis en un servicio
+check_redis_connection() {
+    local service_name=$1
+    local log_file="/tmp/${service_name}.log"
+    
+    if [[ " ${REDIS_SERVICES[@]} " =~ " ${service_name} " ]]; then
+        if [ -f "$log_file" ]; then
+            if grep -q "Successfully connected to Redis" "$log_file" 2>/dev/null; then
+                echo -e "${GREEN}    🟢 Redis conectado${NC}"
+                return 0
+            elif grep -q "Failed to connect to Redis" "$log_file" 2>/dev/null; then
+                echo -e "${RED}    🔴 Redis desconectado${NC}"
+                return 1
+            else
+                echo -e "${YELLOW}    🟡 Redis estado desconocido${NC}"
+                return 2
+            fi
+        else
+            echo -e "${YELLOW}    🟡 Log no encontrado${NC}"
+            return 2
+        fi
+    else
+        echo -e "${BLUE}    🟦 Sin Redis${NC}"
+        return 0
+    fi
+}
+
+# Función para verificar servicio con estado Redis
 verify_service() {
     local service_name=$1
     local port=$2
@@ -157,6 +202,7 @@ verify_service() {
     if is_port_in_use "$port"; then
         local pid=$(lsof -ti:$port 2>/dev/null)
         echo -e "${GREEN}  ✅ $service_name está activo (Puerto: $port, PID: $pid)${NC}"
+        check_redis_connection "$service_name"
         return 0
     else
         echo -e "${RED}  ❌ $service_name no está activo en puerto $port${NC}"
@@ -204,29 +250,10 @@ show_help() {
 }
 
 
-# Función para actualizar código desde repositorio
+# Función para actualizar código desde repositorio (deshabilitada)
 update_code_from_repository() {
-    echo -e "\n${CYAN}🔄 Actualizando código desde repositorio...${NC}"
-    
-    # Navegar al directorio del proyecto (un nivel arriba del backend)
-    cd "$(dirname "$BASE_PATH")"
-    
-    # Hacer stash de cambios locales si existen
-    if git status --porcelain | grep -q .; then
-        echo -e "${YELLOW}📦 Guardando cambios locales...${NC}"
-        git stash push -m "Auto-stash before restart $(date)" > /dev/null 2>&1
-    fi
-    
-    # Actualizar desde el repositorio
-    echo -e "${CYAN}⬇️  Descargando últimos cambios...${NC}"
-    if git pull origin main > /dev/null 2>&1; then
-        echo -e "${GREEN}✅ Código actualizado exitosamente${NC}"
-    else
-        echo -e "${YELLOW}⚠️  No se pudo actualizar el código (continuando con versión actual)${NC}"
-    fi
-    
-    # Volver al directorio backend
-    cd "$BASE_PATH"
+    echo -e "\n${CYAN}🔄 Usando código actual (sin actualización automática)...${NC}"
+    echo -e "${GREEN}✅ Continuando con código actual${NC}"
 }
 
 # Función para limpiar archivos conflictivos específicos de un servicio
@@ -579,16 +606,40 @@ restart_all_services() {
         fi
     done
     
+    # Contar servicios con Redis conectado
+    local redis_connected=0
+    local redis_total=0
+    
+    echo -e "\n${WHITE}=== VERIFICACIÓN REDIS ===${NC}"
+    for service_info in "${ALL_SERVICES[@]}"; do
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        
+        if [[ " ${REDIS_SERVICES[@]} " =~ " ${service_name} " ]]; then
+            ((redis_total++))
+            if check_redis_connection "$service_name" >/dev/null; then
+                ((redis_connected++))
+                echo -e "${GREEN}✅ $service_name: Redis conectado${NC}"
+            else
+                echo -e "${RED}❌ $service_name: Redis desconectado${NC}"
+            fi
+        fi
+    done
+    
     # Mostrar resumen final
     echo -e "\n${WHITE}"
     echo "============================================================================="
     echo "   ✅ SERVICIOS REINICIADOS - VPS"
     echo "   📊 Servicios activos: $active_count/${#ALL_SERVICES[@]}"
+    echo "   🟢 Redis conectado: $redis_connected/$redis_total servicios"
     echo "============================================================================="
     echo -e "${NC}"
     
     if [ $active_count -eq ${#ALL_SERVICES[@]} ]; then
-        echo -e "${GREEN}🎉 TODOS LOS SERVICIOS ESTÁN FUNCIONANDO${NC}"
+        if [ $redis_connected -eq $redis_total ]; then
+            echo -e "${GREEN}🎉 TODOS LOS SERVICIOS Y REDIS ESTÁN FUNCIONANDO PERFECTAMENTE${NC}"
+        else
+            echo -e "${YELLOW}⚠️  SERVICIOS ACTIVOS PERO ALGUNOS SIN REDIS ($redis_connected/$redis_total)${NC}"
+        fi
     else
         echo -e "${YELLOW}⚠️  $active_count/${#ALL_SERVICES[@]} servicios funcionando${NC}"
         echo -e "${YELLOW}💡 Revisar logs en: /tmp/[servicio].log${NC}"
