@@ -1,4 +1,6 @@
-2025/06/22 02:51:24 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 02:51:24 Database connection established successfully
-2025/06/22 02:51:24 Redis connection failed (continuing without cache): dial tcp [::1]:6379: connect: connection refused
-2025/06/22 02:51:24 Categories Management service started on :8096
+2025/06/22 03:25:39 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 03:25:39 Database connection established successfully
+2025/06/22 03:25:39 Redis connection failed (continuing without cache): dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:25:39 Categories Management service started on :8096
+2025/06/22 03:26:18 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/22 03:26:18 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'

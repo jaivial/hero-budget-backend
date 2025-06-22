@@ -1,4 +1,263 @@
-2025/06/22 02:51:39 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 02:51:39 Database connection established successfully
-2025/06/22 02:51:40 ⚠️ Redis connection failed: dial tcp [::1]:6379: connect: connection refused (continuing without cache)
-2025/06/22 02:51:40 Budget Overview Fetch service starting on port 8098
+2025/06/22 03:25:55 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/22 03:25:55 Database connection established successfully
+2025/06/22 03:25:55 ⚠️ Redis connection failed: dial tcp [::1]:6379: connect: connection refused (continuing without cache)
+2025/06/22 03:25:55 Budget Overview Fetch service starting on port 8098
+2025/06/22 03:26:18 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:18 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:18 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:18 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:18 📊 Balance data found: IncomeBank=244982.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87769788.00
+2025/06/22 03:26:18 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 03:26:18    💰 Total Income: 245032.00 (Bank: 244982.00 + Cash: 50.00)
+2025/06/22 03:26:18    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 03:26:18    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 03:26:18    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 03:26:18    💵 Available Balance: -87769288.00 (Income: 245032.00 - Combined Expenses: 88014320.00)
+2025/06/22 03:26:18    📋 Upcoming Bills: 1130.00
+2025/06/22 03:26:18 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210595.00 (0.0%), Total=-87769788.00
+2025/06/22 03:26:18 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:18 📊 Transaction history retrieved: 3 transactions (incomes + expenses only, bills excluded)
+2025/06/22 03:26:18 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:18 📊 Balance data found: IncomeBank=244982.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87769788.00
+2025/06/22 03:26:18 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 03:26:18    💰 Total Income: 245032.00 (Bank: 244982.00 + Cash: 50.00)
+2025/06/22 03:26:18    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 03:26:18    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 03:26:18    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 03:26:18    💵 Available Balance: -87769288.00 (Income: 245032.00 - Combined Expenses: 88014320.00)
+2025/06/22 03:26:18    📋 Upcoming Bills: 1130.00
+2025/06/22 03:26:18 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210595.00 (0.0%), Total=-87769788.00
+2025/06/22 03:26:18 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:18 📊 Transaction history retrieved: 3 transactions (incomes + expenses only, bills excluded)
+2025/06/22 03:26:18 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 03:26:18 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:18 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:18 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:19 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 03:26:19 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:19 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:19 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:22 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:22 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-87770638.00
+2025/06/22 03:26:22 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/22 03:26:22    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 03:26:22    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 03:26:22    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/22 03:26:22    📊 Combined Expense (expenses + bills): 850.00
+2025/06/22 03:26:22    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/22 03:26:22    📋 Upcoming Bills: 850.00
+2025/06/22 03:26:22 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=209745.00 (0.0%), Total=-87770638.00
+2025/06/22 03:26:22 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:23 🔍 fetchUpcomingBills for month: 2025-07
+2025/06/22 03:26:23 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-07-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-07'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:23 🔍 Args: [13 2025-07 2025-07 2025-07]
+2025/06/22 03:26:23 📊 Transaction history retrieved: 0 transactions (incomes + expenses only, bills excluded)
+2025/06/22 03:26:23 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:23 📊 Balance data found: IncomeBank=0.00, IncomeCash=0.00, ExpenseBank=0.00, ExpenseCash=0.00, BillBank=850.00, BillCash=0.00, TotalBalance=-87770638.00
+2025/06/22 03:26:23 🧮 Budget calculation breakdown for period monthly, date 2025-07:
+2025/06/22 03:26:23    💰 Total Income: 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 03:26:23    💸 Spent Amount (expenses only): 0.00 (Bank: 0.00 + Cash: 0.00)
+2025/06/22 03:26:23    🏷️ Bills Amount: 850.00 (Bank: 850.00 + Cash: 0.00)
+2025/06/22 03:26:23    📊 Combined Expense (expenses + bills): 850.00
+2025/06/22 03:26:23    💵 Available Balance: -850.00 (Income: 0.00 - Combined Expenses: 850.00)
+2025/06/22 03:26:23    📋 Upcoming Bills: 850.00
+2025/06/22 03:26:23 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=209745.00 (0.0%), Total=-87770638.00
+2025/06/22 03:26:23 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:26 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:26 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:26 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:26 📊 Transaction history retrieved: 3 transactions (incomes + expenses only, bills excluded)
+2025/06/22 03:26:26 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:26 📊 Balance data found: IncomeBank=244982.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87769788.00
+2025/06/22 03:26:26 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 03:26:26    💰 Total Income: 245032.00 (Bank: 244982.00 + Cash: 50.00)
+2025/06/22 03:26:26    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 03:26:26    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 03:26:26    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 03:26:26    💵 Available Balance: -87769288.00 (Income: 245032.00 - Combined Expenses: 88014320.00)
+2025/06/22 03:26:26    📋 Upcoming Bills: 1130.00
+2025/06/22 03:26:26 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210595.00 (0.0%), Total=-87769788.00
+2025/06/22 03:26:26 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:33 Redis cache get error: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:33 📊 Balance data found: IncomeBank=245216.00, IncomeCash=50.00, ExpenseBank=32757.00, ExpenseCash=87980433.00, BillBank=1130.00, BillCash=0.00, TotalBalance=-87769554.00
+2025/06/22 03:26:33 🧮 Budget calculation breakdown for period monthly, date 2025-06:
+2025/06/22 03:26:33    💰 Total Income: 245266.00 (Bank: 245216.00 + Cash: 50.00)
+2025/06/22 03:26:33    💸 Spent Amount (expenses only): 88013190.00 (Bank: 32757.00 + Cash: 87980433.00)
+2025/06/22 03:26:33    🏷️ Bills Amount: 1130.00 (Bank: 1130.00 + Cash: 0.00)
+2025/06/22 03:26:33    📊 Combined Expense (expenses + bills): 88014320.00
+2025/06/22 03:26:33    💵 Available Balance: -87769054.00 (Income: 245266.00 - Combined Expenses: 88014320.00)
+2025/06/22 03:26:33    📋 Upcoming Bills: 1130.00
+2025/06/22 03:26:33 💳 Cash/Bank Distribution: Cash=-87980383.00 (0.0%), Bank=210829.00 (0.0%), Total=-87769554.00
+2025/06/22 03:26:33 Failed to cache budget overview data: dial tcp [::1]:6379: connect: connection refused
+2025/06/22 03:26:33 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:33 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:33 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:34 📊 Transaction history retrieved: 4 transactions (incomes + expenses only, bills excluded)
+2025/06/22 03:26:34 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 03:26:34 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:34 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:34 🔍 Args: [13 2025-06 2025-06 2025-06]
+2025/06/22 03:26:34 Error parsing base date 2025-06-01 for period monthly: parsing time "2025-06-01-01": extra text: "-01"
+2025/06/22 03:26:34 🔍 fetchUpcomingBills for month: 2025-06
+2025/06/22 03:26:34 🔍 Query: 
+			SELECT 
+				b.id, b.name, b.amount, 
+				CASE 
+					WHEN b.recurring = 1 THEN 
+						strftime('%Y-%m-%d', 
+							date('2025-06-01', '+' || (b.payment_day - 1) || ' days'))
+					ELSE b.due_date 
+				END as calculated_due_date,
+				COALESCE(bp.paid, 0) as month_paid, 
+				b.overdue, b.overdue_days, b.recurring, b.category, b.icon,
+				b.start_date, b.duration_months, b.payment_day
+			FROM bills b 
+			LEFT JOIN bill_payments bp ON b.id = bp.bill_id AND bp.year_month = '2025-06'
+			WHERE b.user_id = ? AND (
+			(b.recurring = 1 AND 
+			 strftime('%Y-%m', b.start_date) <= ? AND 
+			 strftime('%Y-%m', date(b.start_date, '+' || (b.duration_months - 1) || ' months')) >= ?) OR
+			(b.recurring = 0 AND strftime('%Y-%m', b.due_date) = ?)
+		) 
+			ORDER BY COALESCE(bp.paid, 0) ASC, calculated_due_date ASC
+2025/06/22 03:26:34 🔍 Args: [13 2025-06 2025-06 2025-06]
