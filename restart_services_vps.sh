@@ -232,14 +232,41 @@ update_code_from_repository() {
     fi
     
     # Limpiar duplicaciones en transaction_delete_service
-    if [ -f "transaction_delete_service/main.go" ] && [ -f "transaction_delete_service/transaction_operations.go" ]; then
+    if [ -f "transaction_delete_service/main.go" ]; then
+        # Lista de funciones y tipos que pueden estar duplicados
+        duplicated_items=(
+            "type TransactionDetails"
+            "func getTransactionDetails"
+            "func deleteTransaction"
+            "func updatePreviousBalanceForPeriod"
+            "func parsePeriodIdentifier"
+            "func calculatePeriodIdentifier"
+        )
+        
         # Verificar si hay duplicaciones en main.go
-        if grep -q "func getTransactionDetails\|func deleteTransaction\|type TransactionDetails" "transaction_delete_service/main.go" 2>/dev/null; then
-            echo -e "${YELLOW}  Eliminando duplicaciones en transaction_delete_service/main.go${NC}"
+        has_duplications=false
+        for item in "${duplicated_items[@]}"; do
+            if grep -q "^${item}" "transaction_delete_service/main.go" 2>/dev/null; then
+                has_duplications=true
+                break
+            fi
+        done
+        
+        if [ "$has_duplications" = true ]; then
+            echo -e "${YELLOW}  Eliminando todas las duplicaciones en transaction_delete_service/main.go${NC}"
             # Crear backup temporal
             cp "transaction_delete_service/main.go" "transaction_delete_service/main.go.backup"
-            # Eliminar funciones y structs duplicados manteniendo el resto del archivo
-            sed '/^type TransactionDetails/,/^}/d; /^func getTransactionDetails/,/^}/d; /^func deleteTransaction/,/^}/d' "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
+            
+            # Eliminar todas las funciones y structs duplicados manteniendo el resto del archivo
+            sed_command=""
+            for item in "${duplicated_items[@]}"; do
+                if [ -n "$sed_command" ]; then
+                    sed_command="${sed_command}; "
+                fi
+                sed_command="${sed_command}/^${item}/,/^}/d"
+            done
+            
+            sed "$sed_command" "transaction_delete_service/main.go.backup" > "transaction_delete_service/main.go"
             rm -f "transaction_delete_service/main.go.backup"
         fi
     fi
