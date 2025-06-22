@@ -391,9 +391,9 @@ func updateUserLocale(userID int, locale string) error {
 func initRedis() {
 	// Redis configuration for OAuth session caching
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password set
-		DB:       0,                // Use default DB for OAuth sessions
+		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
+		Password: "Jva-Mvc-5171",      // Redis AUTH password
+		DB:       0,                   // Use default DB for OAuth sessions
 	})
 
 	// Test Redis connection

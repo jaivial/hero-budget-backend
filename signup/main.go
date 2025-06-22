@@ -1353,9 +1353,9 @@ func handlePing(w http.ResponseWriter, r *http.Request) {
 func initRedis() {
 	// Redis configuration for verification code caching
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password set
-		DB:       4,                // Use DB 4 for verification codes
+		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
+		Password: "Jva-Mvc-5171",      // Redis AUTH password
+		DB:       4,                   // Use DB 4 for verification codes
 	})
 
 	// Test Redis connection

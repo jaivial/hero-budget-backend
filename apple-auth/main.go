@@ -67,10 +67,13 @@ func initRedis() {
 	// Redis connection configuration with environment variable support
 	redisAddr := os.Getenv("REDIS_ADDR")
 	if redisAddr == "" {
-		redisAddr = "localhost:6379" // Default Redis address for local development
+		redisAddr = "localhost:6379" // Default Redis address (localhost on VPS)
 	}
 
 	redisPassword := os.Getenv("REDIS_PASSWORD")
+	if redisPassword == "" {
+		redisPassword = "Jva-Mvc-5171" // Default Redis AUTH password
+	}
 	redisDB := 0 // Default Redis database index
 
 	// Create Redis client with connection pooling and automatic failover

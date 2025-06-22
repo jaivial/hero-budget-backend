@@ -306,9 +306,9 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 func initRedis() {
 	// Redis configuration for signin session caching
 	rdb = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379", // Redis server address
-		Password: "",               // No password set
-		DB:       3,                // Use DB 3 for signin sessions
+		Addr:     "localhost:6379",    // Redis server address (localhost on VPS)
+		Password: "Jva-Mvc-5171",      // Redis AUTH password
+		DB:       3,                   // Use DB 3 for signin sessions
 	})
 
 	// Test Redis connection
