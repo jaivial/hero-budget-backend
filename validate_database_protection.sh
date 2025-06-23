@@ -21,8 +21,8 @@ echo -e "${WHITE}============================================${NC}"
 validate_local() {
     echo -e "\n${BLUE}📍 Validando configuración local...${NC}"
     
-    # 1. Verificar que .gitignore incluye .db
-    if grep -q "^\*.db" .gitignore; then
+    # 1. Verificar que .gitignore incluye .db (buscar en directorio padre)
+    if grep -q "^\*.db" ../.gitignore; then
         echo -e "${GREEN}✅ .gitignore incluye protección para archivos .db${NC}"
     else
         echo -e "${RED}❌ .gitignore NO incluye protección para archivos .db${NC}"
@@ -38,9 +38,9 @@ validate_local() {
         echo -e "${GREEN}✅ No hay archivos .db siendo trackeados por git${NC}"
     fi
     
-    # 3. Verificar que deploybackend.sh tiene protecciones
-    if grep -q "git update-index --assume-unchanged" deploybackend.sh && \
-       grep -q "# RESTAURAR: Todas las bases de datos DESPUÉS de todos los comandos git" deploybackend.sh; then
+    # 3. Verificar que deploybackend.sh tiene protecciones (buscar en directorio padre)
+    if grep -q "git update-index --assume-unchanged" ../deploybackend.sh && \
+       grep -q "# RESTAURAR: Todas las bases de datos DESPUÉS de todos los comandos git" ../deploybackend.sh; then
         echo -e "${GREEN}✅ deploybackend.sh incluye protecciones de base de datos${NC}"
     else
         echo -e "${RED}❌ deploybackend.sh NO incluye protecciones adecuadas${NC}"
@@ -48,10 +48,10 @@ validate_local() {
     fi
     
     # 4. Verificar que existen archivos .db locales
-    local db_count=$(find backend -name "*.db" -type f | wc -l)
+    local db_count=$(find . -name "*.db" -type f | wc -l)
     if [ $db_count -gt 0 ]; then
         echo -e "${GREEN}✅ Encontrados $db_count archivos .db locales${NC}"
-        find backend -name "*.db" -type f | head -5
+        find . -name "*.db" -type f | head -5
     else
         echo -e "${YELLOW}⚠️  No se encontraron archivos .db locales${NC}"
     fi
