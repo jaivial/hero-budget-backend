@@ -85,16 +85,11 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 		}
 	}
 	
-	// Recalcular total_balance para todos los meses afectados
-	allAffectedMonths := append([]string{}, subsequentMonths...)
-	for i := 0; i < durationMonths; i++ {
-		monthDate := startTime.AddDate(0, i, 0)
-		yearMonth := monthDate.Format("2006-01")
-		allAffectedMonths = append(allAffectedMonths, yearMonth)
-	}
-	
-	for _, month := range allAffectedMonths {
-		db.Exec("UPDATE monthly_cash_bank_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
+	// CORREGIDO: Recalcular total_balance para todos los meses afectados y posteriores
+	// Usar la nueva función que considera previous_amounts correctamente
+	if recalculateErr := recalculateAllSubsequentMonthsBalance(db, userID, startMonth); recalculateErr != nil {
+		log.Printf("Error recalculando balances: %v", recalculateErr)
+		return recalculateErr
 	}
 	
 	log.Printf("✅ Bill añadido a monthly_cash_bank_balance correctamente")

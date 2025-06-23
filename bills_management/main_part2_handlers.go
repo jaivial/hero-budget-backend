@@ -92,8 +92,8 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	// Obtener ID de la factura creada
 	billID, _ := result.LastInsertId()
 	
-	// Aplicar la factura únicamente a monthly_cash_bank_balance (monthly_balance eliminado del sistema)
-	err = addBillToCashBankBalance(db, req.UserID, req.Amount, req.StartDate, req.DurationMonths, req.PaymentMethod)
+	// CORREGIDO: Aplicar la factura usando lógica acumulativa
+	err = addBillToCashBankBalanceCumulative(db, req.UserID, req.Amount, req.StartDate, req.DurationMonths, req.PaymentMethod)
 	if err != nil {
 		log.Printf("Error adding bill to monthly_cash_bank_balance: %v", err)
 		sendErrorResponse(w, fmt.Sprintf("Error adding bill to cash bank balance: %v", err), http.StatusInternalServerError)
@@ -166,10 +166,10 @@ func handleDebugAddBill(w http.ResponseWriter, r *http.Request) {
 	durationMonths := 6
 	paymentMethod := "bank"
 
-	log.Printf("🔥 DEBUG: Llamando a addBillToCashBankBalance (monthly_balance eliminado)...")
-	err := addBillToCashBankBalance(db, userID, amount, startDate, durationMonths, paymentMethod)
+	log.Printf("🔥 DEBUG: Llamando a addBillToCashBankBalanceCumulative (lógica acumulativa)...")
+	err := addBillToCashBankBalanceCumulative(db, userID, amount, startDate, durationMonths, paymentMethod)
 	if err != nil {
-		log.Printf("🔥 DEBUG: Error en addBillToCashBankBalance: %v", err)
+		log.Printf("🔥 DEBUG: Error en addBillToCashBankBalanceCumulative: %v", err)
 		sendErrorResponse(w, fmt.Sprintf("Error in cash_bank_balance: %v", err), http.StatusInternalServerError)
 		return
 	}

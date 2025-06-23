@@ -85,9 +85,25 @@ func deleteBill(request DeleteBillRequest) error {
 		return err
 	}
 
-	// ELIMINADO: Obtención de datos de factura para monthly_balance (ya no se usa)
-	// La eliminación de facturas ahora solo afecta monthly_cash_bank_balance
-	// que se maneja automáticamente por las funciones existentes
+	// CORREGIDO: Obtener datos de factura antes de eliminarla para revertir efectos en monthly_cash_bank_balance
+	var billData BillData
+	err := db.QueryRow(`
+		SELECT id, user_id, amount, payment_method, start_date, duration_months
+		FROM bills WHERE id = ? AND user_id = ?
+	`, request.BillID, request.UserID).Scan(
+		&billData.ID, &billData.UserID, &billData.Amount,
+		&billData.PaymentMethod, &billData.StartDate, &billData.Duration)
+	
+	if err != nil {
+		log.Printf("Error getting bill data for deletion: %v", err)
+		return err
+	}
+
+	// CORREGIDO: Revertir efectos usando lógica acumulativa
+	if err := revertBillFromCashBankBalanceCumulative(db, billData); err != nil {
+		log.Printf("Error reverting bill effects from cash bank: %v", err)
+		return err
+	}
 
 	// Delete related bill_payments first
 	if err := deleteBillPayments(request.BillID); err != nil {
@@ -142,78 +158,6 @@ func deleteBillRecord(billID int, userID string) error {
 
 	if rowsAffected == 0 {
 		return NewNotFoundError("bill not found or already deleted")
-	}
-
-	return nil
-}
-
-// Custom error types for better error handling
-type ValidationError struct {
-	Message string
-}
-
-func (e ValidationError) Error() string {
-	return e.Message
-}
-
-func NewValidationError(message string) ValidationError {
-	return ValidationError{Message: message}
-}
-
-type NotFoundError struct {
-	Message string
-}
-
-func (e NotFoundError) Error() string {
-	return e.Message
-}
-
-func NewNotFoundError(message string) NotFoundError {
-	return NotFoundError{Message: message}
-}
-
-// updateMainBalanceColumnsForDeletedBill updates main balance columns incrementally when a bill is deleted
-// Eliminating a bill IMPROVES the month's balance, so we ADD the amounts to main balance columns
-func updateMainBalanceColumnsForDeletedBill(billData BillData, targetMonth string) error {
-	log.Printf("Updating main balance columns for deleted bill - Bill: %d, Amount: %.2f, Method: %s, Month: %s",
-		billData.ID, billData.Amount, billData.PaymentMethod, targetMonth)
-
-	// Prepare the update query based on payment method
-	var updateQuery string
-	switch billData.PaymentMethod {
-	case "bank":
-		updateQuery = `
-			UPDATE monthly_balance 
-			SET bank_amount = bank_amount + ?,
-				total_balance = bank_amount + cash_amount
-			WHERE user_id = ? AND year_month = ?`
-	case "cash":
-		updateQuery = `
-			UPDATE monthly_balance 
-			SET cash_amount = cash_amount + ?,
-				total_balance = bank_amount + cash_amount
-			WHERE user_id = ? AND year_month = ?`
-	default:
-		return NewValidationError("Invalid payment method: " + billData.PaymentMethod)
-	}
-
-	// Execute the update
-	result, err := db.Exec(updateQuery, billData.Amount, billData.UserID, targetMonth)
-	if err != nil {
-		log.Printf("Error updating main balance columns for deleted bill: %v", err)
-		return err
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		log.Printf("Error getting rows affected: %v", err)
-		return err
-	}
-
-	if rowsAffected == 0 {
-		log.Printf("Warning: No rows affected when updating balance for month %s", targetMonth)
-	} else {
-		log.Printf("Successfully updated main balance columns for month %s", targetMonth)
 	}
 
 	return nil

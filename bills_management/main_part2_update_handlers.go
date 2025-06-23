@@ -126,33 +126,36 @@ func handleUpdateBillCashBank(w http.ResponseWriter, r *http.Request) {
 		NewPaymentDay: getIntValueOrDefault(updateRequest.PaymentDay, oldBillData.PaymentDay),
 	}
 	
-	// ALGORITMO ESPECÍFICO PARA MONTHLY_CASH_BANK_BALANCE:
+	// CORREGIDO: ALGORITMO ACUMULATIVO PARA MONTHLY_CASH_BANK_BALANCE
 	
-	// 1. Revertir efectos del bill anterior en monthly_cash_bank_balance
-	if err = revertOldBillEffectsInCashBank(db, updateData); err != nil {
-		sendErrorResponse(w, "Error reverting old bill effects in cash bank", http.StatusInternalServerError)
-		return
-	}
-	
-	// 2. Limpiar expenses anteriores al nuevo start_date
-	if err = cleanupExpensesForNewPeriod(db, BillUpdateData{
-		BillID: updateData.BillID,
+	// Preparar datos para la nueva arquitectura acumulativa
+	oldBillDataStruct := BillData{
+		ID: updateData.BillID,
 		UserID: updateData.UserID,
-		NewStartDate: updateData.NewStartDate,
-	}); err != nil {
-		sendErrorResponse(w, "Error cleaning up expenses", http.StatusInternalServerError)
+		Amount: updateData.OldAmount,
+		PaymentMethod: updateData.OldPaymentMethod,
+		StartDate: updateData.OldStartDate,
+		Duration: updateData.OldDurationMonths,
+	}
+	
+	newBillDataStruct := BillData{
+		ID: updateData.BillID,
+		UserID: updateData.UserID,
+		Amount: updateData.NewAmount,
+		PaymentMethod: updateData.NewPaymentMethod,
+		StartDate: updateData.NewStartDate,
+		Duration: updateData.NewDurationMonths,
+	}
+	
+	// Actualizar usando lógica acumulativa
+	if err = updateBillInCashBankBalanceCumulative(db, oldBillDataStruct, newBillDataStruct); err != nil {
+		sendErrorResponse(w, "Error updating bill with cumulative logic", http.StatusInternalServerError)
 		return
 	}
 	
-	// 3. Actualizar bill_payments según el nuevo periodo
+	// Actualizar bill_payments según el nuevo periodo
 	if err = updateBillPaymentsForNewPeriodCashBank(db, updateData); err != nil {
 		sendErrorResponse(w, "Error updating bill payments", http.StatusInternalServerError)
-		return
-	}
-	
-	// 4. Aplicar el nuevo bill a monthly_cash_bank_balance
-	if err = applyNewBillToCashBank(db, updateData); err != nil {
-		sendErrorResponse(w, "Error applying new bill to cash bank", http.StatusInternalServerError)
 		return
 	}
 	
@@ -202,8 +205,8 @@ func handleAddBillCashBank(w http.ResponseWriter, r *http.Request) {
 	// Obtener ID de la factura creada
 	billID, _ := result.LastInsertId()
 	
-	// Aplicar la factura al sistema monthly_cash_bank_balance
-	err = addBillToCashBankBalance(db, req.UserID, req.Amount, req.StartDate, req.DurationMonths, req.PaymentMethod)
+	// CORREGIDO: Aplicar la factura usando lógica acumulativa
+	err = addBillToCashBankBalanceCumulative(db, req.UserID, req.Amount, req.StartDate, req.DurationMonths, req.PaymentMethod)
 	if err != nil {
 		sendErrorResponse(w, fmt.Sprintf("Error adding bill to cash bank balance: %v", err), http.StatusInternalServerError)
 		return
