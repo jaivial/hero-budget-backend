@@ -558,11 +558,15 @@ func init() {
 		}
 	}
 
+	// MIGRACIÓN DESHABILITADA PARA PREVENIR PÉRDIDA DE DATOS
+	// La migración automática causaba eliminación de usuarios tipo email durante deploys
 	// Check if we need to migrate from old table structure (email UNIQUE) to new structure (email, type UNIQUE)
-	err = migrateTableStructure(db)
-	if err != nil {
-		log.Fatalf("Failed to migrate table structure: %v", err)
-	}
+	// err = migrateTableStructure(db)
+	// if err != nil {
+	//	log.Fatalf("Failed to migrate table structure: %v", err)
+	// }
+	log.Println("⚠️  Automatic table migration DISABLED to prevent data loss during deploys")
+	log.Println("📋 Migration can be run manually if needed: migrateTableStructure()")
 
 	log.Println("Database connection established successfully")
 }
