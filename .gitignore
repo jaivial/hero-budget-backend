@@ -1,24 +1,7 @@
 # Environment files
 .env
 
-# Database files
-*.db
-*.db-wal
-*.db-shm
-**/*.db
-users.db
-google_auth/users.db
-google_auth/users.db-wal
-google_auth/users.db-shm
-bills_management/users.db
+
 
 # Generated files
 google_auth/update_locale_handler.go
-
-# Log files
-*.log
-*.pid
-
-# Binary files
-*/main
-**/main
