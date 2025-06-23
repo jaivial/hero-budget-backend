@@ -262,81 +262,11 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 
 	log.Printf("📊 Backup contiene %d usuarios", backupCount)
 
-	// Crear backup de usuarios tipo email antes de limpiar tabla
-	emailUsers := []map[string]interface{}{}
-	emailRows, err := g.db.Query(`
-		SELECT id, google_id, apple_id, email, password, name, given_name, family_name,
-			picture, profile_image_blob, locale, verified_email, verification_code, type,
-			created_at, updated_at, reset_token, reset_expires
-		FROM users WHERE type = 'email'
-	`)
+	// Eliminar datos actuales de la tabla users
+	_, err = g.db.Exec("DELETE FROM users")
 	if err != nil {
-		return fmt.Errorf("failed to backup email users: %v", err)
+		return fmt.Errorf("failed to clear users table: %v", err)
 	}
-	defer emailRows.Close()
-
-	// Guardar usuarios tipo email en memoria
-	for emailRows.Next() {
-		var (
-			id                 int
-			googleID           sql.NullString
-			appleID            sql.NullString
-			email              string
-			password           string
-			name               string
-			givenName          string
-			familyName         string
-			picture            string
-			profileImageBlob   sql.NullString
-			locale             string
-			verifiedEmail      bool
-			verificationCode   string
-			userType           string
-			createdAt          string
-			updatedAt          string
-			resetToken         sql.NullString
-			resetExpires       sql.NullString
-		)
-
-		err := emailRows.Scan(&id, &googleID, &appleID, &email, &password, &name, &givenName, &familyName,
-			&picture, &profileImageBlob, &locale, &verifiedEmail, &verificationCode, &userType,
-			&createdAt, &updatedAt, &resetToken, &resetExpires)
-		if err != nil {
-			return fmt.Errorf("failed to scan email user: %v", err)
-		}
-
-		emailUser := map[string]interface{}{
-			"id":                   id,
-			"google_id":            googleID,
-			"apple_id":             appleID,
-			"email":                email,
-			"password":             password,
-			"name":                 name,
-			"given_name":           givenName,
-			"family_name":          familyName,
-			"picture":              picture,
-			"profile_image_blob":   profileImageBlob,
-			"locale":               locale,
-			"verified_email":       verifiedEmail,
-			"verification_code":    verificationCode,
-			"type":                 userType,
-			"created_at":           createdAt,
-			"updated_at":           updatedAt,
-			"reset_token":          resetToken,
-			"reset_expires":        resetExpires,
-		}
-		emailUsers = append(emailUsers, emailUser)
-	}
-
-	log.Printf("🔐 Protegiendo %d usuarios tipo 'email' durante restauración", len(emailUsers))
-
-	// PROTECCIÓN CRÍTICA: Solo eliminar usuarios que NO sean tipo 'email'
-	_, err = g.db.Exec("DELETE FROM users WHERE type != 'email' OR type IS NULL")
-	if err != nil {
-		return fmt.Errorf("failed to clear non-email users from table: %v", err)
-	}
-
-	log.Printf("✅ Tabla limpiada preservando usuarios tipo 'email'")
 
 	// Copiar datos desde backup
 	rows, err := backupDB.Query("SELECT * FROM users")
@@ -345,8 +275,6 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 	}
 	defer rows.Close()
 
-	// Restaurar usuarios desde backup (solo los que NO son tipo 'email')
-	backupCount = 0
 	for rows.Next() {
 		var (
 			id                 int
@@ -369,20 +297,14 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 			resetExpires       sql.NullString
 		)
 
-		err = rows.Scan(&id, &googleID, &appleID, &email, &password, &name, &givenName, &familyName,
+		err := rows.Scan(&id, &googleID, &appleID, &email, &password, &name, &givenName, &familyName,
 			&picture, &profileImageBlob, &locale, &verifiedEmail, &verificationCode, &userType,
 			&createdAt, &updatedAt, &resetToken, &resetExpires)
 		if err != nil {
 			return fmt.Errorf("failed to scan backup user row: %v", err)
 		}
 
-		// PROTECCIÓN: Solo restaurar usuarios que NO sean tipo 'email'
-		if userType == "email" {
-			log.Printf("🔐 Omitiendo restauración de usuario tipo 'email': %s", email)
-			continue
-		}
-
-		// Insertar en tabla principal solo usuarios no-email
+		// Insertar en tabla principal
 		_, err = g.db.Exec(`
 			INSERT INTO users (id, google_id, apple_id, email, password, name, given_name, family_name,
 				picture, profile_image_blob, locale, verified_email, verification_code, type,
@@ -394,30 +316,9 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 		if err != nil {
 			return fmt.Errorf("failed to insert user from backup: %v", err)
 		}
-		backupCount++
 	}
 
-	// Restaurar usuarios tipo email que se guardaron en memoria
-	emailCount := 0
-	for _, emailUser := range emailUsers {
-		_, err = g.db.Exec(`
-			INSERT INTO users (id, google_id, apple_id, email, password, name, given_name, family_name,
-				picture, profile_image_blob, locale, verified_email, verification_code, type,
-				created_at, updated_at, reset_token, reset_expires)
-			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-		`, emailUser["id"], emailUser["google_id"], emailUser["apple_id"], emailUser["email"],
-			emailUser["password"], emailUser["name"], emailUser["given_name"], emailUser["family_name"],
-			emailUser["picture"], emailUser["profile_image_blob"], emailUser["locale"], emailUser["verified_email"],
-			emailUser["verification_code"], emailUser["type"], emailUser["created_at"], emailUser["updated_at"],
-			emailUser["reset_token"], emailUser["reset_expires"])
-		if err != nil {
-			log.Printf("⚠️ Error restaurando usuario email %v: %v", emailUser["email"], err)
-		} else {
-			emailCount++
-		}
-	}
-
-	log.Printf("✅ Restauración completada: %d usuarios del backup + %d usuarios email preservados = %d total", backupCount, emailCount, backupCount+emailCount)
+	log.Printf("✅ Restauración completada: %d usuarios restaurados", backupCount)
 	return nil
 }
 

@@ -257,23 +257,51 @@ func cascadeBalanceUpdatesExpense(userID string, fromYearMonth string, expenseCa
 	}
 	defer rows.Close()
 
-	// Process each future month to update cumulative balances (expenses reduce balances)
+	// Collect all existing months to identify gaps
+	var existingMonths []struct {
+		month            string
+		prevCash         float64
+		prevBank         float64
+		currentCash      float64
+		currentBank      float64
+		totalPrevBalance float64
+		totalBalance     float64
+	}
+
 	for rows.Next() {
-		var month string
-		var prevCash, prevBank, currentCash, currentBank, totalPrevBalance, totalBalance float64
+		var monthData struct {
+			month            string
+			prevCash         float64
+			prevBank         float64
+			currentCash      float64
+			currentBank      float64
+			totalPrevBalance float64
+			totalBalance     float64
+		}
 		
-		err := rows.Scan(&month, &prevCash, &prevBank, &currentCash, &currentBank, &totalPrevBalance, &totalBalance)
+		err := rows.Scan(&monthData.month, &monthData.prevCash, &monthData.prevBank, 
+			&monthData.currentCash, &monthData.currentBank, &monthData.totalPrevBalance, &monthData.totalBalance)
 		if err != nil {
 			return fmt.Errorf("error scanning row: %v", err)
 		}
+		existingMonths = append(existingMonths, monthData)
+	}
 
+	// Fill gaps between fromYearMonth and first existing month, and between existing months
+	err = fillGapMonthsExpense(userID, fromYearMonth, existingMonths, expenseCashDelta, expenseBankDelta)
+	if err != nil {
+		return fmt.Errorf("error filling gap months: %v", err)
+	}
+
+	// Process each existing month to update cumulative balances (expenses reduce balances)
+	for _, monthData := range existingMonths {
 		// Update cumulative amounts for this month (subtract expense amounts)
-		newPrevCash := prevCash - expenseCashDelta
-		newPrevBank := prevBank - expenseBankDelta
-		newCurrentCash := currentCash - expenseCashDelta
-		newCurrentBank := currentBank - expenseBankDelta
-		newTotalPrevBalance := totalPrevBalance - expenseCashDelta - expenseBankDelta
-		newTotalBalance := totalBalance - expenseCashDelta - expenseBankDelta
+		newPrevCash := monthData.prevCash - expenseCashDelta
+		newPrevBank := monthData.prevBank - expenseBankDelta
+		newCurrentCash := monthData.currentCash - expenseCashDelta
+		newCurrentBank := monthData.currentBank - expenseBankDelta
+		newTotalPrevBalance := monthData.totalPrevBalance - expenseCashDelta - expenseBankDelta
+		newTotalBalance := monthData.totalBalance - expenseCashDelta - expenseBankDelta
 
 		// Update the record
 		updateQuery := `
@@ -295,13 +323,119 @@ func cascadeBalanceUpdatesExpense(userID string, fromYearMonth string, expenseCa
 			newCurrentCash, newCurrentBank,
 			newCurrentCash, newCurrentBank,  // balance amounts equal current amounts
 			newTotalPrevBalance, newTotalBalance,
-			userID, month)
+			userID, monthData.month)
 		if err != nil {
-			return fmt.Errorf("error updating cascaded balance for month %s: %v", month, err)
+			return fmt.Errorf("error updating cascaded balance for month %s: %v", monthData.month, err)
 		}
 
 		log.Printf("Cascaded expense balance update for user %s, month %s - cash delta: -%v, bank delta: -%v", 
-			userID, month, expenseCashDelta, expenseBankDelta)
+			userID, monthData.month, expenseCashDelta, expenseBankDelta)
+	}
+
+	return nil
+}
+
+// fillGapMonthsExpense crea registros para meses faltantes entre el mes de origen y los meses existentes (para gastos)
+func fillGapMonthsExpense(userID string, fromYearMonth string, existingMonths []struct {
+	month            string
+	prevCash         float64
+	prevBank         float64
+	currentCash      float64
+	currentBank      float64
+	totalPrevBalance float64
+	totalBalance     float64
+}, expenseCashDelta, expenseBankDelta float64) error {
+	
+	// Parse fromYearMonth to start iteration
+	fromDate, err := time.Parse("2006-01", fromYearMonth)
+	if err != nil {
+		return fmt.Errorf("error parsing fromYearMonth: %v", err)
+	}
+
+	// Get the balance from fromYearMonth to propagate
+	var baseCash, baseBank, baseTotalBalance float64
+	baseQuery := `SELECT cash_amount, bank_amount, total_balance FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+	err = db.QueryRow(baseQuery, userID, fromYearMonth).Scan(&baseCash, &baseBank, &baseTotalBalance)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error getting base month balance: %v", err)
+	}
+
+	// Subtract the expense delta from the base amounts (expenses reduce balances)
+	baseCash -= expenseCashDelta
+	baseBank -= expenseBankDelta
+	baseTotalBalance -= expenseCashDelta + expenseBankDelta
+
+	currentMonth := fromDate.AddDate(0, 1, 0) // Start from next month after fromYearMonth
+	
+	for _, existingMonth := range existingMonths {
+		existingDate, err := time.Parse("2006-01", existingMonth.month)
+		if err != nil {
+			continue
+		}
+
+		// Fill gaps between currentMonth and existingMonth
+		for currentMonth.Before(existingDate) {
+			currentMonthStr := currentMonth.Format("2006-01")
+			
+			// Check if this month already exists
+			var exists bool
+			checkQuery := `SELECT 1 FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+			err := db.QueryRow(checkQuery, userID, currentMonthStr).Scan(&exists)
+			
+			if err == sql.ErrNoRows {
+				// Create gap month record
+				insertQuery := `
+					INSERT INTO monthly_cash_bank_balance (
+						user_id, year_month, 
+						income_bank_amount, income_cash_amount,
+						expense_bank_amount, expense_cash_amount,
+						bill_bank_amount, bill_cash_amount,
+						bank_amount, cash_amount,
+						previous_bank_amount, previous_cash_amount,
+						balance_cash_amount, balance_bank_amount,
+						total_previous_balance, total_balance,
+						created_at, updated_at
+					) VALUES (?, ?, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				`
+				
+				// For gap months, previous amounts are from the previous month
+				prevMonth := currentMonth.AddDate(0, -1, 0)
+				var prevCash, prevBank, prevTotalBalance float64
+				
+				if prevMonth.Format("2006-01") == fromYearMonth {
+					// Previous month is the fromYearMonth
+					prevCash = baseCash + expenseCashDelta  // Add delta back to get original amount
+					prevBank = baseBank + expenseBankDelta
+					prevTotalBalance = baseTotalBalance + expenseCashDelta + expenseBankDelta
+				} else {
+					// Get from database
+					prevQuery := `SELECT cash_amount, bank_amount, total_balance FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+					err = db.QueryRow(prevQuery, userID, prevMonth.Format("2006-01")).Scan(&prevCash, &prevBank, &prevTotalBalance)
+					if err != nil && err != sql.ErrNoRows {
+						return fmt.Errorf("error getting previous month balance: %v", err)
+					}
+				}
+
+				_, err = db.Exec(insertQuery, 
+					userID, currentMonthStr,
+					baseCash, baseCash,      // current amounts (propagated from base with expense impact)
+					prevCash, prevBank,      // previous month amounts
+					baseCash, baseBank,      // balance amounts
+					prevTotalBalance, baseTotalBalance)  // total balances
+				
+				if err != nil {
+					return fmt.Errorf("error inserting gap month %s: %v", currentMonthStr, err)
+				}
+
+				log.Printf("Created gap month record for expense user %s, month %s - cash: %v, bank: %v", 
+					userID, currentMonthStr, baseCash, baseBank)
+			}
+			
+			currentMonth = currentMonth.AddDate(0, 1, 0)
+		}
+		
+		// Move currentMonth to after this existing month
+		currentMonth = existingDate.AddDate(0, 1, 0)
 	}
 
 	return nil
