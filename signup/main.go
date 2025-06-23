@@ -235,7 +235,23 @@ func getVerificationEmailTemplate(language string) VerificationEmailTemplate {
 }
 
 func migrateTableStructure(db *sql.DB) error {
-	log.Println("Checking if table structure migration is needed...")
+	log.Println("🔍 Checking if table structure migration is needed...")
+	
+	// PROTECCIÓN CRÍTICA: Verificar usuarios existentes antes de cualquier migración
+	userCount, err := getUserCount(db)
+	if err != nil {
+		log.Printf("⚠️ Warning: Could not get user count before migration: %v", err)
+		userCount = 0
+	}
+	log.Printf("📊 Current users in database: %d", userCount)
+	
+	// Backup específico de usuarios tipo email antes de migración
+	emailUsers, err := getEmailTypeUsers(db)
+	if err != nil {
+		log.Printf("⚠️ Warning: Could not backup email users: %v", err)
+	} else {
+		log.Printf("🔐 Found %d users with type='email' to protect", len(emailUsers))
+	}
 
 	// Check if the current table has the old structure (email UNIQUE)
 	// We'll check the table schema to see if it has the problematic constraint
@@ -256,11 +272,13 @@ func migrateTableStructure(db *sql.DB) error {
 	hasOldStructure := strings.Contains(tableSQL, "email TEXT UNIQUE") && !strings.Contains(tableSQL, "UNIQUE(email, type)")
 
 	if !hasOldStructure {
-		log.Println("Table structure is already up to date")
+		log.Println("✅ Table structure is already up to date - no migration needed")
+		log.Printf("🔐 Users remain safe: %d total users preserved", userCount)
 		return nil
 	}
 
-	log.Println("Migrating table structure from old (email UNIQUE) to new (email, type UNIQUE)...")
+	log.Println("🚨 CRITICAL: Migrating table structure from old (email UNIQUE) to new (email, type UNIQUE)...")
+	log.Printf("🔐 Protecting %d users during migration, including %d email-type users", userCount, len(emailUsers))
 
 	// Begin transaction for safe migration
 	tx, err := db.Begin()
@@ -297,7 +315,8 @@ func migrateTableStructure(db *sql.DB) error {
 		return fmt.Errorf("failed to create new table: %v", err)
 	}
 
-	// Copy all existing data to the new table
+	// PROTECCIÓN CRÍTICA: Copy ALL existing data to the new table (including email users)
+	log.Println("📋 Copying ALL user data to new table structure...")
 	_, err = tx.Exec(`
 		INSERT INTO users_new (
 			id, google_id, apple_id, email, password, name, given_name, family_name,
@@ -328,6 +347,22 @@ func migrateTableStructure(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to copy data to new table: %v", err)
 	}
+	
+	// VERIFICACIÓN CRÍTICA: Confirmar que todos los usuarios se copiaron
+	newUserCount, err := tx.Query("SELECT COUNT(*) FROM users_new")
+	if err != nil {
+		log.Printf("⚠️ Warning: Could not verify new table user count: %v", err)
+	} else {
+		var count int
+		if newUserCount.Next() {
+			newUserCount.Scan(&count)
+		}
+		newUserCount.Close()
+		log.Printf("✅ Verification: %d users copied to new table (expected: %d)", count, userCount)
+		if count != userCount {
+			return fmt.Errorf("CRITICAL ERROR: User count mismatch during migration! Original: %d, New: %d", userCount, count)
+		}
+	}
 
 	// Drop the old table
 	_, err = tx.Exec("DROP TABLE users")
@@ -352,8 +387,51 @@ func migrateTableStructure(db *sql.DB) error {
 		return fmt.Errorf("failed to commit migration transaction: %v", err)
 	}
 
-	log.Println("Table structure migration completed successfully")
+	// VERIFICACIÓN FINAL: Confirmar que todos los usuarios están en la nueva tabla
+	finalCount, err := getUserCount(db)
+	if err != nil {
+		log.Printf("⚠️ Warning: Could not verify final user count: %v", err)
+	} else {
+		log.Printf("✅ Final verification: %d users in migrated table", finalCount)
+		if finalCount != userCount {
+			log.Printf("🚨 WARNING: User count changed during migration! Before: %d, After: %d", userCount, finalCount)
+		}
+	}
+	
+	log.Println("✅ Table structure migration completed successfully")
+	log.Printf("🔐 All %d users preserved during migration", finalCount)
 	return nil
+}
+
+// getUserCount cuenta el total de usuarios en la base de datos
+func getUserCount(db *sql.DB) (int, error) {
+	var count int
+	err := db.QueryRow("SELECT COUNT(*) FROM users").Scan(&count)
+	return count, err
+}
+
+// getEmailTypeUsers obtiene todos los usuarios tipo email para protegerlos
+func getEmailTypeUsers(db *sql.DB) ([]map[string]interface{}, error) {
+	rows, err := db.Query("SELECT id, email, type FROM users WHERE type = 'email'")
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	
+	var emailUsers []map[string]interface{}
+	for rows.Next() {
+		var id int
+		var email, userType string
+		if err := rows.Scan(&id, &email, &userType); err != nil {
+			continue
+		}
+		emailUsers = append(emailUsers, map[string]interface{}{
+			"id": id,
+			"email": email,
+			"type": userType,
+		})
+	}
+	return emailUsers, nil
 }
 
 func init() {

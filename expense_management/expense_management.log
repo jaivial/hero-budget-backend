@@ -1,42 +1,46 @@
-2025/06/23 22:16:29 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 22:16:29 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 22:16:29 Database connection established successfully
-2025/06/23 22:16:29 Expense Management service initialized successfully
-2025/06/23 22:16:29 Expense Management service started on :8094
-2025/06/23 22:17:55 Note: All balance updates for expense reversal completed - amount: 200, method: cash
-2025/06/23 22:17:55 Cascaded expense balance update for user test_expense_fixed, month 2025-02 - cash delta: -200, bank delta: -0
-2025/06/23 22:17:55 Cascaded expense balance update for user test_expense_fixed, month 2025-03 - cash delta: -200, bank delta: -0
-2025/06/23 22:17:55 Cascaded expense balance update for user test_expense_fixed, month 2025-04 - cash delta: -200, bank delta: -0
-2025/06/23 22:17:55 Updated monthly_cash_bank_balance for expense - user test_expense_fixed, month 2025-01 - cash: 200, bank: 0 (with cascade)
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:daily
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:weekly
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:monthly
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:quarterly
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:semiannual
-2025/06/23 22:17:55 🗑️ Cache DELETE: expense:test_expense_fixed:annual
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:daily
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:weekly
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:monthly
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:quarterly
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:semiannual
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:annual
-2025/06/23 22:17:55 🗑️ Cache DELETE: dashboard:test_expense_fixed:monthly
-2025/06/23 22:17:55 ✅ Cache invalidated for user: test_expense_fixed (expenses and dashboard)
-2025/06/23 22:18:17 Note: All balance updates for expense reversal completed - amount: 150.75, method: bank
-2025/06/23 22:18:17 Cascaded expense balance update for user test_expense_fixed, month 2025-03 - cash delta: -0, bank delta: -150.75
-2025/06/23 22:18:17 Cascaded expense balance update for user test_expense_fixed, month 2025-04 - cash delta: -0, bank delta: -150.75
-2025/06/23 22:18:17 Updated monthly_cash_bank_balance for expense - user test_expense_fixed, month 2025-02 - cash: 0, bank: 150.75 (with cascade)
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:daily
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:weekly
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:monthly
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:quarterly
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:semiannual
-2025/06/23 22:18:17 🗑️ Cache DELETE: expense:test_expense_fixed:annual
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:daily
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:weekly
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:monthly
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:quarterly
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:semiannual
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:annual
-2025/06/23 22:18:17 🗑️ Cache DELETE: dashboard:test_expense_fixed:monthly
-2025/06/23 22:18:17 ✅ Cache invalidated for user: test_expense_fixed (expenses and dashboard)
+2025/06/23 22:53:04 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 22:53:04 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 22:53:04 Database connection established successfully
+2025/06/23 22:53:04 Expense Management service initialized successfully
+2025/06/23 22:53:04 Expense Management service started on :8094
+2025/06/23 22:54:44 Note: All balance updates for expense reversal completed - amount: 300, method: bank
+2025/06/23 22:54:44 Created gap month record for expense user test_expense_gaps, month 2025-04 - cash: 0, bank: -600
+2025/06/23 22:54:44 Created gap month record for expense user test_expense_gaps, month 2025-05 - cash: 0, bank: -600
+2025/06/23 22:54:44 Created gap month record for expense user test_expense_gaps, month 2025-06 - cash: 0, bank: -600
+2025/06/23 22:54:44 Created gap month record for expense user test_expense_gaps, month 2025-07 - cash: 0, bank: -600
+2025/06/23 22:54:44 Cascaded expense balance update for user test_expense_gaps, month 2025-08 - cash delta: -0, bank delta: -300
+2025/06/23 22:54:44 Updated monthly_cash_bank_balance for expense - user test_expense_gaps, month 2025-03 - cash: 0, bank: 300 (with cascade)
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:daily
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:weekly
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:monthly
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:quarterly
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:semiannual
+2025/06/23 22:54:44 🗑️ Cache DELETE: expense:test_expense_gaps:annual
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:daily
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:weekly
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:monthly
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:quarterly
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:semiannual
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:annual
+2025/06/23 22:54:44 🗑️ Cache DELETE: dashboard:test_expense_gaps:monthly
+2025/06/23 22:54:44 ✅ Cache invalidated for user: test_expense_gaps (expenses and dashboard)
+2025/06/23 22:56:17 Note: All balance updates for expense reversal completed - amount: 450, method: cash
+2025/06/23 22:56:17 Cascaded expense balance update for user test_mixed_transactions, month 2025-06 - cash delta: -450, bank delta: -0
+2025/06/23 22:56:17 Cascaded expense balance update for user test_mixed_transactions, month 2025-07 - cash delta: -450, bank delta: -0
+2025/06/23 22:56:17 Cascaded expense balance update for user test_mixed_transactions, month 2025-08 - cash delta: -450, bank delta: -0
+2025/06/23 22:56:17 Cascaded expense balance update for user test_mixed_transactions, month 2025-09 - cash delta: -450, bank delta: -0
+2025/06/23 22:56:17 Updated monthly_cash_bank_balance for expense - user test_mixed_transactions, month 2025-05 - cash: 450, bank: 0 (with cascade)
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:daily
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:weekly
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:monthly
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:quarterly
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:semiannual
+2025/06/23 22:56:17 🗑️ Cache DELETE: expense:test_mixed_transactions:annual
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:daily
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:weekly
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:monthly
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:quarterly
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:semiannual
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:annual
+2025/06/23 22:56:17 🗑️ Cache DELETE: dashboard:test_mixed_transactions:monthly
+2025/06/23 22:56:17 ✅ Cache invalidated for user: test_mixed_transactions (expenses and dashboard)

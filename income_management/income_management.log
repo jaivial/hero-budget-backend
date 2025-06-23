@@ -1,31 +1,38 @@
-2025/06/23 21:54:49 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 21:54:49 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 21:54:49 Database connection established successfully
-2025/06/23 21:54:49 Income Management service started on :8093
-2025/06/23 21:55:28 Cascaded balance update for user test_cascade, month 2025-02 - cash delta: 0, bank delta: 500
-2025/06/23 21:55:28 Cascaded balance update for user test_cascade, month 2025-03 - cash delta: 0, bank delta: 500
-2025/06/23 21:55:28 Cascaded balance update for user test_cascade, month 2025-04 - cash delta: 0, bank delta: 500
-2025/06/23 21:55:28 Updated monthly_cash_bank_balance for user test_cascade, month 2025-01 - cash: 0, bank: 500 (with cascade)
-2025/06/23 21:55:28 Note: Balance recalculation triggered for userID: test_cascade, date: 2025-01-15
-2025/06/23 21:55:28 🗑️ Cache DELETE: income:test_cascade:analytics
-2025/06/23 21:55:28 🗑️ Cache DELETE: dashboard:test_cascade:analytics
-2025/06/23 21:55:28 🗑️ Cache DELETE: income:test_cascade:monthly
-2025/06/23 21:55:28 🗑️ Cache DELETE: income:test_cascade:daily
-2025/06/23 21:55:28 🗑️ Cache DELETE: income:test_cascade:weekly
-2025/06/23 21:55:28 🗑️ Cache DELETE: dashboard:test_cascade:monthly
-2025/06/23 21:55:28 🗑️ Cache DELETE: dashboard:test_cascade:daily
-2025/06/23 21:55:28 🗑️ Cache DELETE: dashboard:test_cascade:weekly
-2025/06/23 21:55:28 🗑️ Cache DELETE: dashboard:test_cascade:monthly
-2025/06/23 21:55:51 Cascaded balance update for user test_cascade, month 2025-03 - cash delta: 250, bank delta: 0
-2025/06/23 21:55:51 Cascaded balance update for user test_cascade, month 2025-04 - cash delta: 250, bank delta: 0
-2025/06/23 21:55:51 Updated monthly_cash_bank_balance for user test_cascade, month 2025-02 - cash: 250, bank: 0 (with cascade)
-2025/06/23 21:55:51 Note: Balance recalculation triggered for userID: test_cascade, date: 2025-02-10
-2025/06/23 21:55:51 🗑️ Cache DELETE: income:test_cascade:analytics
-2025/06/23 21:55:51 🗑️ Cache DELETE: dashboard:test_cascade:analytics
-2025/06/23 21:55:51 🗑️ Cache DELETE: income:test_cascade:monthly
-2025/06/23 21:55:51 🗑️ Cache DELETE: income:test_cascade:daily
-2025/06/23 21:55:51 🗑️ Cache DELETE: income:test_cascade:weekly
-2025/06/23 21:55:51 🗑️ Cache DELETE: dashboard:test_cascade:monthly
-2025/06/23 21:55:51 🗑️ Cache DELETE: dashboard:test_cascade:daily
-2025/06/23 21:55:51 🗑️ Cache DELETE: dashboard:test_cascade:weekly
-2025/06/23 21:55:51 🗑️ Cache DELETE: dashboard:test_cascade:monthly
+2025/06/23 22:53:06 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 22:53:06 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 22:53:06 Database connection established successfully
+2025/06/23 22:53:06 Income Management service started on :8093
+2025/06/23 22:53:52 Created gap month record for user test_gap_months, month 2025-02 - cash: 1000, bank: 0
+2025/06/23 22:53:52 Created gap month record for user test_gap_months, month 2025-03 - cash: 1000, bank: 0
+2025/06/23 22:53:52 Created gap month record for user test_gap_months, month 2025-04 - cash: 1000, bank: 0
+2025/06/23 22:53:52 Created gap month record for user test_gap_months, month 2025-05 - cash: 1000, bank: 0
+2025/06/23 22:53:52 Cascaded balance update for user test_gap_months, month 2025-06 - cash delta: 500, bank delta: 0
+2025/06/23 22:53:52 Updated monthly_cash_bank_balance for user test_gap_months, month 2025-01 - cash: 500, bank: 0 (with cascade)
+2025/06/23 22:53:52 Note: Balance recalculation triggered for userID: test_gap_months, date: 2025-01-15
+2025/06/23 22:53:52 🗑️ Cache DELETE: income:test_gap_months:analytics
+2025/06/23 22:53:52 🗑️ Cache DELETE: dashboard:test_gap_months:analytics
+2025/06/23 22:53:52 🗑️ Cache DELETE: income:test_gap_months:monthly
+2025/06/23 22:53:52 🗑️ Cache DELETE: income:test_gap_months:daily
+2025/06/23 22:53:52 🗑️ Cache DELETE: income:test_gap_months:weekly
+2025/06/23 22:53:52 🗑️ Cache DELETE: dashboard:test_gap_months:monthly
+2025/06/23 22:53:52 🗑️ Cache DELETE: dashboard:test_gap_months:daily
+2025/06/23 22:53:52 🗑️ Cache DELETE: dashboard:test_gap_months:weekly
+2025/06/23 22:53:52 🗑️ Cache DELETE: dashboard:test_gap_months:monthly
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-03 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-04 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-05 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-06 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-07 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Created gap month record for user test_mixed_transactions, month 2025-08 - cash: 0, bank: 2400
+2025/06/23 22:56:04 Cascaded balance update for user test_mixed_transactions, month 2025-09 - cash delta: 0, bank delta: 1200
+2025/06/23 22:56:04 Updated monthly_cash_bank_balance for user test_mixed_transactions, month 2025-02 - cash: 0, bank: 1200 (with cascade)
+2025/06/23 22:56:04 Note: Balance recalculation triggered for userID: test_mixed_transactions, date: 2025-02-15
+2025/06/23 22:56:04 🗑️ Cache DELETE: income:test_mixed_transactions:analytics
+2025/06/23 22:56:04 🗑️ Cache DELETE: dashboard:test_mixed_transactions:analytics
+2025/06/23 22:56:04 🗑️ Cache DELETE: income:test_mixed_transactions:monthly
+2025/06/23 22:56:04 🗑️ Cache DELETE: income:test_mixed_transactions:daily
+2025/06/23 22:56:04 🗑️ Cache DELETE: income:test_mixed_transactions:weekly
+2025/06/23 22:56:04 🗑️ Cache DELETE: dashboard:test_mixed_transactions:monthly
+2025/06/23 22:56:04 🗑️ Cache DELETE: dashboard:test_mixed_transactions:daily
+2025/06/23 22:56:04 🗑️ Cache DELETE: dashboard:test_mixed_transactions:weekly
+2025/06/23 22:56:04 🗑️ Cache DELETE: dashboard:test_mixed_transactions:monthly

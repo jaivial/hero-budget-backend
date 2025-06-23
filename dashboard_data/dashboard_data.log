@@ -1,5 +1,5 @@
-2025/06/23 20:06:21 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 20:06:21 Note: period column might already exist: duplicate column name: period
-2025/06/23 20:06:21 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 20:06:21 Database connection established successfully
-2025/06/23 20:06:21 Dashboard Data service started on :8087
+2025/06/23 22:53:03 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 22:53:03 Note: period column might already exist: duplicate column name: period
+2025/06/23 22:53:03 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 22:53:03 Database connection established successfully
+2025/06/23 22:53:03 Dashboard Data service started on :8087
