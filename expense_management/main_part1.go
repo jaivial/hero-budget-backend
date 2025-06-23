@@ -90,11 +90,9 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create tables if they don't exist to ensure proper schema
-	createTablesIfNotExist()
-
-	// Add cash_amount and bank_amount columns to all balance tables if needed
-	addCashBankColumnsToAllTables()
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 	
 	// Initialize cache manager for Redis operations
 	cacheManager, err = common.NewCacheManager()

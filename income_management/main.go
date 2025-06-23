@@ -45,8 +45,9 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create tables if they don't exist
-	createTablesIfNotExist()
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 
 	// Initialize cache manager
 	var err2 error
@@ -55,9 +56,6 @@ func init() {
 		log.Printf("Warning: Failed to initialize cache manager: %v", err2)
 		cacheManager = nil
 	}
-
-	// Ejecutar las verificaciones y añadir columnas faltantes
-	ensureRequiredColumns()
 
 	log.Println("Database connection established successfully")
 }

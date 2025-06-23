@@ -72,8 +72,9 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create tables if they don't exist
-	createTablesIfNotExist()
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 	
 	// Initialize cache manager
 	cacheManager, err = common.NewCacheManager()
@@ -85,33 +86,10 @@ func init() {
 	log.Println("Database connection established successfully")
 }
 
-func createTablesIfNotExist() {
-	// Create savings table
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS savings (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			user_id TEXT NOT NULL,
-			available REAL NOT NULL,
-			goal REAL NOT NULL,
-			period TEXT NOT NULL DEFAULT 'monthly',
-			percent REAL NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create savings table: %v", err)
-	}
-
-	// Add period column if it doesn't exist (for existing tables)
-	_, err = db.Exec(`
-		ALTER TABLE savings ADD COLUMN period TEXT NOT NULL DEFAULT 'monthly'
-	`)
-	if err != nil {
-		// Column might already exist, which is fine
-		log.Printf("Note: period column might already exist: %v", err)
-	}
-}
+// CENTRALIZED SCHEMA MIGRATION:
+// This function has been removed - all DDL operations are now centralized
+// in backend/database_schema.sql and managed by the centralized database
+// initialization service.
 
 func main() {
 	// Set up CORS middleware and routes

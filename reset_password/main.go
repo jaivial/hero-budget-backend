@@ -283,79 +283,9 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create users table if it doesn't exist - ESTRUCTURA MODERNA COMPATIBLE
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS users (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			google_id TEXT UNIQUE,
-			apple_id TEXT,
-			email TEXT,
-			password TEXT,
-			name TEXT,
-			given_name TEXT,
-			family_name TEXT,
-			picture TEXT,
-			profile_image_blob TEXT,
-			locale TEXT,
-			verified_email BOOLEAN,
-			verification_code TEXT,
-			type TEXT DEFAULT 'email',
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			reset_token TEXT,
-			reset_expires DATETIME,
-			UNIQUE(email, type)
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create users table: %v", err)
-	}
-
-	// Check if the reset_token and reset_expires columns exist, if not add them
-	rows, err := db.Query("PRAGMA table_info(users)")
-	if err != nil {
-		log.Fatalf("Failed to query table info: %v", err)
-	}
-
-	hasResetTokenColumn := false
-	hasResetExpiresColumn := false
-
-	for rows.Next() {
-		var cid int
-		var name string
-		var dataType string
-		var notNull bool
-		var defaultValue interface{}
-		var primaryKey bool
-
-		if err := rows.Scan(&cid, &name, &dataType, &notNull, &defaultValue, &primaryKey); err != nil {
-			log.Fatalf("Failed to scan table info: %v", err)
-		}
-
-		if name == "reset_token" {
-			hasResetTokenColumn = true
-		}
-		if name == "reset_expires" {
-			hasResetExpiresColumn = true
-		}
-	}
-	rows.Close()
-
-	if !hasResetTokenColumn {
-		log.Println("Adding missing reset_token column to users table")
-		_, err = db.Exec("ALTER TABLE users ADD COLUMN reset_token TEXT")
-		if err != nil {
-			log.Fatalf("Failed to add reset_token column: %v", err)
-		}
-	}
-
-	if !hasResetExpiresColumn {
-		log.Println("Adding missing reset_expires column to users table")
-		_, err = db.Exec("ALTER TABLE users ADD COLUMN reset_expires DATETIME")
-		if err != nil {
-			log.Fatalf("Failed to add reset_expires column: %v", err)
-		}
-	}
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 
 	log.Println("Database connection established successfully")
 

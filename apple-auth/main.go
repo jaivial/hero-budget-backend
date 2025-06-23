@@ -44,12 +44,9 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Add type column if it doesn't exist (for existing databases)
-	_, err = db.Exec(`ALTER TABLE users ADD COLUMN type TEXT DEFAULT 'apple'`)
-	if err != nil {
-		// Ignore error if column already exists
-		log.Printf("Column 'type' may already exist: %v", err)
-	}
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 
 	log.Println("Database connection established successfully")
 }

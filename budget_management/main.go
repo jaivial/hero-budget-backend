@@ -75,54 +75,18 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create tables if they don't exist
-	createTablesIfNotExist()
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 
 	log.Println("Database connection established successfully")
 }
 
 
-func createTablesIfNotExist() {
-	// Create budget table with new total_income column
-	_, err := db.Exec(`
-		CREATE TABLE IF NOT EXISTS budget (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			user_id TEXT NOT NULL,
-			period TEXT NOT NULL,
-			date TEXT NOT NULL,
-			total_amount REAL NOT NULL,
-			remaining_amount REAL NOT NULL,
-			spent_amount REAL NOT NULL,
-			upcoming_amount REAL NOT NULL,
-			from_previous REAL NOT NULL,
-			percent REAL NOT NULL,
-			total_income REAL NOT NULL DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create budget table: %v", err)
-	}
-
-	// Check if total_income column exists and add it if it doesn't
-	var exists int
-	err = db.QueryRow(`
-		SELECT COUNT(*) FROM pragma_table_info('budget') WHERE name='total_income'
-	`).Scan(&exists)
-
-	if err != nil {
-		log.Printf("Error checking for total_income column: %v", err)
-	} else if exists == 0 {
-		// Add the column if it doesn't exist
-		_, err = db.Exec(`ALTER TABLE budget ADD COLUMN total_income REAL NOT NULL DEFAULT 0`)
-		if err != nil {
-			log.Printf("Error adding total_income column: %v", err)
-		} else {
-			log.Println("Added total_income column to budget table")
-		}
-	}
-}
+// CENTRALIZED SCHEMA MIGRATION:
+// This function has been removed - all DDL operations are now centralized
+// in backend/database_schema.sql and managed by the centralized database
+// initialization service.
 
 func main() {
 	// Set up CORS middleware and routes

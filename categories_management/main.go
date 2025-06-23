@@ -130,19 +130,9 @@ func openDatabaseConnection() (*sql.DB, error) {
 		// Continuar a pesar del error
 	}
 
-	// Crear la tabla si no existe
-	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS categories (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
-		user_id TEXT NOT NULL,
-		name TEXT NOT NULL,
-		type TEXT NOT NULL,
-		emoji TEXT NOT NULL,
-		created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-		updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-	)`)
-	if err != nil {
-		return nil, err
-	}
+	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
+	// Tables are now created by centralized database initialization
+	log.Println("✅ Using centralized database schema - no local DDL operations")
 
 	return db, nil
 }
