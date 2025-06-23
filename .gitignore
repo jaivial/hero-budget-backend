@@ -3,4 +3,5 @@ google_auth/update_locale_handler.go
 google_auth/users.db
 google_auth/users.db-wal
 google_auth/users.db-shm
-bills_management/users.db
+bills_management/users.dbgoogle_auth/update_locale_handler.go
+.env
