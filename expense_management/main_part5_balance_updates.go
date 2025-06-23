@@ -240,6 +240,164 @@ func updateBalance(userID string, amount float64, paymentMethod string) error {
 	return nil
 }
 
+// cascadeBalanceUpdatesExpense actualiza balances acumulativos para todos los meses posteriores al mes especificado (para gastos)
+func cascadeBalanceUpdatesExpense(userID string, fromYearMonth string, expenseCashDelta, expenseBankDelta float64) error {
+	// Get all months after the specified month for this user, ordered by year_month
+	query := `
+		SELECT year_month, previous_cash_amount, previous_bank_amount, 
+			   cash_amount, bank_amount, total_previous_balance, total_balance
+		FROM monthly_cash_bank_balance 
+		WHERE user_id = ? AND year_month > ?
+		ORDER BY year_month ASC
+	`
+	
+	rows, err := db.Query(query, userID, fromYearMonth)
+	if err != nil {
+		return fmt.Errorf("error querying future months: %v", err)
+	}
+	defer rows.Close()
+
+	// Process each future month to update cumulative balances (expenses reduce balances)
+	for rows.Next() {
+		var month string
+		var prevCash, prevBank, currentCash, currentBank, totalPrevBalance, totalBalance float64
+		
+		err := rows.Scan(&month, &prevCash, &prevBank, &currentCash, &currentBank, &totalPrevBalance, &totalBalance)
+		if err != nil {
+			return fmt.Errorf("error scanning row: %v", err)
+		}
+
+		// Update cumulative amounts for this month (subtract expense amounts)
+		newPrevCash := prevCash - expenseCashDelta
+		newPrevBank := prevBank - expenseBankDelta
+		newCurrentCash := currentCash - expenseCashDelta
+		newCurrentBank := currentBank - expenseBankDelta
+		newTotalPrevBalance := totalPrevBalance - expenseCashDelta - expenseBankDelta
+		newTotalBalance := totalBalance - expenseCashDelta - expenseBankDelta
+
+		// Update the record
+		updateQuery := `
+			UPDATE monthly_cash_bank_balance 
+			SET previous_cash_amount = ?,
+				previous_bank_amount = ?,
+				cash_amount = ?,
+				bank_amount = ?,
+				balance_cash_amount = ?,
+				balance_bank_amount = ?,
+				total_previous_balance = ?,
+				total_balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`
+		
+		_, err = db.Exec(updateQuery, 
+			newPrevCash, newPrevBank,
+			newCurrentCash, newCurrentBank,
+			newCurrentCash, newCurrentBank,  // balance amounts equal current amounts
+			newTotalPrevBalance, newTotalBalance,
+			userID, month)
+		if err != nil {
+			return fmt.Errorf("error updating cascaded balance for month %s: %v", month, err)
+		}
+
+		log.Printf("Cascaded expense balance update for user %s, month %s - cash delta: -%v, bank delta: -%v", 
+			userID, month, expenseCashDelta, expenseBankDelta)
+	}
+
+	return nil
+}
+
+// updateMonthlyCashBankBalanceExpense actualiza la tabla monthly_cash_bank_balance con efecto cascada para gastos
+func updateMonthlyCashBankBalanceExpense(userID string, expenseAmount, cashAmount, bankAmount float64, date time.Time) error {
+	yearMonth := date.Format("2006-01")
+	
+	// Get previous month's balance to calculate cumulative values
+	prevMonth := date.AddDate(0, -1, 0).Format("2006-01")
+	var prevCashTotal, prevBankTotal, prevTotalBalance float64
+	
+	prevQuery := `SELECT cash_amount, bank_amount, total_balance FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+	err := db.QueryRow(prevQuery, userID, prevMonth).Scan(&prevCashTotal, &prevBankTotal, &prevTotalBalance)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error getting previous month balance: %v", err)
+	}
+	// If no previous month, prevTotals remain 0
+	
+	// Check if record exists for this user and month
+	var exists bool
+	checkQuery := `SELECT 1 FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+	err = db.QueryRow(checkQuery, userID, yearMonth).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error checking existing record: %v", err)
+	}
+
+	if err == sql.ErrNoRows {
+		// Create new record with cumulative values (expenses reduce balances)
+		newCashTotal := prevCashTotal - cashAmount
+		newBankTotal := prevBankTotal - bankAmount
+		newTotalBalance := prevTotalBalance - cashAmount - bankAmount
+		
+		insertQuery := `
+			INSERT INTO monthly_cash_bank_balance (
+				user_id, year_month, 
+				income_bank_amount, income_cash_amount,
+				expense_bank_amount, expense_cash_amount,
+				bill_bank_amount, bill_cash_amount,
+				bank_amount, cash_amount,
+				previous_bank_amount, previous_cash_amount,
+				balance_cash_amount, balance_bank_amount,
+				total_previous_balance, total_balance,
+				created_at, updated_at
+			) VALUES (?, ?, 0, 0, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
+		_, err = db.Exec(insertQuery, 
+			userID, yearMonth,
+			bankAmount, cashAmount,   // expense amounts for this month
+			newBankTotal, newCashTotal,  // cumulative totals (reduced by expenses)
+			prevBankTotal, prevCashTotal,  // previous month totals
+			newCashTotal, newBankTotal,   // balance amounts  
+			prevTotalBalance, newTotalBalance)  // total balances
+		if err != nil {
+			return fmt.Errorf("error inserting monthly balance: %v", err)
+		}
+	} else {
+		// Update existing record (add to expense amounts and update cumulative totals)
+		updateQuery := `
+			UPDATE monthly_cash_bank_balance 
+			SET expense_bank_amount = expense_bank_amount + ?,
+				expense_cash_amount = expense_cash_amount + ?,
+				bank_amount = bank_amount - ?,
+				cash_amount = cash_amount - ?,
+				balance_bank_amount = balance_bank_amount - ?,
+				balance_cash_amount = balance_cash_amount - ?,
+				total_balance = total_balance - ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`
+		totalExpenseAmount := cashAmount + bankAmount
+		_, err = db.Exec(updateQuery,
+			bankAmount, cashAmount,  // add to expense amounts
+			bankAmount, cashAmount,  // subtract from current totals
+			bankAmount, cashAmount,  // subtract from balance amounts
+			totalExpenseAmount,      // subtract from total balance
+			userID, yearMonth)
+		if err != nil {
+			return fmt.Errorf("error updating monthly balance: %v", err)
+		}
+	}
+
+	// Trigger cascade update for all future months
+	err = cascadeBalanceUpdatesExpense(userID, yearMonth, cashAmount, bankAmount)
+	if err != nil {
+		log.Printf("Error cascading expense balance updates: %v", err)
+		return err
+	}
+
+	log.Printf("Updated monthly_cash_bank_balance for expense - user %s, month %s - cash: %v, bank: %v (with cascade)", 
+		userID, yearMonth, cashAmount, bankAmount)
+	
+	return nil
+}
+
 // Function to update balances across all time periods when adding an expense
 func updateTimeBalances(userID string, amount float64, dateStr string) error {
 	// Parse the expense date
@@ -275,19 +433,16 @@ func updateTimeBalances(userID string, amount float64, dateStr string) error {
 		bankAmount = amount
 	}
 
+	// Update monthly cash bank balance table for expenses
+	if err := updateMonthlyCashBankBalanceExpense(userID, amount, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating monthly cash bank balance for expense: %v", err)
+		return err
+	}
+
 	// Update daily balance
 	if err := updateDailyBalance(userID, 0, amount, 0, cashAmount, bankAmount, date); err != nil {
 		log.Printf("Error updating daily balance: %v", err)
 	}
-
-	// Balance updates - simplified logging approach
-	log.Printf("Weekly balance update for expense - userID: %s, amount: %v, cash: %v, bank: %v", userID, amount, cashAmount, bankAmount)
-	log.Printf("Monthly balance update for expense - userID: %s, amount: %v, cash: %v, bank: %v", userID, amount, cashAmount, bankAmount)
-	log.Printf("Quarterly balance update for expense - userID: %s, amount: %v, cash: %v, bank: %v", userID, amount, cashAmount, bankAmount)
-	log.Printf("Semiannual balance update for expense - userID: %s, amount: %v, cash: %v, bank: %v", userID, amount, cashAmount, bankAmount)
-
-	// Annual balance update - simplified logging
-	log.Printf("Annual balance update for expense - userID: %s, amount: %v, cash: %v, bank: %v", userID, amount, cashAmount, bankAmount)
 
 	return nil
 }

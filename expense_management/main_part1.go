@@ -207,6 +207,13 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		// Continue despite error since expense was added successfully
 	}
 
+	// Update time-based balances including monthly cash bank balance with cascade effects
+	err = updateTimeBalances(expense.UserID, expense.Amount, expense.Date)
+	if err != nil {
+		log.Printf("Error updating time balances: %v", err)
+		// Continue despite error since expense was added successfully
+	}
+
 	// Invalidate cache since expense data was modified
 	invalidateExpenseCache(expense.UserID)
 
