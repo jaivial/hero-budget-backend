@@ -1,12 +1,8 @@
-2025/06/22 03:25:44 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 03:25:44 Database connection established successfully
-2025/06/22 03:25:44 Redis connection failed (continuing without cache): dial tcp [::1]:6379: connect: connection refused
-2025/06/22 03:25:44 Fetch Dashboard service started on :8085
-2025/06/22 03:26:17 Getting user info for user ID: 13
-2025/06/22 03:26:17 User 13 type info - GoogleID: true, ProfileImageBlob present: false
-2025/06/22 03:26:17 Using Google profile picture URL for user 13
-2025/06/22 03:26:17 Successfully retrieved user 13: Jaime Billanueba (jaimebillanueba99@gmail.com) - DisplayImage set: true
-2025/06/22 04:28:02 Getting user info for user ID: 13
-2025/06/22 04:28:02 User 13 type info - GoogleID: true, ProfileImageBlob present: false
-2025/06/22 04:28:02 Using Google profile picture URL for user 13
-2025/06/22 04:28:02 Successfully retrieved user 13: Jaime Billanueba (jaimebillanueba99@gmail.com) - DisplayImage set: true
+2025/06/23 11:55:18 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 11:55:18 Database connection established successfully
+2025/06/23 11:55:18 Fetch Dashboard service initialized successfully
+2025/06/23 11:55:18 Fetch Dashboard service started on :8085
+2025/06/23 11:57:49 Getting user info for user ID: 15
+2025/06/23 11:57:49 User 15 type info - GoogleID: false, ProfileImageBlob present: false
+2025/06/23 11:57:49 Email user 15 has no profile image blob
+2025/06/23 11:57:49 Successfully retrieved user 15: jaimevillalcon (jaimevillalcon@hotmail.com) - DisplayImage set: false

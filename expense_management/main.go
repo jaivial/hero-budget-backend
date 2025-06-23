@@ -242,41 +242,6 @@ func createTablesIfNotExist() {
 		log.Fatalf("Failed to create index on weekly_balance: %v", err)
 	}
 
-	// Create monthly_balance table
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS monthly_balance (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			user_id TEXT NOT NULL,
-			year_month TEXT NOT NULL,
-			income_amount REAL NOT NULL DEFAULT 0,
-			expense_amount REAL NOT NULL DEFAULT 0,
-			bills_amount REAL NOT NULL DEFAULT 0,
-			cash_amount REAL NOT NULL DEFAULT 0,
-			bank_amount REAL NOT NULL DEFAULT 0,
-			previous_cash_amount REAL NOT NULL DEFAULT 0,
-			previous_bank_amount REAL NOT NULL DEFAULT 0,
-			balance_cash_amount REAL NOT NULL DEFAULT 0,
-			balance_bank_amount REAL NOT NULL DEFAULT 0,
-			balance REAL NOT NULL DEFAULT 0,
-			previous_balance REAL NOT NULL DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			UNIQUE(user_id, year_month)
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create monthly_balance table: %v", err)
-	}
-
-	// Create indices for monthly_balance
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_user ON monthly_balance(user_id)`)
-	if err != nil {
-		log.Fatalf("Failed to create index on monthly_balance: %v", err)
-	}
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_month ON monthly_balance(year_month)`)
-	if err != nil {
-		log.Fatalf("Failed to create index on monthly_balance: %v", err)
-	}
 
 	// Create quarterly_balance table
 	_, err = db.Exec(`
@@ -397,13 +362,6 @@ func createTablesIfNotExist() {
 	alterTableSafely("weekly_balance", "total_previous_balance", "REAL NOT NULL DEFAULT 0")
 	alterTableSafely("weekly_balance", "total_balance", "REAL NOT NULL DEFAULT 0")
 
-	// For monthly_balance
-	alterTableSafely("monthly_balance", "cash_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "bank_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "previous_cash_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "previous_bank_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "total_previous_balance", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "total_balance", "REAL NOT NULL DEFAULT 0")
 
 	// For quarterly_balance
 	alterTableSafely("quarterly_balance", "cash_amount", "REAL NOT NULL DEFAULT 0")
@@ -2062,10 +2020,6 @@ func addCashBankColumnsToAllTables() {
 	alterTableSafely("weekly_balance", "previous_cash_amount", "REAL NOT NULL DEFAULT 0")
 	alterTableSafely("weekly_balance", "previous_bank_amount", "REAL NOT NULL DEFAULT 0")
 
-	alterTableSafely("monthly_balance", "cash_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "bank_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "previous_cash_amount", "REAL NOT NULL DEFAULT 0")
-	alterTableSafely("monthly_balance", "previous_bank_amount", "REAL NOT NULL DEFAULT 0")
 
 	alterTableSafely("quarterly_balance", "cash_amount", "REAL NOT NULL DEFAULT 0")
 	alterTableSafely("quarterly_balance", "bank_amount", "REAL NOT NULL DEFAULT 0")

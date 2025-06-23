@@ -565,34 +565,6 @@ func createTablesIfNotExist() {
 		log.Fatalf("Failed to create index on weekly_balance: %v", err)
 	}
 
-	// Create monthly_balance table (se mantiene por compatibilidad)
-	_, err = db.Exec(`
-		CREATE TABLE IF NOT EXISTS monthly_balance (
-			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			user_id TEXT NOT NULL,
-			year_month TEXT NOT NULL,
-			income_amount REAL NOT NULL DEFAULT 0,
-			expense_amount REAL NOT NULL DEFAULT 0,
-			bills_amount REAL NOT NULL DEFAULT 0,
-			balance REAL NOT NULL DEFAULT 0,
-			previous_balance REAL NOT NULL DEFAULT 0,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-		)
-	`)
-	if err != nil {
-		log.Fatalf("Failed to create monthly_balance table: %v", err)
-	}
-
-	// Create indices for monthly_balance
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_user ON monthly_balance(user_id)`)
-	if err != nil {
-		log.Fatalf("Failed to create index on monthly_balance: %v", err)
-	}
-	_, err = db.Exec(`CREATE INDEX IF NOT EXISTS idx_monthly_balance_month ON monthly_balance(year_month)`)
-	if err != nil {
-		log.Fatalf("Failed to create index on monthly_balance: %v", err)
-	}
 
 	// Create quarterly_balance table (se mantiene por compatibilidad)
 	_, err = db.Exec(`

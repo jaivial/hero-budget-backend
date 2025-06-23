@@ -6,59 +6,10 @@ import (
 	"log"
 )
 
-// updateCascadeBillBalance actualiza los balances en cascada para facturas con duración
-// Esto garantiza que el impacto de las facturas se acumule mes a mes
-// CORREGIDO: Implementa cálculo correcto de meses consecutivos y acumulación
-func updateCascadeBillBalance(db *sql.DB, userID, startDate string, durationMonths int, amount float64, paymentMethod string) error {
-	log.Printf("🔥 DEBUG: updateCascadeBillBalance iniciada - userID=%s, amount=%.2f, durationMonths=%d", userID, amount, durationMonths)
-
-	// CORREGIDO: Usar calculateMonthsFromDuration con meses consecutivos
-	months, err := calculateMonthsFromDuration(startDate, durationMonths)
-	if err != nil {
-		log.Printf("🔥 DEBUG: Error calculando meses: %v", err)
-		return err
-	}
-
-	log.Printf("🔥 DEBUG: Meses calculados: %v", months)
-	log.Printf("🔄 Iniciando acumulación en cascada para factura de %.2f desde %s durante %d meses", amount, startDate, durationMonths)
-	log.Printf("📅 Meses afectados: %v", months)
-
-	// Para cada mes, calcular el impacto acumulado
-	// CORREGIDO: Acumulación correcta mes a mes
-	for i, month := range months {
-		// El impacto acumulado es -amount * (posición + 1)
-		// Mes 1: -amount, Mes 2: -amount*2, etc.
-		accumulatedImpact := -amount * float64(i+1)
-		log.Printf("🔥 DEBUG: Mes %s - impacto acumulado: %.2f", month, accumulatedImpact)
-
-		// Asegurar que el registro existe
-		_, err = db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", userID, month)
-		if err != nil {
-			log.Printf("🔥 DEBUG: Error creando registro para mes %s: %v", month, err)
-			return err
-		}
-
-		// Actualizar este mes con el impacto acumulado
-		err = updateCascadeBalanceForMonth(db, userID, month, amount, accumulatedImpact, paymentMethod)
-		if err != nil {
-			log.Printf("🔥 DEBUG: Error actualizando mes %s: %v", month, err)
-			return err
-		}
-
-		log.Printf("🔥 DEBUG: Mes %s actualizado exitosamente", month)
-	}
-
-	// Actualizar previous_amounts correctamente
-	log.Printf("🔥 DEBUG: Actualizando previous_amounts...")
-	err = updatePreviousAmountsCorrectly(db, userID, months, paymentMethod)
-	if err != nil {
-		log.Printf("🔥 DEBUG: Error actualizando previous_amounts: %v", err)
-		return err
-	}
-
-	log.Printf("🔥 DEBUG: updateCascadeBillBalance completada exitosamente")
-	return nil
-}
+// FUNCIÓN ELIMINADA: updateCascadeBillBalance
+// Esta función fue eliminada porque ya no se utiliza en el código
+// La función original implementaba lógica de acumulación en cascada para facturas con duración
+// Si se necesita esta funcionalidad en el futuro, debe reimplementarse con la nueva arquitectura
 
 // updateCascadeBalanceForMonth actualiza un mes específico con el impacto acumulado
 // Aplica el efecto cascada calculado para un mes individual

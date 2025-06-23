@@ -49,68 +49,9 @@ func updateExpenseAmountForBillDifference(db *sql.DB, billID int, userID, month 
 	db.Exec("UPDATE expenses SET amount = amount + ? WHERE bill_id = ? AND user_id = ? AND strftime('%Y-%m', date) = ?", amountDiff, billID, userID, month)
 }
 
-// addNewBillToMonthlyBalance agrega nuevo bill a monthly_balance
-// Función principal para registrar una nueva factura en el sistema de balance mensual
-// CORREGIDO: Implementa lógica diferenciada según duración de la factura
-func addNewBillToMonthlyBalance(db *sql.DB, userID string, amount float64, startDate string, durationMonths int, paymentMethod string) error {
-	log.Printf("🔥 DEBUG: addNewBillToMonthlyBalance llamada con userID=%s, amount=%.2f, durationMonths=%d, paymentMethod=%s", userID, amount, durationMonths, paymentMethod)
-
-	// LÓGICA AVANZADA: Usar acumulación en cascada para facturas con duración múltiple
-	if durationMonths > 1 {
-		log.Printf("🔄 Aplicando lógica de acumulación en cascada para factura de %.2f desde %s durante %d meses", amount, startDate, durationMonths)
-		result := updateCascadeBillBalance(db, userID, startDate, durationMonths, amount, paymentMethod)
-		log.Printf("🔥 DEBUG: updateCascadeBillBalance terminó con resultado: %v", result)
-		return result
-	}
-
-	log.Printf("🔥 DEBUG: Aplicando lógica simple para factura de un mes")
-
-	// LÓGICA SIMPLE: Para facturas de un solo mes (duración = 1)
-	months, err := calculateMonthsFromDuration(startDate, durationMonths)
-	if err != nil {
-		return err
-	}
-
-	// Procesar cada mes del periodo de la factura
-	for _, month := range months {
-		// Asegurar que existe fila para el mes
-		db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", userID, month)
-
-		// Registrar el importe de la factura en bill_amount
-		updateBalanceColumns(db, userID, month, amount, paymentMethod, "bill", 1)
-
-		// Restar del saldo principal (dinero comprometido para la factura)
-		updateBalanceColumns(db, userID, month, amount, paymentMethod, "main", -1)
-
-		// CORREGIDO: Actualizar balance_cash_amount/balance_bank_amount manualmente
-		// Esto es necesario porque updateBalanceColumns no maneja balance_* columns
-		if paymentMethod == "bank" {
-			_, err = db.Exec(`
-				UPDATE monthly_balance 
-				SET balance_bank_amount = bank_amount, 
-				    total_balance = cash_amount + bank_amount
-				WHERE user_id = ? AND year_month = ?
-			`, userID, month)
-		} else {
-			_, err = db.Exec(`
-				UPDATE monthly_balance 
-				SET balance_cash_amount = cash_amount, 
-				    total_balance = cash_amount + bank_amount
-				WHERE user_id = ? AND year_month = ?
-			`, userID, month)
-		}
-
-		if err != nil {
-			log.Printf("Error actualizando balance para mes %s: %v", month, err)
-		}
-
-		// Actualizar previous_amounts y total_previous_balance de meses posteriores
-		// CORREGIDO: Usar efecto cascada desde el mes de inicio
-		updatePreviousBalancesFromMonth(db, userID, month, -amount, paymentMethod)
-	}
-
-	return nil
-}
+// FUNCIÓN ELIMINADA: addNewBillToMonthlyBalance
+// Esta función se utilizaba para actualizar la tabla monthly_balance que ha sido eliminada del sistema.
+// Ahora se utiliza únicamente addBillToCashBankBalance para monthly_cash_bank_balance.
 
 // updateMainBalanceColumnsForNewBill actualiza columnas principales para nuevo bill
 // Función auxiliar para comprometer saldo principal cuando se crea una factura

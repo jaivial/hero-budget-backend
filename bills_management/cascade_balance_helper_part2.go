@@ -28,8 +28,10 @@ func applyNewCascadeLogic(db *sql.DB, userID string, billID int) error {
 	log.Printf("🔧 Aplicando nueva lógica de cascada para factura ID=%d, Amount=%.2f, StartDate=%s, Duration=%d",
 		billID, amount, startDate, durationMonths)
 
-	// Aplicar la nueva lógica de acumulación en cascada
-	return updateCascadeBillBalance(db, userID, startDate, durationMonths, amount, paymentMethod)
+	// FUNCIÓN ELIMINADA: updateCascadeBillBalance ya no está disponible
+	// La lógica de cascada debe implementarse por separado si es necesaria
+	log.Printf("⚠️ ADVERTENCIA: updateCascadeBillBalance ha sido eliminada - no se aplica lógica de cascada")
+	return nil
 }
 
 // revertCascadeBillBalance revierte la acumulación en cascada al eliminar una factura

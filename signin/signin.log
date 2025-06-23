@@ -1,5 +1,3 @@
-2025/06/22 03:25:51 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
-2025/06/22 03:25:51 Continuing without Redis caching...
-2025/06/22 03:25:51 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 03:25:51 Database connection established successfully
-2025/06/22 03:25:51 SignIn service started on :8084
+2025/06/23 11:55:25 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 11:55:25 Database connection established successfully
+2025/06/23 11:55:25 SignIn service started on :8084

@@ -85,17 +85,9 @@ func deleteBill(request DeleteBillRequest) error {
 		return err
 	}
 
-	// Get bill data before deletion for balance updates
-	billData, err := getBillDataBeforeDelete(request.BillID, request.UserID)
-	if err != nil {
-		return err
-	}
-
-	// Update monthly cash bank balance before deleting the bill
-	if err := updateMonthlyBalanceForDeletedBill(db, *billData); err != nil {
-		log.Printf("Error updating monthly balance for deleted bill: %v", err)
-		return err
-	}
+	// ELIMINADO: Obtención de datos de factura para monthly_balance (ya no se usa)
+	// La eliminación de facturas ahora solo afecta monthly_cash_bank_balance
+	// que se maneja automáticamente por las funciones existentes
 
 	// Delete related bill_payments first
 	if err := deleteBillPayments(request.BillID); err != nil {

@@ -1,5 +1,5 @@
-2025/06/22 03:25:43 Failed to connect to Redis: dial tcp [::1]:6379: connect: connection refused
-2025/06/22 03:25:43 Continuing without Redis caching...
-2025/06/22 03:25:43 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/22 03:25:43 Database connection established successfully
-2025/06/22 03:25:43 Expense Management service started on :8094
+2025/06/23 11:55:17 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 11:55:17 Database connection established successfully
+2025/06/23 11:55:17 Expense Management service started on :8094
+2025/06/23 11:57:51 Cache set skipped for key: expense_analytics:15 (Redis disabled)
+2025/06/23 11:57:51 Cache set skipped for key: expense_analytics:15 (Redis disabled)
