@@ -331,7 +331,8 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 	log.Printf("🔐 Protegiendo %d usuarios tipo 'email' durante restauración", len(emailUsers))
 
 	// PROTECCIÓN CRÍTICA: Solo eliminar usuarios que NO sean tipo 'email'
-	_, err = g.db.Exec("DELETE FROM users WHERE type != 'email' OR type IS NULL")
+	// CORREGIDO: La condición OR era incorrecta, debe ser AND para preservar usuarios con type=NULL
+	_, err = g.db.Exec("DELETE FROM users WHERE type != 'email' AND type IS NOT NULL")
 	if err != nil {
 		return fmt.Errorf("failed to clear non-email users from table: %v", err)
 	}
