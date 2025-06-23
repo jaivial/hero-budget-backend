@@ -9,10 +9,23 @@ import (
 
 // invalidateBillsCache removes cached bills data for a specific user
 // Called whenever bills are added, updated, or deleted to ensure cache consistency
-// Redis functionality disabled - no-op implementation
 func invalidateBillsCache(userID string) {
-	// Redis cache disabled - no operation performed
-	log.Printf("Cache invalidation skipped for user: %s (Redis disabled)", userID)
+	if cacheManager != nil {
+		err := cacheManager.InvalidateBillsCache(userID, "monthly", "daily", "weekly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate bills cache for user %s: %v", userID, err)
+		}
+		
+		// Also invalidate dashboard cache since bills affect dashboard calculations
+		err = cacheManager.InvalidateDashboardCache(userID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", userID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (bills and dashboard)", userID)
+	} else {
+		log.Printf("⚠️ Cache manager not available for user: %s", userID)
+	}
 }
 
 // handleFetchBills maneja las solicitudes GET para obtener facturas
@@ -28,7 +41,21 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 	// Verificar si se solicita un periodo específico
 	period := r.URL.Query().Get("period")
 	date := r.URL.Query().Get("date")
+	
 	if period != "" && date != "" {
+		// Try cache first for period-specific bills
+		cacheKey := fmt.Sprintf("period_%s_%s", period, date)
+		if cacheManager != nil {
+			var cachedBills []Bill
+			err := cacheManager.GetBillsData(userID, cacheKey, &cachedBills)
+			if err == nil {
+				log.Printf("✅ Cache HIT: bills for user %s period %s date %s", userID, period, date)
+				sendSuccessResponse(w, "Bills fetched successfully from cache", cachedBills)
+				return
+			}
+			log.Printf("🔍 Cache MISS: bills for user %s period %s date %s", userID, period, date)
+		}
+		
 		// Obtener facturas para un periodo específico
 		billsWithStatus, err := fetchBillsForPeriod(userID, period, date)
 		if err != nil {
@@ -40,8 +67,29 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		for _, billWithStatus := range billsWithStatus {
 			bills = append(bills, convertBillWithPeriodStatusToBill(billWithStatus))
 		}
+		
+		// Cache the result for future requests
+		if cacheManager != nil {
+			err = cacheManager.CacheBillsData(userID, cacheKey, bills)
+			if err != nil {
+				log.Printf("Warning: Failed to cache bills data for user %s: %v", userID, err)
+			}
+		}
+		
 		sendSuccessResponse(w, "Bills fetched successfully", bills)
 		return
+	}
+	
+	// Try cache first for all bills
+	if cacheManager != nil {
+		var cachedBills []Bill
+		err := cacheManager.GetBillsData(userID, "all", &cachedBills)
+		if err == nil {
+			log.Printf("✅ Cache HIT: all bills for user %s", userID)
+			sendSuccessResponse(w, "Bills fetched successfully from cache", cachedBills)
+			return
+		}
+		log.Printf("🔍 Cache MISS: all bills for user %s", userID)
 	}
 	
 	// Obtener todas las facturas del usuario
@@ -50,6 +98,15 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error fetching bills", http.StatusInternalServerError)
 		return
 	}
+	
+	// Cache the result for future requests
+	if cacheManager != nil {
+		err = cacheManager.CacheBillsData(userID, "all", bills)
+		if err != nil {
+			log.Printf("Warning: Failed to cache bills data for user %s: %v", userID, err)
+		}
+	}
+	
 	sendSuccessResponse(w, "Bills fetched successfully", bills)
 }
 

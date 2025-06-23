@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nfnt/resize"
 )
@@ -69,6 +70,8 @@ var (
 	db *sql.DB
 	// Context for database operations
 	ctx = context.Background()
+	// Cache manager for Redis operations to improve performance
+	cacheManager *common.CacheManager
 )
 
 func init() {
@@ -95,7 +98,15 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
+	// Initialize cache manager for Redis operations
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
+
 	log.Println("Database connection established successfully")
+	log.Println("Profile Management service initialized successfully")
 }
 
 func main() {

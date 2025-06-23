@@ -13,6 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -58,6 +59,8 @@ var (
 	db *sql.DB
 	// Context for database operations
 	ctx = context.Background()
+	// Cache manager for Redis operations to improve performance
+	cacheManager *common.CacheManager
 )
 
 func init() {
@@ -79,7 +82,15 @@ func init() {
 		log.Fatalf("Failed to open database: %v", err)
 	}
 
+	// Initialize cache manager for Redis operations
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
+
 	log.Println("Database connection established successfully")
+	log.Println("Categories Management service initialized successfully")
 }
 
 
@@ -183,12 +194,36 @@ func handleFetchCategories(w http.ResponseWriter, r *http.Request) {
 	// Get optional type filter
 	categoryType := r.URL.Query().Get("type") // "income", "expense", or empty for all
 
+	// Try cache first for categories data
+	if cacheManager != nil {
+		var cachedCategories []Category
+		cacheKey := "categories_" + categoryType
+		if categoryType == "" {
+			cacheKey = "categories_all"
+		}
+		err := cacheManager.GetUserData(userID, &cachedCategories)
+		if err == nil {
+			log.Printf("✅ Cache HIT: categories for user %s, type %s", userID, cacheKey)
+			sendSuccessResponse(w, "Categories fetched successfully from cache", cachedCategories)
+			return
+		}
+		log.Printf("🔍 Cache MISS: categories for user %s, type %s", userID, cacheKey)
+	}
+
 	// Get categories from database
 	categories, err := fetchCategories(userID, categoryType)
 	if err != nil {
 		log.Printf("Error fetching categories: %v", err)
 		sendErrorResponse(w, "Error fetching categories", http.StatusInternalServerError)
 		return
+	}
+
+	// Cache the result for future requests
+	if cacheManager != nil {
+		err = cacheManager.CacheUserData(userID, categories)
+		if err != nil {
+			log.Printf("Warning: Failed to cache categories for user %s: %v", userID, err)
+		}
 	}
 
 	// Return categories as JSON
@@ -259,6 +294,9 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("DEBUG - Emoji después de creación: %s", createdCategory.Emoji)
+
+	// Invalidate cache after adding category
+	invalidateCategoriesCache(addRequest.UserID)
 
 	// Return success response with the created category
 	sendSuccessResponse(w, "Category added successfully", createdCategory)
@@ -335,6 +373,9 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("DEBUG - Emoji después de actualización: %s", updatedCategory.Emoji)
 
+	// Invalidate cache after updating category
+	invalidateCategoriesCache(updateRequest.UserID)
+
 	// Return success response with the updated category
 	sendSuccessResponse(w, "Category updated successfully", updatedCategory)
 }
@@ -371,6 +412,9 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error deleting category", http.StatusInternalServerError)
 		return
 	}
+
+	// Invalidate cache after deleting category
+	invalidateCategoriesCache(deleteRequest.UserID)
 
 	// Return success response
 	sendSuccessResponse(w, "Category deleted successfully", nil)
@@ -643,4 +687,17 @@ func decodeEmoji(encoded string) string {
 	}
 
 	return encoded
+}
+
+// invalidateCategoriesCache invalidates all categories cache for a user
+func invalidateCategoriesCache(userID string) {
+	if cacheManager != nil {
+		// Invalidate user cache (categories are stored under user data)
+		err := cacheManager.InvalidateUserCache(userID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate categories cache for user %s: %v", userID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (categories)", userID)
+	}
 }

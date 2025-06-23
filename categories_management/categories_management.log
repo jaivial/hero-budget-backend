@@ -1,12 +1,5 @@
-2025/06/23 11:55:13 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 11:55:13 Database connection established successfully
-2025/06/23 11:55:13 Categories Management service started on :8096
-2025/06/23 11:57:51 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 11:57:51 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:24:25 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:24:25 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:24:47 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:27:07 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:27:21 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:27:21 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
-2025/06/23 12:27:21 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/23 19:22:37 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 19:22:37 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 19:22:37 Database connection established successfully
+2025/06/23 19:22:37 Categories Management service initialized successfully
+2025/06/23 19:22:37 Categories Management service started on :8096

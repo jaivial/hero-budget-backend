@@ -1,3 +1,4 @@
-2025/06/23 11:55:21 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 11:55:21 Database connection established successfully
-2025/06/23 11:55:21 Money Flow Sync service started on :8097
+2025/06/23 19:22:45 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 19:22:45 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 19:22:45 Database connection established successfully
+2025/06/23 19:22:45 Money Flow Sync service started on :8097

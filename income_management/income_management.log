@@ -1,9 +1,4 @@
-2025/06/23 11:55:19 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 11:55:19 Database connection established successfully
-2025/06/23 11:55:19 Income Management service started on :8093
-2025/06/23 11:57:51 Cache set skipped for key: income_analytics:15 (Redis disabled)
-2025/06/23 11:57:52 Cache set skipped for key: income_analytics:15 (Redis disabled)
-2025/06/23 12:24:24 Cache set skipped for key: income_analytics:15 (Redis disabled)
-2025/06/23 12:24:25 Cache set skipped for key: income_analytics:15 (Redis disabled)
-2025/06/23 12:27:21 Cache set skipped for key: income_analytics:15 (Redis disabled)
-2025/06/23 12:27:21 Cache set skipped for key: income_analytics:15 (Redis disabled)
+2025/06/23 19:22:43 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 19:22:43 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 19:22:43 Database connection established successfully
+2025/06/23 19:22:43 Income Management service started on :8093

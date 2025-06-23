@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -43,6 +44,8 @@ type ApiResponse struct {
 
 var (
 	db *sql.DB
+	// Cache manager for Redis operations
+	cacheManager *common.CacheManager
 )
 
 func init() {
@@ -71,6 +74,13 @@ func init() {
 
 	// Create tables if they don't exist
 	createTablesIfNotExist()
+	
+	// Initialize cache manager
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
 
 	log.Println("Database connection established successfully")
 }
@@ -147,12 +157,32 @@ func handleFetchSavings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Try cache first
+	if cacheManager != nil {
+		var cachedSavings SavingsData
+		err := cacheManager.GetSavingsData(userID, &cachedSavings)
+		if err == nil {
+			log.Printf("✅ Cache HIT: savings data for user %s", userID)
+			sendSuccessResponse(w, "Savings data fetched successfully from cache", cachedSavings)
+			return
+		}
+		log.Printf("🔍 Cache MISS: savings data for user %s", userID)
+	}
+
 	// Get savings data from database
 	savings, err := fetchSavingsData(userID)
 	if err != nil {
 		log.Printf("Error fetching savings data: %v", err)
 		sendErrorResponse(w, "Error fetching savings data", http.StatusInternalServerError)
 		return
+	}
+
+	// Cache the result for future requests
+	if cacheManager != nil {
+		err = cacheManager.CacheSavingsData(userID, savings)
+		if err != nil {
+			log.Printf("Warning: Failed to cache savings data for user %s: %v", userID, err)
+		}
 	}
 
 	// Return savings data as JSON
@@ -221,6 +251,22 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Invalidate cache since savings data was updated
+	if cacheManager != nil {
+		err = cacheManager.InvalidateSavingsCache(updateRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since savings affect dashboard
+		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", updateRequest.UserID)
+	}
+
 	// Return success response
 	sendSuccessResponse(w, "Savings updated successfully", currentSavings)
 }
@@ -251,6 +297,22 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error deleting savings data: %v", err)
 		sendErrorResponse(w, "Error deleting savings data", http.StatusInternalServerError)
 		return
+	}
+
+	// Invalidate cache since savings data was deleted
+	if cacheManager != nil {
+		err = cacheManager.InvalidateSavingsCache(deleteRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", deleteRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since savings affect dashboard
+		err = cacheManager.InvalidateDashboardCache(deleteRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", deleteRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", deleteRequest.UserID)
 	}
 
 	// Return success response

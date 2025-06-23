@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -48,6 +49,8 @@ var (
 	db *sql.DB
 	// Context for database operations
 	ctx = context.Background()
+	// Cache manager for Redis operations
+	cacheManager *common.CacheManager
 )
 
 func init() {
@@ -76,6 +79,13 @@ func init() {
 
 	// Create tables if they don't exist
 	createTablesIfNotExist()
+	
+	// Initialize cache manager
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
 
 	log.Println("Database connection established successfully")
 	log.Println("Cash Bank Management service initialized successfully")
@@ -344,12 +354,32 @@ func handleFetchDistribution(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Try cache first
+	if cacheManager != nil {
+		var cachedDistribution CashBankDistribution
+		err := cacheManager.GetCashBankData(userID, &cachedDistribution)
+		if err == nil {
+			log.Printf("✅ Cache HIT: cash bank distribution for user %s", userID)
+			sendSuccessResponse(w, "Cash bank distribution fetched successfully from cache", cachedDistribution)
+			return
+		}
+		log.Printf("🔍 Cache MISS: cash bank distribution for user %s", userID)
+	}
+
 	// Get cash bank distribution data from database
 	distribution, err := fetchCashBankDistribution(userID)
 	if err != nil {
 		log.Printf("Error fetching cash bank distribution: %v", err)
 		sendErrorResponse(w, "Error fetching cash bank distribution", http.StatusInternalServerError)
 		return
+	}
+
+	// Cache the result for future requests
+	if cacheManager != nil {
+		err = cacheManager.CacheCashBankData(userID, distribution)
+		if err != nil {
+			log.Printf("Warning: Failed to cache cash bank distribution for user %s: %v", userID, err)
+		}
 	}
 
 	// Return cash bank distribution data as JSON
@@ -417,6 +447,22 @@ func handleUpdateCash(w http.ResponseWriter, r *http.Request) {
 		// Continue despite the error
 	}
 
+	// Invalidate cache since cash amount was updated
+	if cacheManager != nil {
+		err = cacheManager.InvalidateCashBankCache(updateRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since cash/bank affects dashboard
+		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
+	}
+
 	// Return success response
 	sendSuccessResponse(w, "Cash amount updated successfully", distribution)
 }
@@ -480,6 +526,22 @@ func handleUpdateBank(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error adding transaction to history: %v", err)
 		// Continue despite the error
+	}
+
+	// Invalidate cache since bank amount was updated
+	if cacheManager != nil {
+		err = cacheManager.InvalidateCashBankCache(updateRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since cash/bank affects dashboard
+		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
 	}
 
 	// Return success response
@@ -550,6 +612,22 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		// Continue despite the error
 	}
 
+	// Invalidate cache since transfer affects cash/bank distribution
+	if cacheManager != nil {
+		err = cacheManager.InvalidateCashBankCache(transferRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since cash/bank affects dashboard
+		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
+	}
+
 	// Return success response
 	sendSuccessResponse(w, "Cash to bank transfer successful", distribution)
 }
@@ -616,6 +694,22 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error adding transaction to history: %v", err)
 		// Continue despite the error
+	}
+
+	// Invalidate cache since transfer affects cash/bank distribution
+	if cacheManager != nil {
+		err = cacheManager.InvalidateCashBankCache(transferRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since cash/bank affects dashboard
+		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
 	}
 
 	// Return success response

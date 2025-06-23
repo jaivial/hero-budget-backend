@@ -1,3 +1,4 @@
 Using database at: ../google_auth/users.db
-2025/06/23 11:55:12 Database connection established successfully
+2025/06/23 19:22:35 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 19:22:35 Database connection established successfully
 Bills Management service started on :8091

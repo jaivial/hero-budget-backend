@@ -1,0 +1,22 @@
+2025/06/23 18:35:46 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 18:35:46 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 18:35:46 Database connection established successfully
+2025/06/23 18:35:46 Categories Management service initialized successfully
+2025/06/23 18:35:46 Categories Management service started on :8096
+2025/06/23 18:35:59 🔍 Cache MISS: user:test123
+2025/06/23 18:35:59 🔍 Cache MISS: categories for user test123, type categories_all
+2025/06/23 18:35:59 🔄 Cache SET: user:test123 (TTL: 30m0s)
+2025/06/23 18:36:24 ✓ Cache HIT: user:test123
+2025/06/23 18:36:24 ✅ Cache HIT: categories for user test123, type categories_all
+2025/06/23 18:36:33 DEBUG - Emoji codificado: '🛒' -> 'BASE64:8J+bkg=='
+2025/06/23 18:36:33 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/23 18:36:33 DEBUG - Emoji después de creación: 🛒
+2025/06/23 18:36:33 🗑️ Cache DELETE PATTERN: user:test123* (1 keys)
+2025/06/23 18:36:33 ✅ Cache invalidated for user: test123 (categories)
+2025/06/23 18:36:50 🔍 Cache MISS: user:test123
+2025/06/23 18:36:50 🔍 Cache MISS: categories for user test123, type categories_all
+2025/06/23 18:36:50 DEBUG - Emoji decodificado: 'BASE64:8J+bkg==' -> '🛒'
+2025/06/23 18:36:50 🔄 Cache SET: user:test123 (TTL: 30m0s)
+2025/06/23 18:37:08 ✓ Cache HIT: user:test123
+2025/06/23 18:37:08 ✅ Cache HIT: categories for user test123, type categories_all
+signal: killed

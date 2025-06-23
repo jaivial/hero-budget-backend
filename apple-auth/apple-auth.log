@@ -1,4 +1,4 @@
-2025/06/23 11:55:15 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 11:55:15 Column 'type' may already exist: duplicate column name: type
-2025/06/23 11:55:15 Database connection established successfully
-2025/06/23 11:55:15 Apple Auth service started on :8100
+2025/06/23 19:22:39 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 19:22:39 Column 'type' may already exist: duplicate column name: type
+2025/06/23 19:22:39 Database connection established successfully
+2025/06/23 19:22:39 Apple Auth service started on :8100

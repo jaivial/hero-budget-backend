@@ -10,12 +10,15 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 
 var (
 	db *sql.DB
 	ctx = context.Background()
+	// Cache manager for Redis operations to improve performance
+	cacheManager *common.CacheManager
 )
 
 type UserLocaleResponse struct {
@@ -48,7 +51,15 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
+	// Initialize cache manager for Redis operations
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
+
 	log.Println("User Locale service - Database connection established successfully")
+	log.Println("User Locale service initialized successfully")
 }
 
 
@@ -96,6 +107,23 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Getting user locale for user ID: %s", userID)
 
+	// Try cache first for user locale data
+	if cacheManager != nil {
+		var cachedLocale string
+		err := cacheManager.GetUserData(userID, &cachedLocale)
+		if err == nil {
+			log.Printf("✅ Cache HIT: user locale for user %s", userID)
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode(UserLocaleResponse{
+				Success: true,
+				Message: "User locale retrieved from cache",
+				Locale:  cachedLocale,
+			})
+			return
+		}
+		log.Printf("🔍 Cache MISS: user locale for user %s", userID)
+	}
+
 	// Get only the locale from the database
 	var locale sql.NullString
 	err := db.QueryRow(`
@@ -124,6 +152,14 @@ func handleGetUserLocale(w http.ResponseWriter, r *http.Request) {
 	if locale.Valid && locale.String != "" {
 		userLocale = locale.String
 		log.Printf("Successfully retrieved locale for user %s: %s", userID, userLocale)
+
+		// Cache the result for future requests
+		if cacheManager != nil {
+			err = cacheManager.CacheUserData(userID, userLocale)
+			if err != nil {
+				log.Printf("Warning: Failed to cache user locale for user %s: %v", userID, err)
+			}
+		}
 
 	} else {
 		log.Printf("No locale set for user %s", userID)
@@ -198,6 +234,15 @@ func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Successfully updated locale for user %s to %s", req.UserID, req.Locale)
+
+	// Invalidate cache after updating user locale
+	if cacheManager != nil {
+		err = cacheManager.InvalidateUserCache(req.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate user cache for user %s: %v", req.UserID, err)
+		}
+		log.Printf("✅ Cache invalidated for user: %s (locale update)", req.UserID)
+	}
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(UserLocaleResponse{

@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/herobudget/backend/common"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -16,6 +17,9 @@ var db *sql.DB
 
 // Context for database operations
 var ctx = context.Background()
+
+// Cache manager for Redis operations
+var cacheManager *common.CacheManager
 
 // Bill estructura que representa una factura en el sistema
 // Contiene toda la información necesaria para gestionar facturas recurrentes
@@ -75,6 +79,14 @@ func init() {
 	}
 	fmt.Printf("Using database at: %s\n", dbPath)
 	createTablesIfNotExist()
+	
+	// Initialize cache manager
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	}
+	
 	log.Println("Database connection established successfully")
 }
 
