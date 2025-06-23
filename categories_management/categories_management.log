@@ -1,5 +1,5 @@
-2025/06/23 19:22:37 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:37 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:37 Database connection established successfully
-2025/06/23 19:22:37 Categories Management service initialized successfully
-2025/06/23 19:22:37 Categories Management service started on :8096
+2025/06/23 20:06:18 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:18 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:18 Database connection established successfully
+2025/06/23 20:06:18 Categories Management service initialized successfully
+2025/06/23 20:06:18 Categories Management service started on :8096

@@ -1,5 +1,5 @@
-2025/06/23 19:22:54 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:54 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:54 User Locale service - Database connection established successfully
-2025/06/23 19:22:54 User Locale service initialized successfully
-2025/06/23 19:22:54 User Locale service started on :8099
+2025/06/23 20:06:35 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:35 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:35 User Locale service - Database connection established successfully
+2025/06/23 20:06:35 User Locale service initialized successfully
+2025/06/23 20:06:35 User Locale service started on :8099

@@ -1,5 +1,5 @@
-2025/06/23 19:22:38 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:38 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:38 Database connection established successfully
-2025/06/23 19:22:38 Cash Bank Management service initialized successfully
-2025/06/23 19:22:38 Cash Bank Management service started on :8090
+2025/06/23 20:06:19 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:19 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:19 Database connection established successfully
+2025/06/23 20:06:19 Cash Bank Management service initialized successfully
+2025/06/23 20:06:19 Cash Bank Management service started on :8090

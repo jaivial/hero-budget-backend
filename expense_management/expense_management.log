@@ -1,5 +1,20 @@
-2025/06/23 19:22:41 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:41 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:41 Database connection established successfully
-2025/06/23 19:22:41 Expense Management service initialized successfully
-2025/06/23 19:22:41 Expense Management service started on :8094
+2025/06/23 20:06:22 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:22 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:22 Database connection established successfully
+2025/06/23 20:06:22 Expense Management service initialized successfully
+2025/06/23 20:06:22 Expense Management service started on :8094
+2025/06/23 20:27:12 Note: All balance updates for expense reversal completed - amount: 50.25, method: cash
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:daily
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:weekly
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:monthly
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:quarterly
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:semiannual
+2025/06/23 20:27:12 🗑️ Cache DELETE: expense:test_user_123:annual
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:daily
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:weekly
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:monthly
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:quarterly
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:semiannual
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:annual
+2025/06/23 20:27:12 🗑️ Cache DELETE: dashboard:test_user_123:monthly
+2025/06/23 20:27:12 ✅ Cache invalidated for user: test_user_123 (expenses and dashboard)

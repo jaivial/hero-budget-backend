@@ -1,5 +1,5 @@
-2025/06/23 19:22:46 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:46 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:46 Database connection established successfully
-2025/06/23 19:22:46 Profile Management service initialized successfully
-2025/06/23 19:22:46 Profile Management service started on :8092
+2025/06/23 20:06:27 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:27 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:27 Database connection established successfully
+2025/06/23 20:06:27 Profile Management service initialized successfully
+2025/06/23 20:06:27 Profile Management service started on :8092

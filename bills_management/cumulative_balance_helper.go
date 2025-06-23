@@ -75,9 +75,16 @@ func recalculateAllCumulativeBalances(db *sql.DB, userID, startMonth string) err
 		// Para el primer mes, previous_amounts = 0
 		
 		// BALANCES ACUMULATIVOS CORREGIDOS:
-		// Los balances deben incluir el arrastre del mes anterior MENOS los gastos del mes actual
+		// Según la explicación del usuario:
+		// - bill_bank_amount y bill_cash_amount se SUMAN (valores positivos cuando se añade/aumenta un bill)
+		// - expense_bank_amount y expense_cash_amount también se SUMAN (valores positivos)
+		// - cash_amount y bank_amount representan el balance final acumulativo
+		// 
+		// LA INTERPRETACIÓN CORRECTA:
+		// Los balances finales deben ser ACUMULATIVOS pero DISPONIBLES
+		// Formula corregida (el balance debe DECRECER cuando se añaden bills/expenses):
 		// cash_amount = previous_cash + income_cash - expense_cash - bill_cash
-		// bank_amount = previous_bank + income_bank - expense_bank - bill_bank  
+		// bank_amount = previous_bank + income_bank - expense_bank - bill_bank
 		newCashAmount := prevCash + incomeCash - expenseCash - billCash
 		newBankAmount := prevBank + incomeBank - expenseBank - billBank
 		

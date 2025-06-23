@@ -1,4 +1,20 @@
-2025/06/23 19:22:43 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
-2025/06/23 19:22:43 ✓ Conexión Redis establecida: localhost:6379
-2025/06/23 19:22:43 Database connection established successfully
-2025/06/23 19:22:43 Income Management service started on :8093
+2025/06/23 20:06:24 Using database at: /Users/usuario/Documents/PROYECTOS/herobudgetflutter/hero_budget/backend/google_auth/users.db
+2025/06/23 20:06:24 ✓ Conexión Redis establecida: localhost:6379
+2025/06/23 20:06:24 Database connection established successfully
+2025/06/23 20:06:24 Income Management service started on :8093
+2025/06/23 20:26:42 Note: Daily balance update for income - amount: 100.5, cash: 100.5, bank: 0
+2025/06/23 20:26:42 Note: Weekly balance update for income - amount: 100.5, cash: 100.5, bank: 0
+2025/06/23 20:26:42 Note: Monthly balance update for income - amount: 100.5, cash: 100.5, bank: 0
+2025/06/23 20:26:42 Error updating quarterly balance: no such table: quarterly_balances
+2025/06/23 20:26:42 Error updating semiannual balance: no such table: semiannual_balances
+2025/06/23 20:26:42 Error updating annual balance: no such table: annual_balances
+2025/06/23 20:26:42 Note: Balance recalculation triggered for userID: test_user_123, date: 2025-06-23
+2025/06/23 20:26:42 🗑️ Cache DELETE: income:test_user_123:analytics
+2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:analytics
+2025/06/23 20:26:42 🗑️ Cache DELETE: income:test_user_123:monthly
+2025/06/23 20:26:42 🗑️ Cache DELETE: income:test_user_123:daily
+2025/06/23 20:26:42 🗑️ Cache DELETE: income:test_user_123:weekly
+2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:monthly
+2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:daily
+2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:weekly
+2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:monthly

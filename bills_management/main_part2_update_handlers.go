@@ -48,29 +48,47 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 		NewPaymentMethod: getStringValueOrDefault(updateRequest.PaymentMethod, oldBillData.PaymentMethod),
 	}
 	
-	// NUEVO ALGORITMO CORREGIDO: Ejecutar secuencia de actualización
+	// NUEVO ALGORITMO CORREGIDO: Usar lógica acumulativa
 	
-	// 1. Simular eliminación del bill antiguo (revertir efectos)
-	if err = revertOldBillEffects(db, updateData); err != nil {
-		sendErrorResponse(w, "Error reverting old bill effects", http.StatusInternalServerError)
+	// Preparar datos para la nueva arquitectura acumulativa
+	oldBillDataStruct := BillData{
+		ID: updateData.BillID,
+		UserID: updateData.UserID,
+		Amount: updateData.OldAmount,
+		PaymentMethod: updateData.OldPaymentMethod,
+		StartDate: updateData.OldStartDate,
+		Duration: updateData.OldDurationMonths,
+	}
+	
+	newBillDataStruct := BillData{
+		ID: updateData.BillID,
+		UserID: updateData.UserID,
+		Amount: updateData.NewAmount,
+		PaymentMethod: updateData.NewPaymentMethod,
+		StartDate: updateData.NewStartDate,
+		Duration: updateData.NewDurationMonths,
+	}
+	
+	// Actualizar usando lógica acumulativa
+	if err = updateBillInCashBankBalanceCumulative(db, oldBillDataStruct, newBillDataStruct); err != nil {
+		sendErrorResponse(w, "Error updating bill with cumulative logic", http.StatusInternalServerError)
 		return
 	}
 	
-	// 2. Validar y eliminar expenses anteriores al nuevo start_date
-	if err = cleanupExpensesForNewPeriod(db, updateData); err != nil {
-		sendErrorResponse(w, "Error cleaning up expenses", http.StatusInternalServerError)
-		return
-	}
-	
-	// 3. Actualizar bill_payments según el nuevo periodo
-	if err = updateBillPaymentsForNewPeriod(db, updateData); err != nil {
+	// Actualizar bill_payments según el nuevo periodo
+	if err = updateBillPaymentsForNewPeriodCashBank(db, BillCashBankUpdateData{
+		BillID: updateData.BillID,
+		UserID: updateData.UserID,
+		OldAmount: updateData.OldAmount,
+		NewAmount: updateData.NewAmount,
+		OldDurationMonths: updateData.OldDurationMonths,
+		NewDurationMonths: updateData.NewDurationMonths,
+		OldStartDate: updateData.OldStartDate,
+		NewStartDate: updateData.NewStartDate,
+		OldPaymentMethod: updateData.OldPaymentMethod,
+		NewPaymentMethod: updateData.NewPaymentMethod,
+	}); err != nil {
 		sendErrorResponse(w, "Error updating bill payments", http.StatusInternalServerError)
-		return
-	}
-	
-	// 4. Aplicar el nuevo bill con la información actualizada
-	if err = applyNewBillToMonthlyBalance(db, updateData); err != nil {
-		sendErrorResponse(w, "Error applying new bill", http.StatusInternalServerError)
 		return
 	}
 	
