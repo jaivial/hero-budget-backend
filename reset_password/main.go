@@ -283,12 +283,13 @@ func init() {
 		log.Fatalf("Failed to ping database: %v", err)
 	}
 
-	// Create users table if it doesn't exist
+	// Create users table if it doesn't exist - ESTRUCTURA MODERNA COMPATIBLE
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS users (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			google_id TEXT UNIQUE,
-			email TEXT UNIQUE,
+			apple_id TEXT,
+			email TEXT,
 			password TEXT,
 			name TEXT,
 			given_name TEXT,
@@ -297,10 +298,13 @@ func init() {
 			profile_image_blob TEXT,
 			locale TEXT,
 			verified_email BOOLEAN,
+			verification_code TEXT,
+			type TEXT DEFAULT 'email',
+			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 			reset_token TEXT,
 			reset_expires DATETIME,
-			created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-			updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+			UNIQUE(email, type)
 		)
 	`)
 	if err != nil {
