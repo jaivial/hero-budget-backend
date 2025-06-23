@@ -111,6 +111,74 @@ func updateBalance(userID string, amount float64, paymentMethod string) error {
 	return nil
 }
 
+// updateMonthlyCashBankBalance actualiza la tabla monthly_cash_bank_balance
+func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankAmount float64, date time.Time) error {
+	yearMonth := date.Format("2006-01")
+	
+	// Check if record exists for this user and month
+	var exists bool
+	checkQuery := `SELECT 1 FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+	err := db.QueryRow(checkQuery, userID, yearMonth).Scan(&exists)
+	if err != nil && err != sql.ErrNoRows {
+		return fmt.Errorf("error checking existing record: %v", err)
+	}
+
+	if err == sql.ErrNoRows {
+		// Create new record
+		insertQuery := `
+			INSERT INTO monthly_cash_bank_balance (
+				user_id, year_month, 
+				income_bank_amount, income_cash_amount,
+				expense_bank_amount, expense_cash_amount,
+				bill_bank_amount, bill_cash_amount,
+				bank_amount, cash_amount, 
+				balance_cash_amount, balance_bank_amount,
+				total_previous_balance, total_balance,
+				created_at, updated_at
+			) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, 0, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+		`
+		totalBalance := cashAmount + bankAmount
+		_, err = db.Exec(insertQuery, 
+			userID, yearMonth,
+			bankAmount, cashAmount,  // income amounts
+			bankAmount, cashAmount,  // current bank/cash totals
+			cashAmount, bankAmount,  // balance amounts  
+			totalBalance)            // total balance
+		if err != nil {
+			return fmt.Errorf("error inserting monthly balance: %v", err)
+		}
+	} else {
+		// Update existing record
+		updateQuery := `
+			UPDATE monthly_cash_bank_balance 
+			SET income_bank_amount = income_bank_amount + ?,
+				income_cash_amount = income_cash_amount + ?,
+				bank_amount = bank_amount + ?,
+				cash_amount = cash_amount + ?,
+				balance_bank_amount = balance_bank_amount + ?,
+				balance_cash_amount = balance_cash_amount + ?,
+				total_balance = total_balance + ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`
+		totalIncomeAmount := cashAmount + bankAmount
+		_, err = db.Exec(updateQuery,
+			bankAmount, cashAmount,  // add to income amounts
+			bankAmount, cashAmount,  // add to current totals
+			bankAmount, cashAmount,  // add to balance amounts
+			totalIncomeAmount,       // add to total balance
+			userID, yearMonth)
+		if err != nil {
+			return fmt.Errorf("error updating monthly balance: %v", err)
+		}
+	}
+
+	log.Printf("Updated monthly_cash_bank_balance for user %s, month %s - cash: %v, bank: %v", 
+		userID, yearMonth, cashAmount, bankAmount)
+	
+	return nil
+}
+
 // updateTimeBalances actualiza los balances por períodos al añadir un ingreso
 func updateTimeBalances(userID string, amount float64, dateStr string) error {
 	// Parse la fecha del ingreso
@@ -146,24 +214,10 @@ func updateTimeBalances(userID string, amount float64, dateStr string) error {
 		bankAmount = amount
 	}
 
-	// Balance updates - simplified logging
-	log.Printf("Note: Daily balance update for income - amount: %v, cash: %v, bank: %v", amount, cashAmount, bankAmount)
-	log.Printf("Note: Weekly balance update for income - amount: %v, cash: %v, bank: %v", amount, cashAmount, bankAmount)
-	log.Printf("Note: Monthly balance update for income - amount: %v, cash: %v, bank: %v", amount, cashAmount, bankAmount)
-
-	// Actualizar balance trimestral
-	if err := updateQuarterlyBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
-		log.Printf("Error updating quarterly balance: %v", err)
-	}
-
-	// Actualizar balance semestral
-	if err := updateSemiannualBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
-		log.Printf("Error updating semiannual balance: %v", err)
-	}
-
-	// Actualizar balance anual
-	if err := updateAnnualBalance(userID, amount, 0, 0, cashAmount, bankAmount, date); err != nil {
-		log.Printf("Error updating annual balance: %v", err)
+	// Update monthly cash bank balance table
+	if err := updateMonthlyCashBankBalance(userID, amount, cashAmount, bankAmount, date); err != nil {
+		log.Printf("Error updating monthly cash bank balance: %v", err)
+		return err
 	}
 
 	return nil

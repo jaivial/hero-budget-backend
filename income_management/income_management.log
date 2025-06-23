@@ -18,3 +18,19 @@
 2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:daily
 2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:weekly
 2025/06/23 20:26:42 🗑️ Cache DELETE: dashboard:test_user_123:monthly
+2025/06/23 21:32:08 Note: Daily balance update for income - amount: 1000.5, cash: 0, bank: 1000.5
+2025/06/23 21:32:08 Note: Weekly balance update for income - amount: 1000.5, cash: 0, bank: 1000.5
+2025/06/23 21:32:08 Note: Monthly balance update for income - amount: 1000.5, cash: 0, bank: 1000.5
+2025/06/23 21:32:08 Error updating quarterly balance: no such table: quarterly_balances
+2025/06/23 21:32:08 Error updating semiannual balance: no such table: semiannual_balances
+2025/06/23 21:32:08 Error updating annual balance: no such table: annual_balances
+2025/06/23 21:32:08 Note: Balance recalculation triggered for userID: test_user, date: 2025-06-23
+2025/06/23 21:32:08 🗑️ Cache DELETE: income:test_user:analytics
+2025/06/23 21:32:08 🗑️ Cache DELETE: dashboard:test_user:analytics
+2025/06/23 21:32:08 🗑️ Cache DELETE: income:test_user:monthly
+2025/06/23 21:32:08 🗑️ Cache DELETE: income:test_user:daily
+2025/06/23 21:32:08 🗑️ Cache DELETE: income:test_user:weekly
+2025/06/23 21:32:08 🗑️ Cache DELETE: dashboard:test_user:monthly
+2025/06/23 21:32:08 🗑️ Cache DELETE: dashboard:test_user:daily
+2025/06/23 21:32:08 🗑️ Cache DELETE: dashboard:test_user:weekly
+2025/06/23 21:32:08 🗑️ Cache DELETE: dashboard:test_user:monthly
