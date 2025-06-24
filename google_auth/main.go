@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
@@ -45,6 +46,11 @@ type ApiResponse struct {
 }
 
 func init() {
+	// Parse command line flags
+	devMode := flag.Bool("dev", false, "Run in development mode")
+	prodMode := flag.Bool("produccion", false, "Run in production mode")
+	flag.Parse()
+
 	// Load environment variables from .env file in parent directory
 	if err := godotenv.Load("../.env"); err != nil {
 		log.Printf("Warning: Error loading .env file: %v", err)
@@ -73,10 +79,29 @@ func init() {
 		log.Fatal("GOOGLE_CLIENT_SECRET environment variable is required")
 	}
 
+	// Determine database path based on environment flag
+	var dbPath string
+	if *prodMode {
+		dbPath = getEnvOrDefault("DB_PROD_PATH", "/opt/hero_budget/database/hero_budget.db")
+		log.Printf("🏭 Running in PRODUCTION mode - Database: %s", dbPath)
+	} else if *devMode {
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		log.Printf("🔧 Running in DEVELOPMENT mode - Database: %s", dbPath)
+	} else {
+		// Default to development mode if no flag specified
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		log.Printf("🔧 Running in DEVELOPMENT mode (default) - Database: %s", dbPath)
+	}
+
 	var err error
-	db, err = sql.Open("sqlite3", "./users.db")
+	db, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("Failed to open database at %s: %v", dbPath, err)
+	}
+
+	// Test database connection
+	if err = db.Ping(); err != nil {
+		log.Fatalf("Failed to ping database at %s: %v", dbPath, err)
 	}
 
 	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql

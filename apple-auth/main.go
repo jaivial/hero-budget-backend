@@ -4,12 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"log"
 	"net/http"
 	"os"
-	"path/filepath"
 	"time"
 
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -21,27 +22,43 @@ var (
 )
 
 func init() {
-	var err error
+	// Parse command line flags
+	devMode := flag.Bool("dev", false, "Run in development mode")
+	prodMode := flag.Bool("produccion", false, "Run in production mode")
+	flag.Parse()
 
-	// Get the current working directory
-	cwd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get current directory: %v", err)
+	// Load environment variables from .env file in parent directory
+	if err := godotenv.Load("../.env"); err != nil {
+		log.Printf("Warning: Error loading .env file: %v", err)
+		log.Printf("Continuing with system environment variables...")
+	} else {
+		log.Println("Successfully loaded environment variables from ../.env")
 	}
 
-	// Construct absolute path to the database file
-	dbPath := filepath.Join(cwd, "..", "google_auth", "users.db")
-	log.Printf("Using database at: %s", dbPath)
+	// Determine database path based on environment flag
+	var dbPath string
+	if *prodMode {
+		dbPath = getEnvOrDefault("DB_PROD_PATH", "/opt/hero_budget/database/hero_budget.db")
+		log.Printf("🏭 Running in PRODUCTION mode - Database: %s", dbPath)
+	} else if *devMode {
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		log.Printf("🔧 Running in DEVELOPMENT mode - Database: %s", dbPath)
+	} else {
+		// Default to development mode if no flag specified
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		log.Printf("🔧 Running in DEVELOPMENT mode (default) - Database: %s", dbPath)
+	}
 
+	var err error
 	// Open the database connection
 	db, err = sql.Open("sqlite3", dbPath)
 	if err != nil {
-		log.Fatalf("Failed to open database: %v", err)
+		log.Fatalf("Failed to open database at %s: %v", dbPath, err)
 	}
 
 	// Test the connection
 	if err = db.Ping(); err != nil {
-		log.Fatalf("Failed to ping database: %v", err)
+		log.Fatalf("Failed to ping database at %s: %v", dbPath, err)
 	}
 
 	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
@@ -247,5 +264,13 @@ func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 		Success: false,
 		Message: message,
 	})
+}
+
+// getEnvOrDefault returns the value of an environment variable or a default value
+func getEnvOrDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
