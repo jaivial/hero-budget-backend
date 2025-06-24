@@ -90,6 +90,17 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Initialize cache manager for improved performance
+	cacheManager, err = common.NewCacheManager()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize cache manager: %v", err)
+		cacheManager = nil
+	} else {
+		log.Println("✅ Cache manager initialized successfully")
+	}
+
+	log.Println("Savings Management service initialized successfully")
 }
 
 // CENTRALIZED SCHEMA MIGRATION:
