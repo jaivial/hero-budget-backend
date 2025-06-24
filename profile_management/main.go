@@ -1,11 +1,12 @@
 package main
 
 import (
-	"github.com/joho/godotenv"	"flag"	"bytes"
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -13,12 +14,12 @@ import (
 	"log"
 	"net/http"
 	"os"
-	
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nfnt/resize"
 )

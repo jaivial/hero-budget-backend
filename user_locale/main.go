@@ -1,16 +1,17 @@
 package main
 
 import (
-	"github.com/joho/godotenv"	"flag"	"context"
+	"context"
 	"database/sql"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	
 
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
