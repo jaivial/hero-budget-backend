@@ -309,6 +309,155 @@ update_all_dependencies() {
     echo -e "${GREEN}✅ Dependencias actualizadas${NC}"
 }
 
+# Función para iniciar servicio con flags específicos
+start_service_with_flags() {
+    local service_name=$1
+    local port=$2
+    local flags=$3
+    local service_path="${BASE_PATH}/${service_name}"
+    
+    echo -e "${CYAN}🚀 Iniciando $service_name en puerto $port con flags: $flags...${NC}"
+    
+    if [ ! -d "$service_path" ]; then
+        echo -e "${RED}❌ Error: Directorio $service_path no encontrado${NC}"
+        return 1
+    fi
+    
+    cd "$service_path" || return 1
+    
+    # Verificar si existe main.go o archivos main_part*.go (para servicios divididos)
+    if [ ! -f "main.go" ] && [ ! -f "main_part1.go" ]; then
+        echo -e "${RED}❌ Error: main.go o main_part1.go no encontrado en $service_path${NC}"
+        cd "$BASE_PATH"
+        return 1
+    fi
+    
+    # Limpiar archivos conflictivos específicos para este servicio
+    cd "$BASE_PATH"
+    clean_conflicting_files "$service_name"
+    cd "$service_path"
+    
+    # Inicializar go.mod si no existe
+    if [ ! -f "go.mod" ]; then
+        /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
+    fi
+    
+    # Descargar dependencias
+    /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
+    /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
+    
+    # Verificar compilación con manejo mejorado de errores
+    if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+        echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
+        echo -e "${YELLOW}    📋 Error de compilación:${NC}"
+        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+        cd "$BASE_PATH"
+        return 1
+    fi
+    rm -f "/tmp/test_${service_name}"
+    
+    # Ejecutar en background con flags
+    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run -buildvcs=false . $flags > "/tmp/${service_name}.log" 2>&1 &
+    local pid=$!
+    
+    echo -e "${GREEN}  ✅ $service_name iniciado con $flags (PID: $pid)${NC}"
+    
+    # Verificar que el servicio responde
+    sleep 2
+    if verify_service "$service_name" "$port"; then
+        echo -e "${GREEN}    ✅ $service_name responde correctamente en puerto $port${NC}"
+    else
+        echo -e "${YELLOW}    ⚠️  $service_name puede estar iniciando...${NC}"
+    fi
+    
+    cd "$BASE_PATH"
+}
+
+# Función para reiniciar servicios con flags específicos  
+restart_all_services_with_flags() {
+    local flags=$1
+    echo -e "\n${WHITE}=== REINICIANDO SERVICIOS CON FLAGS: $flags ===${NC}"
+    
+    # Verificar directorio base
+    if [ ! -d "$BASE_PATH" ]; then
+        echo -e "${RED}❌ Error: El directorio base $BASE_PATH no existe${NC}"
+        exit 1
+    fi
+    
+    cd "$BASE_PATH" || exit 1
+    echo -e "${GREEN}📂 Trabajando desde: $(pwd)${NC}"
+    
+    # PROTECCIÓN DE DATOS: Solo para modo producción usar backup automático
+    if [ "$flags" = "--produccion" ]; then
+        echo -e "${CYAN}🔒 Modo producción: creando backup de seguridad...${NC}"
+        create_database_backup
+        restore_backup_if_needed
+    else
+        echo -e "${BLUE}🔧 Modo desarrollo: usando base de datos local${NC}"
+    fi
+    
+    # Verificar dependencias y detener servicios
+    check_system_dependencies
+    stop_all_services
+    
+    # Actualizar dependencias
+    update_all_dependencies
+    
+    # Iniciar servicios críticos primero
+    echo -e "\n${CYAN}📋 INICIANDO SERVICIOS CRÍTICOS CON FLAGS: $flags${NC}"
+    for service_info in "${CRITICAL_SERVICES[@]}"; do
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        start_service_with_flags "$service_name" "$port" "$flags"
+    done
+    
+    # Iniciar resto de servicios
+    echo -e "\n${CYAN}📋 INICIANDO RESTO DE SERVICIOS CON FLAGS: $flags${NC}"
+    for service_info in "${ALL_SERVICES[@]}"; do
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        
+        if [[ ! " ${CRITICAL_SERVICES[@]} " =~ " ${service_info} " ]]; then
+            start_service_with_flags "$service_name" "$port" "$flags"
+        fi
+    done
+    
+    # Verificación final
+    echo -e "\n${WHITE}=== VERIFICACIÓN FINAL ===${NC}"
+    echo -e "${YELLOW}⏳ Esperando 5 segundos para inicialización...${NC}"
+    sleep 5
+    
+    local active_count=0
+    for service_info in "${ALL_SERVICES[@]}"; do
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        
+        if verify_service "$service_name" "$port"; then
+            ((active_count++))
+        fi
+    done
+    
+    # Mostrar resumen final
+    echo -e "\n${WHITE}"
+    echo "============================================================================="
+    echo "   ✅ SERVICIOS INICIADOS CON FLAGS: $flags"
+    echo "   📊 Servicios activos: $active_count/${#ALL_SERVICES[@]}"
+    if [ "$flags" = "--produccion" ]; then
+        echo "   🏭 Modo: PRODUCCIÓN - Base de datos: /opt/hero_budget/database/hero_budget.db"
+    else
+        echo "   🔧 Modo: DESARROLLO - Base de datos: local users.db"
+    fi
+    echo "============================================================================="
+    echo -e "${NC}"
+    
+    if [ $active_count -eq ${#ALL_SERVICES[@]} ]; then
+        echo -e "${GREEN}🎉 TODOS LOS SERVICIOS ESTÁN FUNCIONANDO CON $flags${NC}"
+    else
+        echo -e "${YELLOW}⚠️  $active_count/${#ALL_SERVICES[@]} servicios funcionando${NC}"
+        echo -e "${YELLOW}💡 Revisar logs en: /tmp/[servicio].log${NC}"
+    fi
+}
+
 # Función principal de reinicio
 restart_all_services() {
     echo -e "\n${WHITE}=== REINICIANDO SERVICIOS SIN PÉRDIDA DE DATOS - VPS ===${NC}"
@@ -394,9 +543,11 @@ show_help() {
     echo -e "\n${WHITE}🔧 GESTIÓN DE MICROSERVICIOS GO - VPS (VERSIÓN SEGURA)${NC}"
     echo -e "${CYAN}Uso: $0 [OPCIÓN]${NC}"
     echo -e "\n${YELLOW}Opciones:${NC}"
-    echo -e "  ${GREEN}-a, --all${NC}     Reiniciar TODOS los servicios con protección de datos"
-    echo -e "  ${GREEN}-s, --status${NC}  Mostrar estado actual de todos los servicios"
-    echo -e "  ${GREEN}-h, --help${NC}    Mostrar esta ayuda"
+    echo -e "  ${GREEN}-a, --all${NC}         Reiniciar TODOS los servicios con protección de datos"
+    echo -e "  ${GREEN}--produccion${NC}       Reiniciar servicios en modo PRODUCCIÓN"
+    echo -e "  ${GREEN}--dev${NC}             Reiniciar servicios en modo DESARROLLO" 
+    echo -e "  ${GREEN}-s, --status${NC}      Mostrar estado actual de todos los servicios"
+    echo -e "  ${GREEN}-h, --help${NC}        Mostrar esta ayuda"
     echo -e "\n${YELLOW}Características de seguridad:${NC}"
     echo -e "  ${GREEN}🔒 Backup automático${NC} antes de reiniciar servicios"
     echo -e "  ${GREEN}🔍 Verificación de integridad${NC} de la base de datos"
@@ -416,6 +567,14 @@ main() {
     case "$1" in
         "--all"|"-a"|"")
             restart_all_services
+            ;;
+        "--produccion")
+            echo -e "${GREEN}🏭 Iniciando servicios en modo PRODUCCIÓN...${NC}"
+            restart_all_services_with_flags "--produccion"
+            ;;
+        "--dev")
+            echo -e "${GREEN}🔧 Iniciando servicios en modo DESARROLLO...${NC}"
+            restart_all_services_with_flags "--dev"
             ;;
         "--status"|"-s")
             show_services_status
