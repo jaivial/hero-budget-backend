@@ -123,7 +123,7 @@ func init() {
 	log.Println("Expense Management service initialized successfully")
 }
 
-func main() {
+func mainPart1() {
 	// Set up CORS middleware and routes for expense management endpoints
 	http.HandleFunc("/expenses/add", corsMiddleware(handleAddExpense))
 	http.HandleFunc("/expenses/update", corsMiddleware(handleUpdateExpense))
