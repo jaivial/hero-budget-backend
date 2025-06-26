@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"strings"
 )
 
 // fetchTopExpenses retrieves the top expenses for a specific month
