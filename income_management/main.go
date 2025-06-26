@@ -81,6 +81,7 @@ func main() {
 	// Set up CORS middleware and routes for income management
 	http.HandleFunc("/incomes/add", corsMiddleware(handleAddIncome))
 	http.HandleFunc("/incomes/list", corsMiddleware(handleListIncomes))
+	http.HandleFunc("/incomes", corsMiddleware(handleListIncomes)) // Compatible with Flutter frontend expectation
 	http.HandleFunc("/incomes/update", corsMiddleware(handleUpdateIncome))
 	http.HandleFunc("/incomes/delete", corsMiddleware(handleDeleteIncome))
 

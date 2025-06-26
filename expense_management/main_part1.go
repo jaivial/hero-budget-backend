@@ -129,6 +129,7 @@ func main() {
 	http.HandleFunc("/expenses/update", corsMiddleware(handleUpdateExpense))
 	http.HandleFunc("/expenses/delete", corsMiddleware(handleDeleteExpense))
 	http.HandleFunc("/expenses/fetch", corsMiddleware(handleFetchExpenses))
+	http.HandleFunc("/expenses", corsMiddleware(handleFetchExpenses)) // Compatible with Flutter frontend expectation
 	http.HandleFunc("/expenses/analytics/daily", corsMiddleware(handleDailyAnalytics))
 	http.HandleFunc("/expenses/analytics/weekly", corsMiddleware(handleWeeklyAnalytics))
 	http.HandleFunc("/expenses/analytics/monthly", corsMiddleware(handleMonthlyAnalytics))
