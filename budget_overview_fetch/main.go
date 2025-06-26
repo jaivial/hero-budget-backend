@@ -205,6 +205,13 @@ func main() {
 	http.HandleFunc("/upcoming-bills", corsMiddleware(handleUpcomingBills))
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
 	http.HandleFunc("/budget-overview/health", corsMiddleware(handleBudgetOverviewHealth))
+	
+	// Top Transactions endpoints
+	http.HandleFunc("/transactions/top-expenses", corsMiddleware(handleTopExpenses))
+	http.HandleFunc("/transactions/top-incomes", corsMiddleware(handleTopIncomes))
+	http.HandleFunc("/transactions/top-bills", corsMiddleware(handleTopBills))
+	http.HandleFunc("/transactions/category-stats", corsMiddleware(handleCategoryStats))
+	http.HandleFunc("/transactions/top-transactions", corsMiddleware(handleTopTransactions))
 
 	// Start server on port 8098
 	port := "8098"
