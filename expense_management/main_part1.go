@@ -123,13 +123,18 @@ func init() {
 	log.Println("Expense Management service initialized successfully")
 }
 
-func mainPart1() {
+func main() {
 	// Set up CORS middleware and routes for expense management endpoints
 	http.HandleFunc("/expenses/add", corsMiddleware(handleAddExpense))
 	http.HandleFunc("/expenses/update", corsMiddleware(handleUpdateExpense))
 	http.HandleFunc("/expenses/delete", corsMiddleware(handleDeleteExpense))
 	http.HandleFunc("/expenses/fetch", corsMiddleware(handleFetchExpenses))
-	http.HandleFunc("/expenses", corsMiddleware(handleFetchExpenses)) // Compatible with Flutter frontend expectation
+	
+	// CRITICAL: Add the /expenses endpoint that Flutter expects  
+	http.HandleFunc("/expenses", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
+		log.Printf("🔥 NEW ENDPOINT /expenses called with method: %s, query: %s", r.Method, r.URL.RawQuery)
+		handleFetchExpenses(w, r)
+	}))
 	http.HandleFunc("/expenses/analytics/daily", corsMiddleware(handleDailyAnalytics))
 	http.HandleFunc("/expenses/analytics/weekly", corsMiddleware(handleWeeklyAnalytics))
 	http.HandleFunc("/expenses/analytics/monthly", corsMiddleware(handleMonthlyAnalytics))
