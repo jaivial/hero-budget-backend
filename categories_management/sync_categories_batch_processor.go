@@ -257,15 +257,3 @@ func (bp *CategoriesBatchProcessor) processCategoryUpdateAdvanced(category Offli
 	return nil
 }
 
-// processCategoryDeleteAdvanced procesamiento avanzado para eliminación de categorías
-// Incluye verificación de dependencias y limpieza de referencias
-// Maneja eliminación segura con validaciones adicionales
-func (bp *CategoriesBatchProcessor) processCategoryDeleteAdvanced(category OfflineCategory) error {
-	// Procesar usando función base
-	err := processCategoryDelete(category)
-	if err != nil {
-		return fmt.Errorf("failed to delete category: %v", err)
-	}
-
-	return nil
-}
