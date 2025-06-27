@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"time"
 )
 
 // Handlers HTTP para sincronización offline de Categories Management - Parte 3 (Helper Functions)
