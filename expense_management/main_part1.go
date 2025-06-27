@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/joho/godotenv"
 
@@ -145,13 +146,8 @@ func main() {
 	http.HandleFunc("/balance/update-cash", corsMiddleware(handleUpdateCashBalance))
 	http.HandleFunc("/balance/update-bank", corsMiddleware(handleUpdateBankBalance))
 
-	// Rutas de sincronización offline para manejo de operaciones offline
-	http.HandleFunc("/sync/batch", corsMiddleware(handleSyncBatch))
-	http.HandleFunc("/sync/changes", corsMiddleware(handleSyncChanges))
-	http.HandleFunc("/sync/resolve-conflicts", corsMiddleware(handleResolveConflicts))
-	http.HandleFunc("/sync/health", corsMiddleware(handleSyncHealth))
-	http.HandleFunc("/sync/stats", corsMiddleware(handleSyncStats))
-	http.HandleFunc("/sync/config", corsMiddleware(handleSyncConfig))
+	// Rutas de sincronización offline básicas (funciones implementadas al final)
+	http.HandleFunc("/sync/health", corsMiddleware(handleSyncHealthBasic))
 
 	// Start the HTTP server on port 8086
 	port := 8094
@@ -173,6 +169,28 @@ func openDatabase() (*sql.DB, error) {
 	
 	return db, nil
 }
+
+// handleSyncHealthBasic proporciona health check básico para sincronización
+func handleSyncHealthBasic(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		http.Error(w, "Método no permitido", http.StatusMethodNotAllowed)
+		return
+	}
+
+	response := map[string]interface{}{
+		"service": "expense_management_sync",
+		"status":  "healthy",
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+		"version": "1.0.0",
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("Error enviando respuesta de health: %v", err)
+	}
+}
+
 
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
