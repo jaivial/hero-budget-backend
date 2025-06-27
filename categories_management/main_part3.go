@@ -1,12 +1,9 @@
 package main
 
 import (
-	"encoding/base64"
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
-	"unicode/utf8"
 )
 
 // Funciones de base de datos y utilidades para Categories Management - Parte 3
