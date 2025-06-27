@@ -72,8 +72,8 @@ func NewSyncService() (*SyncService, error) {
 	// Conectar a la base de datos principal del sistema
 	dbPath := os.Getenv("DATABASE_PATH")
 	if dbPath == "" {
-		// Usar ruta absoluta para producción
-		dbPath = "/opt/hero_budget/backend/budget_data.db" // Ruta absoluta para producción
+		// Usar ruta absoluta para producción - base de datos principal
+		dbPath = "/opt/hero_budget/database/hero_budget.db" // Ruta correcta de la base de datos principal
 	}
 
 	db, err := sql.Open("sqlite3", dbPath)
