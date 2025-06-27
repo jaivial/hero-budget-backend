@@ -145,6 +145,14 @@ func main() {
 	http.HandleFunc("/balance/update-cash", corsMiddleware(handleUpdateCashBalance))
 	http.HandleFunc("/balance/update-bank", corsMiddleware(handleUpdateBankBalance))
 
+	// Rutas de sincronización offline para manejo de operaciones offline
+	http.HandleFunc("/sync/batch", corsMiddleware(handleSyncBatch))
+	http.HandleFunc("/sync/changes", corsMiddleware(handleSyncChanges))
+	http.HandleFunc("/sync/resolve-conflicts", corsMiddleware(handleResolveConflicts))
+	http.HandleFunc("/sync/health", corsMiddleware(handleSyncHealth))
+	http.HandleFunc("/sync/stats", corsMiddleware(handleSyncStats))
+	http.HandleFunc("/sync/config", corsMiddleware(handleSyncConfig))
+
 	// Start the HTTP server on port 8086
 	port := 8094
 	log.Printf("Expense Management service started on :%d", port)
