@@ -211,10 +211,3 @@ func (budget *OfflineBudget) hasNonZeroAmounts() bool {
 		   budget.TotalIncome != 0
 }
 
-// abs retorna el valor absoluto de un número flotante
-func abs(x float64) float64 {
-	if x < 0 {
-		return -x
-	}
-	return x
-}

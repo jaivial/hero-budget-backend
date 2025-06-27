@@ -183,7 +183,7 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 // Utiliza la lógica de actualización existente con algoritmo acumulativo
 func processUpdateBillOperation(offlineBill OfflineBill) (*Bill, error) {
 	// Obtener datos actuales de la factura
-	oldBillData, err := getBillOldData(db, offlineBill.ServerID, offlineBill.UserID)
+	_, err := getBillOldData(db, offlineBill.ServerID, offlineBill.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("factura no encontrada: %v", err)
 	}

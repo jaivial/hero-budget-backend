@@ -208,16 +208,3 @@ func validateCategoryAddOperation(category OfflineCategory) error {
 
 	return nil
 }
-		}
-	}
-
-	// Validar que el LocalID esté presente para tracking
-	if category.LocalID == "" {
-		return fmt.Errorf("local_id is required for add operation")
-	}
-
-	// Nota: La validación de nombres únicos se haría en el procesamiento
-	// para evitar carreras entre solicitudes concurrentes
-
-	return nil
-}

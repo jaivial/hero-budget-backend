@@ -226,31 +226,3 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 	// Return success response with the updated category
 	sendSuccessResponse(w, "Category updated successfully", updatedCategory)
 }
-	if updateRequest.Emoji != "" {
-		existingCategory.Emoji = updateRequest.Emoji
-	}
-
-	// Update category in database con validación de integridad
-	err = updateCategory(*existingCategory)
-	if err != nil {
-		log.Printf("Error updating category: %v", err)
-		sendErrorResponse(w, "Error updating category", http.StatusInternalServerError)
-		return
-	}
-
-	// IMPORTANTE: Recuperar la categoría actualizada para obtener información correcta
-	updatedCategory, err := fetchCategoryByID(updateRequest.CategoryID, updateRequest.UserID)
-	if err != nil {
-		log.Printf("Error fetching updated category: %v", err)
-		sendErrorResponse(w, "Error fetching updated category", http.StatusInternalServerError)
-		return
-	}
-
-	log.Printf("DEBUG - Emoji después de actualización: %s", updatedCategory.Emoji)
-
-	// Invalidate cache after updating category para mantener consistencia
-	invalidateCategoriesCache(updateRequest.UserID)
-
-	// Return success response with the updated category
-	sendSuccessResponse(w, "Category updated successfully", updatedCategory)
-}

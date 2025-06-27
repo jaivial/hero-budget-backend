@@ -168,7 +168,6 @@ func resolveCategoriesConflict(request SyncCategoriesConflictRequest) (SyncCateg
 
 	return result, nil
 }
-}
 
 // processCategoryUpdate procesa la actualización de una categoría desde sync offline
 // Actualiza los campos modificados manteniendo la integridad de datos

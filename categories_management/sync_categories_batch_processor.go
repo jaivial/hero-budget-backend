@@ -256,26 +256,6 @@ func (bp *CategoriesBatchProcessor) processCategoryUpdateAdvanced(category Offli
 
 	return nil
 }
-		return fmt.Errorf("category not found for update: %v", err)
-	}
-
-	// Verificar si realmente hay cambios
-	if !bp.hasEffectiveChanges(category, existing) {
-		log.Printf("No effective changes detected for category %s, skipping update", category.LocalID)
-		return nil
-	}
-
-	// Procesar usando función base
-	err = processCategoryUpdate(category)
-	if err != nil {
-		return fmt.Errorf("failed to update category: %v", err)
-	}
-
-	// Actualizar estadísticas
-	bp.updateUpdateStatistics()
-
-	return nil
-}
 
 // processCategoryDeleteAdvanced procesamiento avanzado para eliminación de categorías
 // Incluye verificación de dependencias y limpieza de referencias
