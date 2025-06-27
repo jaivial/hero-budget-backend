@@ -155,6 +155,11 @@ func main() {
 	http.HandleFunc("/bills/upcoming", corsMiddleware(handleGenericEndpoint))
 	http.HandleFunc("/bills/debug-add", corsMiddleware(handleDebugAddBill))
 	
+	// Rutas de sincronización offline para facturas (siguiendo patrón de expense_management)
+	http.HandleFunc("/bills/sync/health", corsMiddleware(handleSyncBillHealth))
+	http.HandleFunc("/bills/sync/batch", corsMiddleware(handleSyncBillBatch))
+	http.HandleFunc("/bills/sync/changes", corsMiddleware(handleSyncBillChanges))
+	
 	// Iniciar servidor
 	fmt.Println("Bills Management service started on :8091")
 	log.Fatal(http.ListenAndServe(":8091", nil))
