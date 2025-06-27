@@ -40,6 +40,7 @@ ALL_SERVICES=(
     "money_flow_sync:8097"
     "budget_overview_fetch:8098"
     "user_locale:8099"
+    "sync_service:8101"
 )
 
 # Servicios críticos (se inician primero)
@@ -48,6 +49,7 @@ CRITICAL_SERVICES=(
     "signin:8084"
     "fetch_dashboard:8085"
     "cash_bank_management:8090"
+    "sync_service:8101"
 )
 
 # Función para crear backup de la base de datos
