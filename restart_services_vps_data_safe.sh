@@ -222,8 +222,14 @@ start_service() {
     fi
     rm -f "/tmp/test_${service_name}"
     
+    # Configurar variables de entorno específicas por servicio
+    local env_vars="CGO_ENABLED=1"
+    if [ "$service_name" = "sync_service" ]; then
+        env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db"
+    fi
+    
     # Ejecutar en background
-    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run -buildvcs=false . > "/tmp/${service_name}.log" 2>&1 &
+    nohup env $env_vars /usr/local/go/bin/go run -buildvcs=false . > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"
@@ -358,8 +364,14 @@ start_service_with_flags() {
     fi
     rm -f "/tmp/test_${service_name}"
     
+    # Configurar variables de entorno específicas por servicio
+    local env_vars="CGO_ENABLED=1"
+    if [ "$service_name" = "sync_service" ]; then
+        env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db"
+    fi
+    
     # Ejecutar en background con flags
-    nohup env CGO_ENABLED=1 /usr/local/go/bin/go run -buildvcs=false . $flags > "/tmp/${service_name}.log" 2>&1 &
+    nohup env $env_vars /usr/local/go/bin/go run -buildvcs=false . $flags > "/tmp/${service_name}.log" 2>&1 &
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado con $flags (PID: $pid)${NC}"
