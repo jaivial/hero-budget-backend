@@ -159,6 +159,21 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
+// openDatabase obtiene la conexión a la base de datos para operaciones de sincronización
+// Verifica que la conexión esté activa antes de retornarla
+func openDatabase() (*sql.DB, error) {
+	if db == nil {
+		return nil, fmt.Errorf("conexión a base de datos no inicializada")
+	}
+	
+	// Verificar que la conexión esté activa
+	if err := db.Ping(); err != nil {
+		return nil, fmt.Errorf("error de conexión a base de datos: %v", err)
+	}
+	
+	return db, nil
+}
+
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Set CORS headers for cross-origin requests from frontend

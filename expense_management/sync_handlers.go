@@ -1,12 +1,15 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+	
+	"github.com/herobudget/backend/common"
 )
 
 // Handlers HTTP para funcionalidad de sincronización offline
