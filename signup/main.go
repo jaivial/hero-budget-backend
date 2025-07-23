@@ -1014,6 +1014,22 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Basic validation: code should be exactly 6 numeric digits
+	if len(code) != 6 {
+		log.Printf("Invalid verification code length: %d (expected 6)", len(code))
+		http.Error(w, "Invalid verification code format", http.StatusBadRequest)
+		return
+	}
+
+	// Validate that code contains only digits
+	for _, char := range code {
+		if char < '0' || char > '9' {
+			log.Printf("Invalid verification code format: contains non-numeric characters")
+			http.Error(w, "Invalid verification code format", http.StatusBadRequest)
+			return
+		}
+	}
+
 	// Log the verification attempt with additional parameters
 	log.Printf("Attempting to verify email - Code: %s, UserID: %s, Email: %s",
 		code, userID, emailParam)
@@ -1064,14 +1080,6 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Found user but verification code doesn't match. Expected: %s, Got: %s",
 				verificationCode, code)
 
-			// Update verification code in database for next attempt
-			_, err = db.Exec("UPDATE users SET verification_code = ? WHERE id = ?", code, dbUserID)
-			if err != nil {
-				log.Printf("Failed to update verification code: %v", err)
-			} else {
-				log.Printf("Updated verification code for user ID: %d", dbUserID)
-			}
-
 			// If user is already verified, we can still return success
 			if verified {
 				log.Printf("User ID: %d is already verified. Returning success.", dbUserID)
@@ -1085,7 +1093,8 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 
-			// Otherwise, return error to trigger resend
+			// Otherwise, return error for invalid code
+			log.Printf("Invalid verification code for user ID: %d", dbUserID)
 			http.Error(w, "Invalid verification code", http.StatusNotFound)
 			return
 		}
