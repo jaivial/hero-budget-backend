@@ -99,7 +99,9 @@ func calculateBalanceImpactForDeletion(transactionID, userID string) (Transactio
 	impact.TransactionType = transactionType
 	impact.Amount = amount
 
-	distribution, err := fetchCashBankDistribution(userID)
+	// Use current month for validation - TODO: consider transaction-specific month
+	currentMonth := time.Now().Format("2006-01")
+	distribution, err := fetchCashBankDistribution(userID, currentMonth)
 	if err != nil {
 		return impact, fmt.Errorf("error fetching distribution: %v", err)
 	}

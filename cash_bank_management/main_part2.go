@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"time"
 )
 
 // Handlers HTTP principales para operaciones de efectivo y banco
@@ -44,10 +45,19 @@ func handleFetchDistribution(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔍 Cache MISS: cash bank distribution for user %s", userID)
 	}
 
+	// Extract year_month parameter, default to current month if not provided
+	// Extrae parámetro year_month, usa mes actual si no se proporciona
+	yearMonth := r.URL.Query().Get("year_month")
+	if yearMonth == "" {
+		// Default to current month for backwards compatibility
+		// Por defecto usa mes actual para compatibilidad
+		yearMonth = time.Now().Format("2006-01")
+	}
+	
 	// Fetch cash bank distribution data from database
 	// Obtiene datos de distribución desde la base de datos
 	// Incluye cálculo de porcentajes y validación de datos
-	distribution, err := fetchCashBankDistribution(userID)
+	distribution, err := fetchCashBankDistribution(userID, yearMonth)
 	if err != nil {
 		log.Printf("Error fetching cash bank distribution: %v", err)
 		sendErrorResponse(w, "Error fetching cash bank distribution", http.StatusInternalServerError)
@@ -106,10 +116,17 @@ func handleUpdateCash(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract year_month from date or use current month
+	// Extrae year_month de la fecha o usa mes actual
+	yearMonth := updateRequest.Date[:7] // "2025-05-01" -> "2025-05"
+	if len(updateRequest.Date) < 7 {
+		yearMonth = time.Now().Format("2006-01")
+	}
+	
 	// Get current distribution to maintain bank amount
 	// Obtiene distribución actual para mantener cantidad de banco
 	// Necesario para recalcular el total y porcentajes correctamente
-	distribution, err := fetchCashBankDistribution(updateRequest.UserID)
+	distribution, err := fetchCashBankDistribution(updateRequest.UserID, yearMonth)
 	if err != nil {
 		log.Printf("Error fetching current distribution: %v", err)
 		sendErrorResponse(w, "Error fetching current distribution", http.StatusInternalServerError)
@@ -210,9 +227,16 @@ func handleUpdateBank(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Extract year_month from date or use current month
+	// Extrae year_month de la fecha o usa mes actual
+	yearMonth := updateRequest.Date[:7] // "2025-05-01" -> "2025-05"
+	if len(updateRequest.Date) < 7 {
+		yearMonth = time.Now().Format("2006-01")
+	}
+	
 	// Get current distribution to maintain cash amount
 	// Obtiene distribución actual para mantener cantidad de efectivo
-	distribution, err := fetchCashBankDistribution(updateRequest.UserID)
+	distribution, err := fetchCashBankDistribution(updateRequest.UserID, yearMonth)
 	if err != nil {
 		log.Printf("Error fetching current distribution: %v", err)
 		sendErrorResponse(w, "Error fetching current distribution", http.StatusInternalServerError)

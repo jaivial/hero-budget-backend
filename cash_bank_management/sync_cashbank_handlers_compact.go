@@ -210,7 +210,9 @@ func fetchCashBankChangesCompact(userID, lastSync string, limit int) (SyncCashBa
 	}
 
 	// Obtener distribución actual
-	distribution, err := fetchCashBankDistribution(userID)
+	// Use current month for sync operations - TODO: consider passing month parameter  
+	currentMonth := time.Now().Format("2006-01")
+	distribution, err := fetchCashBankDistribution(userID, currentMonth)
 	if err == nil && distribution.UserID != "" {
 		response.Distributions = append(response.Distributions, distribution)
 	}
