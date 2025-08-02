@@ -52,6 +52,11 @@ func init() {
 		Port:         getEnv("PORT", "8102"),
 		DatabasePath: getEnv("DATABASE_PATH", "/opt/hero_budget/database/hero_budget.db"),
 	}
+	// Force correct database path if environment variable is wrong
+	if config.DatabasePath == "/opt/hero_budget/backend/budget_data.db" {
+		config.DatabasePath = "/opt/hero_budget/database/hero_budget.db"
+		log.Printf("🔄 Corrected database path to: %s", config.DatabasePath)
+	}
 }
 
 // Función auxiliar para obtener variables de entorno
