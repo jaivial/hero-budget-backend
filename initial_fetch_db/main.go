@@ -11,7 +11,6 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"strconv"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -342,72 +341,10 @@ func fetchUsers(userID string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// Fetch específico para tabla savings - devolver array consistente con otras tablas
+// Fetch específico para tabla savings - usar método genérico para evitar errores de schema
 func fetchSavings(userID string) ([]map[string]interface{}, error) {
-	query := "SELECT * FROM savings WHERE user_id = ?"
-	
-	rows, err := db.Query(query, userID)
-	if err != nil {
-		return nil, fmt.Errorf("query failed for savings table: %v", err)
-	}
-	defer rows.Close()
-	
-	var results []map[string]interface{}
-	
-	for rows.Next() {
-		// Definir campos esperados de savings
-		var id sql.NullInt64
-		var user_id sql.NullString
-		var available sql.NullFloat64
-		var goal sql.NullFloat64
-		var period sql.NullString
-		var percent sql.NullFloat64
-		var need_to_save sql.NullFloat64
-		var daily_target sql.NullFloat64
-		var created_at sql.NullString
-		var updated_at sql.NullString
-		
-		err := rows.Scan(&id, &user_id, &available, &goal, &period, &percent, &need_to_save, &daily_target, &created_at, &updated_at)
-		if err != nil {
-			log.Printf("⚠️ Warning: Failed to scan savings row: %v", err)
-			continue
-		}
-		
-		// Convertir a mapa manejando valores NULL
-		result := map[string]interface{}{
-			"user_id":       getValue(user_id),
-			"available":     getValue(available),
-			"goal":          getValue(goal),
-			"period":        getValue(period),
-			"percent":       getValue(percent),
-			"need_to_save":  getValue(need_to_save),
-			"daily_target":  getValue(daily_target),
-		}
-		
-		if id.Valid {
-			result["id"] = id.Int64
-		}
-		if created_at.Valid {
-			result["created_at"] = created_at.String
-		}
-		if updated_at.Valid {
-			result["updated_at"] = updated_at.String
-		}
-		
-		results = append(results, result)
-	}
-	
-	if err = rows.Err(); err != nil {
-		return nil, fmt.Errorf("row iteration error for savings table: %v", err)
-	}
-	
-	// Si no hay datos, devolver array vacío (no estructura por defecto)
-	if len(results) == 0 {
-		log.Printf("ℹ️ No savings data found for user %s", userID)
-		return []map[string]interface{}{}, nil
-	}
-	
-	return results, nil
+	// Usar el método genérico que maneja dinámicamente las columnas
+	return fetchGenericTable("savings", userID)
 }
 
 // Función auxiliar para obtener valores de sql.Null*
