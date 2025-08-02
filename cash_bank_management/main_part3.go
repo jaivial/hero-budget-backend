@@ -44,9 +44,13 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get current distribution to check cash availability
-	// Obtiene distribución actual para verificar disponibilidad de efectivo
-	distribution, err := fetchCashBankDistribution(transferRequest.UserID)
+	// Extract year-month from transfer date for monthly tracking
+	// Extraer año-mes de la fecha de transferencia para seguimiento mensual
+	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
+	
+	// Get distribution for the specific month to check cash availability
+	// Obtiene distribución del mes específico para verificar disponibilidad de efectivo
+	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
 	if err != nil {
 		log.Printf("Error fetching current distribution: %v", err)
 		sendErrorResponse(w, "Error fetching current distribution", http.StatusInternalServerError)
@@ -61,6 +65,11 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Calculate deltas for cascade updates
+	// Calcular deltas para actualizaciones en cascada
+	cashDelta := -transferRequest.Amount // Cash decreases
+	bankDelta := +transferRequest.Amount // Bank increases
+	
 	// Update amounts atomically - subtract from cash, add to bank
 	// Actualiza cantidades atomicamente - resta de efectivo, suma a banco
 	distribution.CashAmount -= transferRequest.Amount
@@ -74,12 +83,26 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		distribution.BankPercent = (distribution.BankAmount / distribution.MonthlyTotal) * 100
 	}
 
-	// Save the updated distribution to database
-	// Guarda distribución actualizada en base de datos
-	err = updateCashBankDistribution(distribution)
+	// Update the specific month in database
+	// Actualizar el mes específico en la base de datos
+	_, err = db.Exec(`
+		UPDATE monthly_cash_bank_balance 
+		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
+		WHERE user_id = ? AND year_month = ?
+	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
+	
 	if err != nil {
-		log.Printf("Error updating distribution after transfer: %v", err)
+		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
+		return
+	}
+	
+	// Cascade the changes to all future months
+	// Aplicar los cambios en cascada a todos los meses futuros
+	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
+	if err != nil {
+		log.Printf("Error cascading updates: %v", err)
+		sendErrorResponse(w, "Error updating future balances", http.StatusInternalServerError)
 		return
 	}
 
@@ -146,9 +169,13 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get current distribution to check bank balance
-	// Obtiene distribución actual para verificar saldo bancario
-	distribution, err := fetchCashBankDistribution(transferRequest.UserID)
+	// Extract year-month from transfer date for monthly tracking
+	// Extraer año-mes de la fecha de transferencia para seguimiento mensual
+	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
+	
+	// Get distribution for the specific month to check bank balance
+	// Obtiene distribución del mes específico para verificar saldo bancario
+	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
 	if err != nil {
 		log.Printf("Error fetching current distribution: %v", err)
 		sendErrorResponse(w, "Error fetching current distribution", http.StatusInternalServerError)
@@ -162,6 +189,11 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Calculate deltas for cascade updates
+	// Calcular deltas para actualizaciones en cascada
+	cashDelta := +transferRequest.Amount // Cash increases
+	bankDelta := -transferRequest.Amount // Bank decreases
+	
 	// Update amounts - subtract from bank, add to cash
 	// Actualiza cantidades - resta de banco, suma a efectivo
 	distribution.BankAmount -= transferRequest.Amount
@@ -174,12 +206,26 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 		distribution.BankPercent = (distribution.BankAmount / distribution.MonthlyTotal) * 100
 	}
 
-	// Save updated distribution
-	// Guarda distribución actualizada
-	err = updateCashBankDistribution(distribution)
+	// Update the specific month in database
+	// Actualizar el mes específico en la base de datos
+	_, err = db.Exec(`
+		UPDATE monthly_cash_bank_balance 
+		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
+		WHERE user_id = ? AND year_month = ?
+	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
+	
 	if err != nil {
-		log.Printf("Error updating distribution after transfer: %v", err)
+		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
+		return
+	}
+	
+	// Cascade the changes to all future months
+	// Aplicar los cambios en cascada a todos los meses futuros
+	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
+	if err != nil {
+		log.Printf("Error cascading updates: %v", err)
+		sendErrorResponse(w, "Error updating future balances", http.StatusInternalServerError)
 		return
 	}
 
