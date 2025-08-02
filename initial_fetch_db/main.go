@@ -342,64 +342,72 @@ func fetchUsers(userID string) (map[string]interface{}, error) {
 	return result, nil
 }
 
-// Fetch específico para tabla savings (puede tener estructura especial)
-func fetchSavings(userID string) (map[string]interface{}, error) {
-	query := "SELECT * FROM savings WHERE user_id = ? LIMIT 1"
+// Fetch específico para tabla savings - devolver array consistente con otras tablas
+func fetchSavings(userID string) ([]map[string]interface{}, error) {
+	query := "SELECT * FROM savings WHERE user_id = ?"
 	
-	row := db.QueryRow(query, userID)
-	
-	// Definir campos esperados de savings
-	var id sql.NullInt64
-	var user_id sql.NullString
-	var available sql.NullFloat64
-	var goal sql.NullFloat64
-	var period sql.NullString
-	var percent sql.NullFloat64
-	var need_to_save sql.NullFloat64
-	var daily_target sql.NullFloat64
-	var created_at sql.NullString
-	var updated_at sql.NullString
-	
-	err := row.Scan(&id, &user_id, &available, &goal, &period, &percent, &need_to_save, &daily_target, &created_at, &updated_at)
+	rows, err := db.Query(query, userID)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// No hay datos de savings, devolver estructura por defecto
-			userIDInt, _ := strconv.Atoi(userID)
-			return map[string]interface{}{
-				"user_id":       userIDInt,
-				"available":     0,
-				"goal":          0,
-				"period":        "monthly",
-				"percent":       0,
-				"need_to_save":  0,
-				"daily_target":  0,
-			}, nil
+		return nil, fmt.Errorf("query failed for savings table: %v", err)
+	}
+	defer rows.Close()
+	
+	var results []map[string]interface{}
+	
+	for rows.Next() {
+		// Definir campos esperados de savings
+		var id sql.NullInt64
+		var user_id sql.NullString
+		var available sql.NullFloat64
+		var goal sql.NullFloat64
+		var period sql.NullString
+		var percent sql.NullFloat64
+		var need_to_save sql.NullFloat64
+		var daily_target sql.NullFloat64
+		var created_at sql.NullString
+		var updated_at sql.NullString
+		
+		err := rows.Scan(&id, &user_id, &available, &goal, &period, &percent, &need_to_save, &daily_target, &created_at, &updated_at)
+		if err != nil {
+			log.Printf("⚠️ Warning: Failed to scan savings row: %v", err)
+			continue
 		}
-		return nil, fmt.Errorf("failed to scan savings data: %v", err)
+		
+		// Convertir a mapa manejando valores NULL
+		result := map[string]interface{}{
+			"user_id":       getValue(user_id),
+			"available":     getValue(available),
+			"goal":          getValue(goal),
+			"period":        getValue(period),
+			"percent":       getValue(percent),
+			"need_to_save":  getValue(need_to_save),
+			"daily_target":  getValue(daily_target),
+		}
+		
+		if id.Valid {
+			result["id"] = id.Int64
+		}
+		if created_at.Valid {
+			result["created_at"] = created_at.String
+		}
+		if updated_at.Valid {
+			result["updated_at"] = updated_at.String
+		}
+		
+		results = append(results, result)
 	}
 	
-	// Convertir a mapa manejando valores NULL
-	result := map[string]interface{}{
-		"user_id":       getValue(user_id),
-		"available":     getValue(available),
-		"goal":          getValue(goal),
-		"period":        getValue(period),
-		"percent":       getValue(percent),
-		"need_to_save":  getValue(need_to_save),
-		"daily_target":  getValue(daily_target),
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("row iteration error for savings table: %v", err)
 	}
 	
-	if id.Valid {
-		result["id"] = id.Int64
-	}
-	if created_at.Valid {
-		result["created_at"] = created_at.String
-	}
-	if updated_at.Valid {
-		result["updated_at"] = updated_at.String
+	// Si no hay datos, devolver array vacío (no estructura por defecto)
+	if len(results) == 0 {
+		log.Printf("ℹ️ No savings data found for user %s", userID)
+		return []map[string]interface{}{}, nil
 	}
 	
-	return result, nil
+	return results, nil
 }
 
 // Función auxiliar para obtener valores de sql.Null*
