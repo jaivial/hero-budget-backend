@@ -78,11 +78,23 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 	}
 	defer tx.Rollback()
 
-	// Verificar que el pago no haya sido ya procesado
+	// Verificar que el pago no haya sido ya procesado, crear record si no existe
 	var alreadyPaid bool
 	err = tx.QueryRow("SELECT paid FROM bill_payments WHERE bill_id = ? AND year_month = ?", billID, yearMonth).Scan(&alreadyPaid)
 	if err != nil {
-		return nil, fmt.Errorf("payment record not found for bill %d in month %s: %v", billID, yearMonth, err)
+		if err == sql.ErrNoRows {
+			// Record no existe, crearlo con paid=0
+			_, insertErr := tx.Exec(`
+				INSERT INTO bill_payments (bill_id, year_month, paid, payment_method, created_at, user_id) 
+				VALUES (?, ?, 0, ?, CURRENT_TIMESTAMP, ?)
+			`, billID, yearMonth, paymentMethod, userID)
+			if insertErr != nil {
+				return nil, fmt.Errorf("error creating missing payment record for bill %d in month %s: %v", billID, yearMonth, insertErr)
+			}
+			alreadyPaid = false // Recién creado, no está pagado
+		} else {
+			return nil, fmt.Errorf("error checking payment record for bill %d in month %s: %v", billID, yearMonth, err)
+		}
 	}
 	if alreadyPaid {
 		return nil, fmt.Errorf("bill for month %s is already paid", yearMonth)
@@ -135,22 +147,22 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 }
 
 // removeBillAmountFromMonth resta el importe del bill de las columnas bill_*
-// y suma el importe a las columnas expense_* en monthly_balance
-// CORREGIDO: Implementa transferencia precisa de bill_amount a expense_amount
+// y suma el importe a las columnas expense_* en monthly_cash_bank_balance
+// CORREGIDO: Usa monthly_cash_bank_balance en lugar de monthly_balance (deprecated)
 func removeBillAmountFromMonth(tx *sql.Tx, userID, yearMonth string, amount float64, paymentMethod string) error {
 	// Determinar columnas según método de pago
 	var billColumn, expenseColumn string
 	if paymentMethod == "cash" {
-		billColumn = "bills_amount"
-		expenseColumn = "expense_amount"
+		billColumn = "bill_cash_amount"
+		expenseColumn = "expense_cash_amount"
 	} else {
-		billColumn = "bills_amount"
-		expenseColumn = "expense_amount"
+		billColumn = "bill_bank_amount"
+		expenseColumn = "expense_bank_amount"
 	}
 
-	// Transferir de bill_amount a expense_amount
+	// Transferir de bill_amount a expense_amount en monthly_cash_bank_balance
 	query := fmt.Sprintf(`
-		UPDATE monthly_balance 
+		UPDATE monthly_cash_bank_balance 
 		SET %s = %s - ?, 
 		    %s = %s + ?
 		WHERE user_id = ? AND year_month = ?
@@ -158,7 +170,7 @@ func removeBillAmountFromMonth(tx *sql.Tx, userID, yearMonth string, amount floa
 
 	_, err := tx.Exec(query, amount, amount, userID, yearMonth)
 	if err != nil {
-		return fmt.Errorf("error transferring bill amount to expense: %v", err)
+		return fmt.Errorf("error transferring bill amount to expense in monthly_cash_bank_balance: %v", err)
 	}
 
 	return nil
