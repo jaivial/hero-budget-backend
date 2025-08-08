@@ -202,8 +202,28 @@ func undoBillPayment(db *sql.DB, billID int, userID, yearMonth string) error {
 		return fmt.Errorf("error removing expense record: %v", err)
 	}
 
-	// Actualizar estado de la factura
-	_, err = tx.Exec("UPDATE bills SET paid = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?", billID, userID)
+	// CORREGIDO: Actualizar estado de la factura basándose en duration_months
+	// Primero obtener duration_months para calcular si la factura sigue estando completamente pagada
+	var durationMonths int
+	err = tx.QueryRow("SELECT duration_months FROM bills WHERE id = ? AND user_id = ?", billID, userID).Scan(&durationMonths)
+	if err != nil {
+		return fmt.Errorf("error fetching bill duration: %v", err)
+	}
+
+	// Contar cuántos pagos quedan pagados después de deshacer este pago
+	var paidPayments int
+	err = tx.QueryRow("SELECT SUM(CASE WHEN paid = 1 THEN 1 ELSE 0 END) as paid_count FROM bill_payments WHERE bill_id = ?", billID).Scan(&paidPayments)
+	if err != nil {
+		return fmt.Errorf("error counting paid payments: %v", err)
+	}
+
+	// Actualizar estado de la factura: solo marcar como no pagada si no tiene todos los pagos esperados
+	billPaidStatus := 0
+	if durationMonths > 0 && paidPayments >= durationMonths {
+		billPaidStatus = 1
+	}
+
+	_, err = tx.Exec("UPDATE bills SET paid = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?", billPaidStatus, billID, userID)
 	if err != nil {
 		return fmt.Errorf("error updating bill status: %v", err)
 	}

@@ -116,16 +116,28 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 		return nil, fmt.Errorf("error creating expense record: %v", err)
 	}
 
-	// Verificar si la factura está completamente pagada
-	var totalPayments, paidPayments int
-	err = tx.QueryRow("SELECT COUNT(*) as total, SUM(CASE WHEN paid = 1 THEN 1 ELSE 0 END) as paid_count FROM bill_payments WHERE bill_id = ?", billID).Scan(&totalPayments, &paidPayments)
+	// CORREGIDO: Verificar si la factura está completamente pagada usando duration_months
+	// Primero obtener duration_months de la tabla bills para calcular pagos esperados
+	var durationMonths int
+	err = tx.QueryRow("SELECT duration_months FROM bills WHERE id = ? AND user_id = ?", billID, userID).Scan(&durationMonths)
 	if err != nil {
-		return nil, fmt.Errorf("error checking bill completion: %v", err)
+		return nil, fmt.Errorf("error fetching bill duration: %v", err)
 	}
 
+	// Ahora contar cuántos pagos están realmente pagados
+	var paidPayments int
+	err = tx.QueryRow("SELECT SUM(CASE WHEN paid = 1 THEN 1 ELSE 0 END) as paid_count FROM bill_payments WHERE bill_id = ?", billID).Scan(&paidPayments)
+	if err != nil {
+		return nil, fmt.Errorf("error counting paid payments: %v", err)
+	}
+
+	// Calcular pagos restantes
+	remainingPayments := durationMonths - paidPayments
+
 	// Actualizar estado de la factura si está completamente pagada
+	// Comparar pagos realizados contra duration_months esperado
 	billFullyPaid := false
-	if totalPayments > 0 && paidPayments >= totalPayments {
+	if durationMonths > 0 && paidPayments >= durationMonths {
 		_, err = tx.Exec("UPDATE bills SET paid = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?", billID, userID)
 		if err != nil {
 			return nil, fmt.Errorf("error updating bill status: %v", err)
@@ -142,7 +154,7 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 	return &PayBillResponse{
 		BillID: billID, UserID: userID, YearMonth: yearMonth, PaymentDate: paymentDate,
 		Amount: amount, PaymentMethod: paymentMethod, BillFullyPaid: billFullyPaid,
-		RemainingPayments: totalPayments - paidPayments,
+		RemainingPayments: remainingPayments,
 	}, nil
 }
 
