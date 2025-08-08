@@ -84,17 +84,26 @@ func getBillPaymentStatus(db *sql.DB, billID int, userID string) (map[string]int
 
 // createBillPaymentRecords crea registros en bill_payments para un bill nuevo
 // Esta función se debe llamar cuando se crea un bill
-// CORREGIDO: Usa meses consecutivos correctos
+// CORREGIDO: Usa meses consecutivos correctos y incluye todos los campos requeridos
 func createBillPaymentRecords(db *sql.DB, billID int, userID string, startDate string, durationMonths int, paymentMethod string) error {
+	// Primero obtenemos el monto de la factura para incluirlo en cada registro de pago
+	var amount float64
+	err := db.QueryRow("SELECT amount FROM bills WHERE id = ? AND user_id = ?", billID, userID).Scan(&amount)
+	if err != nil {
+		return fmt.Errorf("error getting bill amount: %v", err)
+	}
+
 	// CORREGIDO: Usar calculateMonthsFromDuration para meses consecutivos
 	months, err := calculateMonthsFromDuration(startDate, durationMonths)
 	if err != nil {
 		return fmt.Errorf("error calculating months: %v", err)
 	}
 
-	// Crear registro para cada mes del periodo
+	// Crear registro para cada mes del periodo con TODOS los campos requeridos
+	// FIXED: Incluir user_id y amount como hace el frontend
 	for _, yearMonth := range months {
-		_, err = db.Exec("INSERT OR IGNORE INTO bill_payments (bill_id, year_month, paid, payment_method) VALUES (?, ?, 0, ?)", billID, yearMonth, paymentMethod)
+		_, err = db.Exec("INSERT OR IGNORE INTO bill_payments (bill_id, year_month, paid, payment_date, payment_method, user_id, amount) VALUES (?, ?, 0, NULL, ?, ?, ?)", 
+			billID, yearMonth, paymentMethod, userID, amount)
 		if err != nil {
 			return fmt.Errorf("error creating payment record for month %s: %v", yearMonth, err)
 		}
