@@ -13,6 +13,7 @@ use (
 	./fetch_dashboard
 	./google_auth
 	./income_management
+	./initial_fetch_db
 	./language_cookie
 	./money_flow_sync
 	./profile_management
@@ -20,6 +21,7 @@ use (
 	./savings_management
 	./signin
 	./signup
+	./sync_service
 	./transaction_delete_service
 	./user_locale
 )
