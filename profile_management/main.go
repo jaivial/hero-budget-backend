@@ -293,16 +293,19 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Received image data for processing (length: %d bytes)", len(req.ProfileImageB64))
 		processedImage, err := processImage(req.ProfileImageB64)
 		if err != nil {
-			log.Printf("Failed to process image: %v", err)
-			// Continue without updating the image
+			log.Printf("❌ CRITICAL ERROR: Failed to process image: %v", err)
+			// Return error instead of continuing - this was causing the silent failure
+			http.Error(w, fmt.Sprintf("Image processing failed: %v", err), http.StatusBadRequest)
+			return
 		} else {
 			processedImageBase64 = &processedImage
-			log.Printf("Successfully processed and compressed profile image (processed length: %d bytes)", len(processedImage))
+			log.Printf("✅ Successfully processed and compressed profile image (processed length: %d bytes)", len(processedImage))
 
 			// Verificamos que la imagen procesada no esté vacía
 			if len(processedImage) == 0 {
-				log.Printf("ERROR: La imagen procesada está vacía")
-				processedImageBase64 = nil
+				log.Printf("❌ CRITICAL ERROR: La imagen procesada está vacía")
+				http.Error(w, "Processed image is empty", http.StatusBadRequest)
+				return
 			}
 		}
 	}
@@ -730,7 +733,14 @@ func getUserById(userID int, user *User) error {
 
 // Process image: resize, compress, and convert to WebP
 func processImage(base64Image string) (string, error) {
-	log.Printf("Processing image, input length: %d", len(base64Image))
+	log.Printf("🔄 IMAGE PROCESSING: Starting image processing, input length: %d", len(base64Image))
+	
+	// Debug: Log first 100 characters of input
+	if len(base64Image) > 100 {
+		log.Printf("🔍 IMAGE PROCESSING: Input preview: %s...", base64Image[:100])
+	} else {
+		log.Printf("🔍 IMAGE PROCESSING: Full input: %s", base64Image)
+	}
 
 	// Extract the actual base64 content from the data URL
 	base64Data := base64Image
@@ -757,40 +767,55 @@ func processImage(base64Image string) (string, error) {
 	log.Printf("Cleaned base64 data, final length: %d", len(base64Data))
 
 	// Decode base64 image
+	log.Printf("🔄 IMAGE PROCESSING: Attempting base64 decode...")
 	imgData, err := base64.StdEncoding.DecodeString(base64Data)
 	if err != nil {
-		log.Printf("Base64 decode error: %v", err)
+		log.Printf("❌ IMAGE PROCESSING: Base64 decode error: %v", err)
 		// If standard decoding fails, try URL-safe decoding
+		log.Printf("🔄 IMAGE PROCESSING: Trying URL-safe base64 decoding...")
 		imgData, err = base64.URLEncoding.DecodeString(base64Data)
 		if err != nil {
+			log.Printf("❌ IMAGE PROCESSING: URL-safe base64 decode also failed: %v", err)
 			return "", fmt.Errorf("failed to decode base64 image (tried standard and URL-safe): %v", err)
 		}
-		log.Printf("Successfully decoded using URL-safe base64")
+		log.Printf("✅ IMAGE PROCESSING: Successfully decoded using URL-safe base64")
 	} else {
-		log.Printf("Successfully decoded using standard base64")
+		log.Printf("✅ IMAGE PROCESSING: Successfully decoded using standard base64")
 	}
+	
+	log.Printf("🔍 IMAGE PROCESSING: Decoded image data size: %d bytes", len(imgData))
 
 	// Determine image format and decode
+	log.Printf("🔄 IMAGE PROCESSING: Attempting image decode...")
 	imgReader := bytes.NewReader(imgData)
 	img, format, err := image.Decode(imgReader)
 	if err != nil {
+		log.Printf("❌ IMAGE PROCESSING: Generic image decode failed: %v", err)
 		// Try to handle JPEG specifically if the generic decode fails
+		log.Printf("🔄 IMAGE PROCESSING: Trying JPEG decode...")
 		imgReader.Seek(0, 0) // Reset reader
 		img, err = jpeg.Decode(imgReader)
 		if err != nil {
+			log.Printf("❌ IMAGE PROCESSING: JPEG decode failed: %v", err)
 			// Try to handle PNG specifically if JPEG decode also fails
+			log.Printf("🔄 IMAGE PROCESSING: Trying PNG decode...")
 			imgReader.Seek(0, 0) // Reset reader
 			img, err = png.Decode(imgReader)
 			if err != nil {
+				log.Printf("❌ IMAGE PROCESSING: PNG decode also failed: %v", err)
 				return "", fmt.Errorf("failed to decode image (tried generic, JPEG, and PNG formats): %v", err)
 			}
 			format = "png"
+			log.Printf("✅ IMAGE PROCESSING: PNG decode successful")
 		} else {
 			format = "jpeg"
+			log.Printf("✅ IMAGE PROCESSING: JPEG decode successful")
 		}
+	} else {
+		log.Printf("✅ IMAGE PROCESSING: Generic image decode successful")
 	}
 
-	log.Printf("Image format: %s, size: %d KB", format, len(imgData)/1024)
+	log.Printf("📊 IMAGE PROCESSING: Image format: %s, size: %d KB", format, len(imgData)/1024)
 
 	// Resize the image if it's too large
 	// Calculate resize dimensions while maintaining aspect ratio
@@ -847,7 +872,8 @@ func processImage(base64Image string) (string, error) {
 
 	// Convert back to base64 with JPEG prefix
 	encodedImage := base64.StdEncoding.EncodeToString(jpegBuf.Bytes())
-	log.Printf("Final encoded JPEG image size: %d bytes", len(encodedImage))
+	log.Printf("🎉 IMAGE PROCESSING: Final encoded JPEG image size: %d bytes", len(encodedImage))
+	log.Printf("✅ IMAGE PROCESSING: Image processing completed successfully")
 	return encodedImage, nil
 }
 
