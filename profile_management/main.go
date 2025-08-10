@@ -135,6 +135,7 @@ func main() {
 	http.HandleFunc("/profile/update-password", corsMiddleware(handlePasswordUpdate))
 	http.HandleFunc("/profile/ping", corsMiddleware(handlePing))
 	http.HandleFunc("/profile/test-image-update", corsMiddleware(handleTestImageUpdate))
+	http.HandleFunc("/profile/editprofilepicture", corsMiddleware(handleEditProfilePicture))
 	http.HandleFunc("/update/locale", corsMiddleware(handleLocaleUpdate))
 	http.HandleFunc("/profile/delete-account", corsMiddleware(handleDeleteAccount))
 	http.HandleFunc("/user/info", corsMiddleware(handleGetUserInfo))
@@ -251,6 +252,131 @@ func handleTestImageUpdate(w http.ResponseWriter, r *http.Request) {
 	}
 
 	http.Error(w, "No image data provided", http.StatusBadRequest)
+}
+
+/**
+ * handleEditProfilePicture - Dedicated endpoint for profile picture updates
+ * 
+ * This endpoint is specifically designed to handle profile picture updates
+ * with optimized processing and focused error handling for image operations.
+ * 
+ * Request format:
+ * POST /profile/editprofilepicture
+ * {
+ *   "user_id": 123,
+ *   "profile_image_base64": "base64_encoded_image_data"
+ * }
+ * 
+ * Response format:
+ * {
+ *   "success": true,
+ *   "message": "Profile picture updated successfully",
+ *   "data": {updated_user_object}
+ * }
+ */
+func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var req ProfileUpdateRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("EDIT PROFILE PICTURE: Invalid request body: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate required fields
+	if req.UserID <= 0 {
+		log.Printf("EDIT PROFILE PICTURE: Invalid user ID: %d", req.UserID)
+		http.Error(w, "Valid user ID is required", http.StatusBadRequest)
+		return
+	}
+
+	if req.ProfileImageB64 == "" {
+		log.Printf("EDIT PROFILE PICTURE: No image data provided for user %d", req.UserID)
+		http.Error(w, "Profile image data is required", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("EDIT PROFILE PICTURE: Processing request for user ID: %d", req.UserID)
+	log.Printf("EDIT PROFILE PICTURE: Image data length: %d bytes", len(req.ProfileImageB64))
+
+	// Verify user exists in database
+	var userExists int
+	err := db.QueryRow("SELECT COUNT(*) FROM users WHERE id = ?", req.UserID).Scan(&userExists)
+	if err != nil {
+		log.Printf("EDIT PROFILE PICTURE: Database error checking user: %v", err)
+		http.Error(w, "Database error", http.StatusInternalServerError)
+		return
+	}
+	if userExists == 0 {
+		log.Printf("EDIT PROFILE PICTURE: User not found: %d", req.UserID)
+		http.Error(w, "User not found", http.StatusNotFound)
+		return
+	}
+
+	// Process the profile image
+	log.Printf("EDIT PROFILE PICTURE: Starting image processing...")
+	processedImage, err := processImage(req.ProfileImageB64)
+	if err != nil {
+		log.Printf("EDIT PROFILE PICTURE: Image processing failed: %v", err)
+		http.Error(w, fmt.Sprintf("Image processing failed: %v", err), http.StatusBadRequest)
+		return
+	}
+
+	if len(processedImage) == 0 {
+		log.Printf("EDIT PROFILE PICTURE: Processed image is empty")
+		http.Error(w, "Processed image is empty", http.StatusBadRequest)
+		return
+	}
+
+	log.Printf("EDIT PROFILE PICTURE: Image processed successfully: %d bytes", len(processedImage))
+
+	// Update profile_image_blob in database
+	result, err := db.Exec(
+		"UPDATE users SET profile_image_blob = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+		processedImage, req.UserID,
+	)
+	if err != nil {
+		log.Printf("EDIT PROFILE PICTURE: Database update failed: %v", err)
+		http.Error(w, "Failed to update profile picture in database", http.StatusInternalServerError)
+		return
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("EDIT PROFILE PICTURE: Database updated successfully, rows affected: %d", rowsAffected)
+
+	// Retrieve updated user data
+	var updatedUser User
+	if err := getUserById(req.UserID, &updatedUser); err != nil {
+		log.Printf("EDIT PROFILE PICTURE: Warning - failed to retrieve updated user: %v", err)
+		// Still return success since the update worked
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(ApiResponse{
+			Success: true,
+			Message: "Profile picture updated successfully",
+		})
+		return
+	}
+
+	// Verify the update was successful by checking the profile_image_blob
+	if updatedUser.ProfileImageBlob != nil && len(*updatedUser.ProfileImageBlob) > 0 {
+		log.Printf("EDIT PROFILE PICTURE: Success - profile_image_blob contains %d bytes", len(*updatedUser.ProfileImageBlob))
+	} else {
+		log.Printf("EDIT PROFILE PICTURE: Warning - profile_image_blob appears to be empty after update")
+	}
+
+	// Return success response with updated user data
+	w.Header().Set("Content-Type", "application/json")
+	response := ApiResponse{
+		Success: true,
+		Message: fmt.Sprintf("Profile picture updated successfully. Image size: %d bytes", len(processedImage)),
+		Data:    updatedUser,
+	}
+	json.NewEncoder(w).Encode(response)
+	log.Printf("EDIT PROFILE PICTURE: Request completed successfully for user %d", req.UserID)
 }
 
 func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
