@@ -40,6 +40,9 @@ ALL_SERVICES=(
     "money_flow_sync:8097"
     "budget_overview_fetch:8098"
     "user_locale:8099"
+    "sync_service:8101"
+    "initial_fetch_db:8102"
+    "delta_sync:8103"
 )
 
 # Servicios críticos (se inician primero)
