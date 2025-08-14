@@ -21,6 +21,10 @@ type AddIncomeRequest struct {
 	Category      string  `json:"category"`
 	PaymentMethod string  `json:"payment_method"`
 	Description   string  `json:"description,omitempty"`
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // UpdateIncomeRequest estructura para actualizar ingresos existentes
@@ -38,6 +42,21 @@ type UpdateIncomeRequest struct {
 type DeleteIncomeRequest struct {
 	UserID   string `json:"user_id"`
 	IncomeID int    `json:"income_id"`
+}
+
+// SyncOperation estructura para registrar operaciones de sincronización
+type SyncOperation struct {
+	ID           int    `json:"id"`
+	UserID       string `json:"user_id"`
+	OperationID  string `json:"operation_id"`
+	Action       string `json:"action"`        // "create", "update", "delete"
+	TableName    string `json:"table_name"`    // "incomes", "expenses", etc.
+	RecordID     string `json:"record_id"`     // ID del registro afectado
+	Data         string `json:"data"`          // JSON con los datos de la operación
+	DeviceID     string `json:"device_id"`
+	ClientTimestamp int64 `json:"client_timestamp"`
+	ServerTimestamp int64 `json:"server_timestamp"`
+	CreatedAt    string `json:"created_at"`
 }
 
 // ApiResponse estructura estándar para respuestas de la API

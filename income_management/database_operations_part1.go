@@ -2,6 +2,9 @@ package main
 
 import (
 	"database/sql"
+	"encoding/json"
+	"log"
+	"time"
 )
 
 // addIncome inserta un nuevo ingreso en la base de datos
@@ -169,4 +172,53 @@ func getIncomes(userID, category, startDate, endDate, paymentMethod string) ([]I
 	}
 
 	return incomes, nil
+}
+
+// addSyncOperation registra una operación de sincronización en la tabla sync_operations
+// Exactly like in delta_sync/main.go for consistent synchronization tracking
+func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s", 
+		userID, operationID, action, tableName, recordID)
+	
+	// Serialize operation data to JSON for storage
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("Error marshaling sync operation data: %v", err)
+		return err
+	}
+	
+	// Use current server timestamp
+	serverTimestamp := time.Now().Unix()
+	
+	// Insert sync operation record with all required fields
+	insertQuery := `
+		INSERT INTO sync_operations (
+			user_id, operation_id, action, table_name, record_id, data, 
+			device_id, client_timestamp, server_timestamp, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+	`
+	
+	result, err := db.Exec(
+		insertQuery,
+		userID,
+		operationID,
+		action,
+		tableName,
+		recordID,
+		string(dataJSON),
+		deviceID,
+		clientTimestamp,
+		serverTimestamp,
+	)
+	
+	if err != nil {
+		log.Printf("Error inserting sync operation: %v", err)
+		return err
+	}
+	
+	// Log successful operation insertion for debugging
+	syncOpID, _ := result.LastInsertId()
+	log.Printf("Successfully added sync operation with ID: %d", syncOpID)
+	
+	return nil
 }
