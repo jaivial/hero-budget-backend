@@ -5,12 +5,19 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 // DeleteBillRequest represents the request structure for deleting a bill
 type DeleteBillRequest struct {
 	UserID string `json:"user_id"`
 	BillID int    `json:"bill_id"`
+	
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // BillData represents the bill data needed for monthly balance updates
@@ -111,7 +118,50 @@ func deleteBill(request DeleteBillRequest) error {
 	}
 
 	// Delete the bill
-	return deleteBillRecord(request.BillID, request.UserID)
+	if err := deleteBillRecord(request.BillID, request.UserID); err != nil {
+		return err
+	}
+
+	// Record sync operation if sync parameters are provided
+	if request.OperationID != "" && request.DeviceID != "" && request.Timestamp > 0 {
+		log.Printf("Recording sync operation for bill deletion: operation_id=%s, device_id=%s, timestamp=%d", 
+			request.OperationID, request.DeviceID, request.Timestamp)
+		
+		// Create sync operation data with deleted bill structure
+		syncData := map[string]interface{}{
+			"id":              request.BillID,
+			"user_id":         request.UserID,
+			"name":            "", // Not available after deletion, but not needed for delete operations
+			"amount":          billData.Amount,
+			"payment_method":  billData.PaymentMethod,
+			"start_date":      billData.StartDate,
+			"duration_months": billData.Duration,
+			"deleted_at":      time.Now().Format("2006-01-02 15:04:05"),
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			request.UserID,
+			request.OperationID,
+			"delete",
+			"bills",
+			strconv.Itoa(request.BillID),
+			syncData,
+			request.DeviceID,
+			request.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the bill deletion for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for bill deletion ID: %d", request.BillID)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+	}
+
+	return nil
 }
 
 // verifyBillOwnership checks if the bill exists and belongs to the user
