@@ -1,9 +1,11 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 )
 
 // Handlers HTTP para gestión de categorías - Parte 2B
@@ -39,12 +41,63 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Fetch category data before deletion for sync operations
+	categoryToDelete, err := fetchCategoryByID(deleteRequest.CategoryID, deleteRequest.UserID)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			sendErrorResponse(w, "Category not found", http.StatusNotFound)
+		} else {
+			log.Printf("Error fetching category before deletion: %v", err)
+			sendErrorResponse(w, "Error fetching category", http.StatusInternalServerError)
+		}
+		return
+	}
+
 	// Delete category from database con validación de existencia
 	err = deleteCategory(deleteRequest.CategoryID, deleteRequest.UserID)
 	if err != nil {
 		log.Printf("Error deleting category: %v", err)
 		sendErrorResponse(w, "Error deleting category", http.StatusInternalServerError)
 		return
+	}
+
+	// Record sync operation if sync parameters are provided
+	if deleteRequest.OperationID != "" && deleteRequest.DeviceID != "" && deleteRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for category deletion: operation_id=%s, device_id=%s, timestamp=%d", 
+			deleteRequest.OperationID, deleteRequest.DeviceID, deleteRequest.Timestamp)
+		
+		// Create sync operation data with deleted category structure
+		syncData := map[string]interface{}{
+			"id":         categoryToDelete.ID,
+			"user_id":    categoryToDelete.UserID,
+			"name":       categoryToDelete.Name,
+			"type":       categoryToDelete.Type,
+			"emoji":      categoryToDelete.Emoji,
+			"created_at": categoryToDelete.CreatedAt,
+			"updated_at": categoryToDelete.UpdatedAt,
+			"deleted_at": "now", // Placeholder since category is already deleted
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			deleteRequest.UserID,
+			deleteRequest.OperationID,
+			"delete",
+			"categories",
+			strconv.Itoa(deleteRequest.CategoryID),
+			syncData,
+			deleteRequest.DeviceID,
+			deleteRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the category deletion for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for category deletion ID: %d", deleteRequest.CategoryID)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 
 	// Invalidate cache after deleting category para mantener consistencia

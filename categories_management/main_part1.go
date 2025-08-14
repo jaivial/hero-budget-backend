@@ -3,11 +3,14 @@ package main
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
@@ -39,6 +42,11 @@ type AddCategoryRequest struct {
 	Name   string `json:"name"`    // Nombre de la categoría (requerido, único por tipo)
 	Type   string `json:"type"`    // Tipo de categoría: "income" o "expense" (requerido)
 	Emoji  string `json:"emoji"`   // Emoji representativo (opcional, se asigna predeterminado)
+	
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // UpdateCategoryRequest representa una solicitud para actualizar una categoría existente
@@ -50,6 +58,11 @@ type UpdateCategoryRequest struct {
 	Name       string `json:"name,omitempty"`      // Nuevo nombre (opcional)
 	Type       string `json:"type,omitempty"`      // Nuevo tipo (opcional)
 	Emoji      string `json:"emoji,omitempty"`     // Nuevo emoji (opcional)
+	
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // DeleteCategoryRequest representa una solicitud para eliminar una categoría
@@ -58,6 +71,11 @@ type UpdateCategoryRequest struct {
 type DeleteCategoryRequest struct {
 	UserID     string `json:"user_id"`     // ID del usuario propietario (requerido)
 	CategoryID int    `json:"category_id"` // ID de la categoría a eliminar (requerido)
+	
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // ApiResponse estructura estándar para respuestas de la API REST
@@ -201,6 +219,57 @@ func main() {
 	// Start HTTP server with fatal error handling
 	// Arranca el servidor con manejo de errores fatales
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+// addSyncOperation registra una operación de sincronización en la tabla sync_operations
+// Exactly like in other services for consistent synchronization tracking
+func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s", 
+		userID, operationID, action, tableName, recordID)
+	
+	// Serialize operation data to JSON for storage
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("Error marshaling sync operation data: %v", err)
+		return err
+	}
+	
+	// Use current server timestamp
+	serverTimestamp := time.Now().Unix()
+	
+	// Insert sync operation record with all required fields
+	// Use client timestamp for created_at to maintain proper synchronization ordering
+	insertQuery := `
+		INSERT INTO sync_operations (
+			user_id, operation_id, action, table_name, record_id, data, 
+			device_id, client_timestamp, server_timestamp, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	
+	result, err := db.Exec(
+		insertQuery,
+		userID,
+		operationID,
+		action,
+		tableName,
+		recordID,
+		string(dataJSON),
+		deviceID,
+		clientTimestamp,
+		serverTimestamp,
+		clientTimestamp, // Use client timestamp for created_at
+	)
+	
+	if err != nil {
+		log.Printf("Error inserting sync operation: %v", err)
+		return err
+	}
+	
+	// Log successful operation insertion for debugging
+	insertedID, _ := result.LastInsertId()
+	log.Printf("Successfully inserted sync operation with ID: %d", insertedID)
+	
+	return nil
 }
 
 // corsMiddleware aplica headers CORS a todas las respuestas HTTP
