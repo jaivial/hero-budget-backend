@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
@@ -47,6 +49,26 @@ type Bill struct {
 	UpdatedAt      string  `json:"updated_at"`
 }
 
+// AddBillRequest estructura para solicitudes de creación de facturas
+// Incluye parámetros de sincronización para seguimiento de operaciones incrementales
+type AddBillRequest struct {
+	UserID         string  `json:"user_id"`
+	Name           string  `json:"name"`
+	Amount         float64 `json:"amount"`
+	DueDate        string  `json:"due_date"`
+	Category       string  `json:"category"`
+	Icon           string  `json:"icon"`
+	StartDate      string  `json:"start_date"`
+	PaymentDay     int     `json:"payment_day"`
+	DurationMonths int     `json:"duration_months"`
+	Regularity     string  `json:"regularity"`
+	PaymentMethod  string  `json:"payment_method"`
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+}
+
 // UpdateBillRequest estructura para solicitudes de actualización de facturas
 // Permite actualización parcial de campos usando omitempty
 type UpdateBillRequest struct {
@@ -61,6 +83,21 @@ type UpdateBillRequest struct {
 	Category       string  `json:"category,omitempty"`
 	Icon           string  `json:"icon,omitempty"`
 	PaymentMethod  string  `json:"payment_method,omitempty"`
+}
+
+// SyncOperation estructura para registrar operaciones de sincronización
+type SyncOperation struct {
+	ID           int    `json:"id"`
+	UserID       string `json:"user_id"`
+	OperationID  string `json:"operation_id"`
+	Action       string `json:"action"`        // "create", "update", "delete"
+	TableName    string `json:"table_name"`    // "bills", "expenses", etc.
+	RecordID     string `json:"record_id"`     // ID del registro afectado
+	Data         string `json:"data"`          // JSON con los datos de la operación
+	DeviceID     string `json:"device_id"`
+	ClientTimestamp int64 `json:"client_timestamp"`
+	ServerTimestamp int64 `json:"server_timestamp"`
+	CreatedAt    string `json:"created_at"`
 }
 
 // ApiResponse estructura estándar para respuestas de la API
@@ -261,4 +298,53 @@ func getStringValueOrDefault(value, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+// addSyncOperation registra una operación de sincronización en la tabla sync_operations
+// Exactly like in delta_sync/main.go for consistent synchronization tracking
+func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s", 
+		userID, operationID, action, tableName, recordID)
+	
+	// Serialize operation data to JSON for storage
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("Error marshaling sync operation data: %v", err)
+		return err
+	}
+	
+	// Use current server timestamp
+	serverTimestamp := time.Now().Unix()
+	
+	// Insert sync operation record with all required fields
+	insertQuery := `
+		INSERT INTO sync_operations (
+			user_id, operation_id, action, table_name, record_id, data, 
+			device_id, client_timestamp, server_timestamp, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+	`
+	
+	result, err := db.Exec(
+		insertQuery,
+		userID,
+		operationID,
+		action,
+		tableName,
+		recordID,
+		string(dataJSON),
+		deviceID,
+		clientTimestamp,
+		serverTimestamp,
+	)
+	
+	if err != nil {
+		log.Printf("Error inserting sync operation: %v", err)
+		return err
+	}
+	
+	// Log successful operation insertion for debugging
+	syncOpID, _ := result.LastInsertId()
+	log.Printf("Successfully added sync operation with ID: %d", syncOpID)
+	
+	return nil
 }

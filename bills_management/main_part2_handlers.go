@@ -118,29 +118,21 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Estructura para la solicitud de creación de factura
-	var req struct {
-		UserID         string  `json:"user_id"`
-		Name           string  `json:"name"`
-		Amount         float64 `json:"amount"`
-		DueDate        string  `json:"due_date"`
-		Category       string  `json:"category"`
-		Icon           string  `json:"icon"`
-		StartDate      string  `json:"start_date"`
-		PaymentDay     int     `json:"payment_day"`
-		DurationMonths int     `json:"duration_months"`
-		Regularity     string  `json:"regularity"`
-		PaymentMethod  string  `json:"payment_method"`
+	// Parse the request body for bill data
+	var addRequest AddBillRequest
+	if err := json.NewDecoder(r.Body).Decode(&addRequest); err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
 	}
 	
-	// Validar datos de la solicitud
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.UserID == "" || req.Name == "" || req.Amount <= 0 {
-		sendErrorResponse(w, "Invalid request", http.StatusBadRequest)
+	// Validate the request parameters
+	if addRequest.UserID == "" || addRequest.Name == "" || addRequest.Amount <= 0 {
+		sendErrorResponse(w, "Missing required fields: user_id, name, amount", http.StatusBadRequest)
 		return
 	}
 	
 	// Insertar factura en la base de datos
-	result, err := db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", req.UserID, req.Name, req.Amount, req.DueDate, req.Category, req.Icon, req.StartDate, req.PaymentDay, req.DurationMonths, req.Regularity, req.PaymentMethod)
+	result, err := db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 	if err != nil {
 		sendErrorResponse(w, "Error adding bill", http.StatusInternalServerError)
 		return
@@ -148,9 +140,54 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	
 	// Obtener ID de la factura creada
 	billID, _ := result.LastInsertId()
+
+	// Record sync operation if sync parameters are provided
+	if addRequest.OperationID != "" && addRequest.DeviceID != "" && addRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for bill creation: operation_id=%s, device_id=%s, timestamp=%d", 
+			addRequest.OperationID, addRequest.DeviceID, addRequest.Timestamp)
+		
+		// Create sync operation data matching the bill structure
+		syncData := map[string]interface{}{
+			"id":              int(billID),
+			"user_id":         addRequest.UserID,
+			"name":            addRequest.Name,
+			"amount":          addRequest.Amount,
+			"due_date":        addRequest.DueDate,
+			"category":        addRequest.Category,
+			"icon":            addRequest.Icon,
+			"start_date":      addRequest.StartDate,
+			"payment_day":     addRequest.PaymentDay,
+			"duration_months": addRequest.DurationMonths,
+			"regularity":      addRequest.Regularity,
+			"payment_method":  addRequest.PaymentMethod,
+			"created_at":      time.Now().Format("2006-01-02 15:04:05"),
+			"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			addRequest.UserID,
+			addRequest.OperationID,
+			"create",
+			"bills",
+			strconv.FormatInt(billID, 10),
+			syncData,
+			addRequest.DeviceID,
+			addRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the bill creation for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for bill ID: %d", billID)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+	}
 	
 	// CORREGIDO: Aplicar la factura usando lógica acumulativa
-	err = addBillToCashBankBalanceCumulative(db, req.UserID, req.Amount, req.StartDate, req.DurationMonths, req.PaymentMethod)
+	err = addBillToCashBankBalanceCumulative(db, addRequest.UserID, addRequest.Amount, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
 	if err != nil {
 		log.Printf("Error adding bill to monthly_cash_bank_balance: %v", err)
 		sendErrorResponse(w, fmt.Sprintf("Error adding bill to cash bank balance: %v", err), http.StatusInternalServerError)
@@ -158,13 +195,13 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Crear registros de pago para la factura
-	createBillPaymentRecords(db, int(billID), req.UserID, req.StartDate, req.DurationMonths, req.PaymentMethod)
+	createBillPaymentRecords(db, int(billID), addRequest.UserID, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
 	
 	// Invalidate bills cache for this user since a new bill was added
-	invalidateBillsCache(req.UserID)
+	invalidateBillsCache(addRequest.UserID)
 	
 	sendSuccessResponse(w, "Bill added successfully", map[string]interface{}{
-		"id": billID, "user_id": req.UserID, "name": req.Name, "amount": req.Amount,
+		"id": billID, "user_id": addRequest.UserID, "name": addRequest.Name, "amount": addRequest.Amount,
 	})
 }
 
