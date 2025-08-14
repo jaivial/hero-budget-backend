@@ -651,9 +651,16 @@ type BatchUpdateDeviceRequest struct {
 // handleBatchUpdateDeviceOperations maneja las solicitudes POST para añadir un device_id a múltiples operaciones
 // Se ejecuta después de procesar exitosamente todas las operaciones en incrementalSyncService
 func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
+	requestStartTime := time.Now()
+	log.Printf("📥 ================ BATCH DEVICE UPDATE REQUEST ================")
 	log.Printf("📥 Received batch device update request: %s %s", r.Method, r.URL.Path)
+	log.Printf("📥 Remote address: %s", r.RemoteAddr)
+	log.Printf("📥 User-Agent: %s", r.UserAgent())
+	log.Printf("📥 Content-Type: %s", r.Header.Get("Content-Type"))
+	log.Printf("📥 Content-Length: %s", r.Header.Get("Content-Length"))
 
 	if r.Method != "POST" {
+		log.Printf("❌ Method not allowed: %s", r.Method)
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -662,6 +669,7 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 	var req BatchUpdateDeviceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ JSON decode error: %v", err)
+		log.Printf("❌ Request body parsing failed after %v", time.Since(requestStartTime))
 		response := ApiResponse{
 			Success: false,
 			Message: "Invalid JSON format",
@@ -674,6 +682,9 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 
 	// Validate required fields
 	if len(req.OperationIDs) == 0 || req.DeviceID == "" {
+		log.Printf("❌ Validation failed - Missing required fields:")
+		log.Printf("   - Operation IDs count: %d", len(req.OperationIDs))
+		log.Printf("   - Device ID: '%s' (length: %d)", req.DeviceID, len(req.DeviceID))
 		response := ApiResponse{
 			Success: false,
 			Message: "Missing required fields: operation_ids array and device_id are required",
@@ -684,25 +695,59 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("🔄 Processing batch update for %d operations with device_id: %s", len(req.OperationIDs), req.DeviceID)
+	log.Printf("🔄 ============== BATCH UPDATE PROCESSING ==============")
+	log.Printf("🔄 Request validation passed after %v", time.Since(requestStartTime))
+	log.Printf("🔄 Device ID to add: '%s' (length: %d chars)", req.DeviceID, len(req.DeviceID))
+	log.Printf("🔄 Operation IDs count: %d", len(req.OperationIDs))
+	log.Printf("🔄 Operation IDs: %v", req.OperationIDs)
+	log.Printf("🔄 Starting batch processing...")
+
+	batchProcessingStartTime := time.Now()
 
 	// Track successful and failed updates
 	var successfulUpdates []string
 	var failedUpdates []string
 
 	// Process each operation ID
-	for _, operationID := range req.OperationIDs {
+	for i, operationID := range req.OperationIDs {
+		operationStartTime := time.Now()
+		log.Printf("🔄 Processing operation %d/%d: %s", i+1, len(req.OperationIDs), operationID)
+		
 		err := addDeviceToOperation(operationID, req.DeviceID)
+		operationDuration := time.Since(operationStartTime)
+		
 		if err != nil {
-			log.Printf("❌ Error adding device %s to operation %s: %v", req.DeviceID, operationID, err)
+			log.Printf("❌ FAILED to add device '%s' to operation '%s' in %v", req.DeviceID, operationID, operationDuration)
+			log.Printf("   - Error: %v", err)
+			log.Printf("   - Progress: %d/%d operations processed (%d successful, %d failed)", i+1, len(req.OperationIDs), len(successfulUpdates), len(failedUpdates)+1)
 			failedUpdates = append(failedUpdates, operationID)
 		} else {
+			log.Printf("✅ SUCCESS added device '%s' to operation '%s' in %v", req.DeviceID, operationID, operationDuration)
+			log.Printf("   - Progress: %d/%d operations processed (%d successful, %d failed)", i+1, len(req.OperationIDs), len(successfulUpdates)+1, len(failedUpdates))
 			successfulUpdates = append(successfulUpdates, operationID)
 		}
 	}
+	
+	batchProcessingDuration := time.Since(batchProcessingStartTime)
 
-	// Log results
-	log.Printf("✅ Batch update completed: %d successful, %d failed", len(successfulUpdates), len(failedUpdates))
+	// Log detailed results
+	totalRequestDuration := time.Since(requestStartTime)
+	log.Printf("🔄 ============= BATCH UPDATE RESULTS =============")
+	log.Printf("   - Total operations: %d", len(req.OperationIDs))
+	log.Printf("   - Successful updates: %d", len(successfulUpdates))
+	log.Printf("   - Failed updates: %d", len(failedUpdates))
+	log.Printf("   - Success rate: %.1f%%", float64(len(successfulUpdates))/float64(len(req.OperationIDs))*100)
+	log.Printf("   - Batch processing time: %v", batchProcessingDuration)
+	log.Printf("   - Total request time: %v", totalRequestDuration)
+	log.Printf("   - Average time per operation: %v", batchProcessingDuration/time.Duration(len(req.OperationIDs)))
+	log.Printf("   - Device ID added: '%s'", req.DeviceID)
+	
+	if len(successfulUpdates) > 0 {
+		log.Printf("✅ Successfully updated operation IDs: %v", successfulUpdates)
+	}
+	if len(failedUpdates) > 0 {
+		log.Printf("❌ Failed to update operation IDs: %v", failedUpdates)
+	}
 	
 	// Determine response status
 	allSuccessful := len(failedUpdates) == 0
@@ -713,28 +758,44 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 		// All failed
 		statusCode = http.StatusInternalServerError
 		message = "All batch updates failed"
+		log.Printf("❌ COMPLETE FAILURE - All %d operations failed to update", len(req.OperationIDs))
 	} else if !allSuccessful {
 		// Partial success
 		statusCode = http.StatusPartialContent
 		message = "Batch update partially successful"
+		log.Printf("⚠️ PARTIAL SUCCESS - %d of %d operations updated successfully", len(successfulUpdates), len(req.OperationIDs))
+	} else {
+		log.Printf("✅ COMPLETE SUCCESS - All %d operations updated successfully", len(req.OperationIDs))
 	}
 
 	response := ApiResponse{
 		Success: allSuccessful,
 		Message: message,
 		Data: map[string]interface{}{
-			"device_id":          req.DeviceID,
-			"total_operations":   len(req.OperationIDs),
-			"successful_updates": successfulUpdates,
-			"failed_updates":     failedUpdates,
-			"success_count":      len(successfulUpdates),
-			"failure_count":      len(failedUpdates),
+			"device_id":              req.DeviceID,
+			"total_operations":       len(req.OperationIDs),
+			"updated_operations":     successfulUpdates, // Changed from successful_updates to match frontend expectation
+			"failed_operations":      failedUpdates,     // Changed from failed_updates to match frontend expectation
+			"success_count":          len(successfulUpdates),
+			"failure_count":          len(failedUpdates),
+			"success_rate":           float64(len(successfulUpdates)) / float64(len(req.OperationIDs)) * 100,
+			"batch_processing_time":  batchProcessingDuration.Milliseconds(),
+			"total_request_time":     totalRequestDuration.Milliseconds(),
 		},
 	}
 
+	log.Printf("📤 ============= SENDING RESPONSE =============")
+	log.Printf("   - Status Code: %d", statusCode)
+	log.Printf("   - Response Success: %t", response.Success)
+	log.Printf("   - Response Message: %s", response.Message)
+	log.Printf("   - Response Time: %v", totalRequestDuration)
+	log.Printf("📤 ==========================================")
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		log.Printf("❌ Error encoding response: %v", err)
+	}
 }
 
 // handleHealth maneja las solicitudes de health check
