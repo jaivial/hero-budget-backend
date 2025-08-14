@@ -25,27 +25,30 @@ var ctx = context.Background()
 
 // SyncOperation estructura que representa una operación de sincronización
 // Almacena todas las operaciones de datos para funcionalidad de sincronización incremental
+// DeviceIDs ahora es un array JSON para soporte multi-dispositivo
 type SyncOperation struct {
-	OperationID   string `json:"operation_id"`
-	UserID        string `json:"user_id"`
-	CreatedAt     int64  `json:"created_at"`
-	OperationType string `json:"operation_type"` // create, update, delete
-	EntityType    string `json:"entity_type"`
-	EntityID      string `json:"entity_id"`
-	OperationData string `json:"operation_data"`
-	DeviceID      string `json:"device_id,omitempty"`
+	OperationID   string   `json:"operation_id"`
+	UserID        string   `json:"user_id"`
+	CreatedAt     int64    `json:"created_at"`
+	OperationType string   `json:"operation_type"` // create, update, delete
+	EntityType    string   `json:"entity_type"`
+	EntityID      string   `json:"entity_id"`
+	OperationData string   `json:"operation_data"`
+	DeviceIDs     []string `json:"device_ids,omitempty"` // Array of device IDs as JSON
 }
 
 // AddSyncOperationRequest estructura para solicitudes de adición de operaciones
 // Contiene todos los campos necesarios para registrar una nueva operación de sincronización
+// Acepta tanto device_id individual como device_ids array para compatibilidad
 type AddSyncOperationRequest struct {
-	OperationID   string `json:"operation_id"`
-	UserID        string `json:"user_id"`
-	OperationType string `json:"operation_type"`
-	EntityType    string `json:"entity_type"`
-	EntityID      string `json:"entity_id"`
-	OperationData string `json:"operation_data"`
-	DeviceID      string `json:"device_id,omitempty"`
+	OperationID   string   `json:"operation_id"`
+	UserID        string   `json:"user_id"`
+	OperationType string   `json:"operation_type"`
+	EntityType    string   `json:"entity_type"`
+	EntityID      string   `json:"entity_id"`
+	OperationData string   `json:"operation_data"`
+	DeviceID      string   `json:"device_id,omitempty"`      // Single device ID (backward compatibility)
+	DeviceIDs     []string `json:"device_ids,omitempty"`     // Array of device IDs (new format)
 }
 
 // FetchSyncOperationsRequest estructura para solicitudes de obtención de operaciones
@@ -130,10 +133,11 @@ func createTables() error {
 	log.Println("Creating sync_operations table if not exists...")
 
 	// Migration: Add sync_operations table and related indexes
-	// Date: 2025-01-12
+	// Date: 2025-01-12 (Updated: 2025-01-14 for device_ids JSON array support)
 	// Purpose: Enable incremental sync functionality for efficient data synchronization
 
 	// Create sync_operations table for tracking all data operations
+	// device_ids column stores JSON array of device IDs for multi-device support
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS sync_operations (
 		operation_id TEXT PRIMARY KEY,
@@ -143,12 +147,18 @@ func createTables() error {
 		entity_type TEXT NOT NULL,
 		entity_id TEXT NOT NULL,
 		operation_data TEXT NOT NULL,
-		device_id TEXT
+		device_ids TEXT DEFAULT '[]'
 	);`
 
 	_, err := db.Exec(createTableSQL)
 	if err != nil {
 		return fmt.Errorf("error creating sync_operations table: %v", err)
+	}
+
+	// Migration: Convert existing device_id column to device_ids JSON array
+	err = migrateDeviceIdToArray()
+	if err != nil {
+		return fmt.Errorf("error migrating device_id to device_ids: %v", err)
 	}
 
 	// Create indexes for efficient sync operation queries
@@ -184,6 +194,128 @@ func createTables() error {
 		log.Println("⚠️ sync_operations table verification failed")
 	}
 
+	return nil
+}
+
+// migrateDeviceIdToArray migra device_id individual a device_ids JSON array
+// Maneja la migración de datos existentes para compatibilidad hacia atrás
+func migrateDeviceIdToArray() error {
+	log.Println("Checking if device_id to device_ids migration is needed...")
+
+	// Check if old device_id column exists
+	var columnExists bool
+	checkColumnSQL := `
+	SELECT COUNT(*) > 0 FROM pragma_table_info('sync_operations') 
+	WHERE name = 'device_id' AND name != 'device_ids';`
+	
+	err := db.QueryRow(checkColumnSQL).Scan(&columnExists)
+	if err != nil {
+		return fmt.Errorf("error checking for device_id column: %v", err)
+	}
+
+	if !columnExists {
+		log.Println("✅ No device_id column found, migration not needed")
+		return nil
+	}
+
+	log.Println("🔄 Migrating device_id column to device_ids JSON array...")
+
+	// Check if device_ids column exists, if not add it
+	var deviceIdsExists bool
+	checkDeviceIdsSQL := `
+	SELECT COUNT(*) > 0 FROM pragma_table_info('sync_operations') 
+	WHERE name = 'device_ids';`
+	
+	err = db.QueryRow(checkDeviceIdsSQL).Scan(&deviceIdsExists)
+	if err != nil {
+		return fmt.Errorf("error checking for device_ids column: %v", err)
+	}
+
+	if !deviceIdsExists {
+		// Add device_ids column
+		addColumnSQL := `ALTER TABLE sync_operations ADD COLUMN device_ids TEXT DEFAULT '[]';`
+		_, err = db.Exec(addColumnSQL)
+		if err != nil {
+			return fmt.Errorf("error adding device_ids column: %v", err)
+		}
+		log.Println("✅ Added device_ids column")
+	}
+
+	// Migrate existing device_id values to device_ids JSON array
+	migrateDataSQL := `
+	UPDATE sync_operations 
+	SET device_ids = CASE 
+		WHEN device_id IS NULL OR device_id = '' THEN '[]'
+		ELSE json_array(device_id)
+	END
+	WHERE device_ids = '[]' OR device_ids IS NULL;`
+
+	result, err := db.Exec(migrateDataSQL)
+	if err != nil {
+		return fmt.Errorf("error migrating device_id data: %v", err)
+	}
+
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("✅ Migrated %d rows from device_id to device_ids", rowsAffected)
+
+	// Drop old device_id column (optional - uncomment if you want to remove it)
+	// dropColumnSQL := `ALTER TABLE sync_operations DROP COLUMN device_id;`
+	// _, err = db.Exec(dropColumnSQL)
+	// if err != nil {
+	//     log.Printf("Warning: Could not drop device_id column: %v", err)
+	// }
+
+	log.Println("✅ Device ID migration completed successfully")
+	return nil
+}
+
+// addDeviceToOperation añade un device_id a la lista de devices de una operación existente
+// Útil para cuando múltiples dispositivos procesan la misma operación
+func addDeviceToOperation(operationID, deviceID string) error {
+	if operationID == "" || deviceID == "" {
+		return fmt.Errorf("operation_id and device_id are required")
+	}
+
+	// Get current device_ids array
+	var currentDeviceIdsJSON string
+	getQuery := "SELECT COALESCE(device_ids, '[]') FROM sync_operations WHERE operation_id = ?"
+	err := db.QueryRow(getQuery, operationID).Scan(&currentDeviceIdsJSON)
+	if err != nil {
+		return fmt.Errorf("error getting current device_ids: %v", err)
+	}
+
+	// Parse current device IDs
+	var deviceIds []string
+	err = json.Unmarshal([]byte(currentDeviceIdsJSON), &deviceIds)
+	if err != nil {
+		return fmt.Errorf("error parsing current device_ids JSON: %v", err)
+	}
+
+	// Check if device ID already exists
+	for _, existingDeviceID := range deviceIds {
+		if existingDeviceID == deviceID {
+			log.Printf("Device ID %s already exists in operation %s", deviceID, operationID)
+			return nil // Already exists, no need to add
+		}
+	}
+
+	// Add new device ID
+	deviceIds = append(deviceIds, deviceID)
+
+	// Marshal back to JSON
+	newDeviceIdsJSON, err := json.Marshal(deviceIds)
+	if err != nil {
+		return fmt.Errorf("error marshaling updated device_ids: %v", err)
+	}
+
+	// Update in database
+	updateQuery := "UPDATE sync_operations SET device_ids = ? WHERE operation_id = ?"
+	_, err = db.Exec(updateQuery, string(newDeviceIdsJSON), operationID)
+	if err != nil {
+		return fmt.Errorf("error updating device_ids: %v", err)
+	}
+
+	log.Printf("✅ Added device %s to operation %s. Updated devices: %v", deviceID, operationID, deviceIds)
 	return nil
 }
 
@@ -244,9 +376,9 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query database for sync operations
+	// Query database for sync operations with device_ids JSON array
 	query := `
-	SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_id, '')
+	SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
 	FROM sync_operations 
 	WHERE user_id = ? AND created_at > ?
 	ORDER BY created_at ASC`
@@ -269,12 +401,26 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	var operations []SyncOperation
 	for rows.Next() {
 		var op SyncOperation
+		var deviceIdsJSON string
+		
 		err := rows.Scan(&op.OperationID, &op.UserID, &op.CreatedAt, &op.OperationType, 
-			&op.EntityType, &op.EntityID, &op.OperationData, &op.DeviceID)
+			&op.EntityType, &op.EntityID, &op.OperationData, &deviceIdsJSON)
 		if err != nil {
 			log.Printf("❌ Row scan error: %v", err)
 			continue
 		}
+
+		// Parse device_ids JSON array
+		if deviceIdsJSON != "" && deviceIdsJSON != "[]" {
+			err = json.Unmarshal([]byte(deviceIdsJSON), &op.DeviceIDs)
+			if err != nil {
+				log.Printf("⚠️ Error parsing device_ids JSON for operation %s: %v", op.OperationID, err)
+				op.DeviceIDs = []string{} // Default to empty array on parse error
+			}
+		} else {
+			op.DeviceIDs = []string{} // Default to empty array
+		}
+		
 		operations = append(operations, op)
 	}
 
@@ -360,14 +506,42 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Prepare device_ids JSON array for storage
+	var deviceIdsJSON string
+	var deviceIdsToStore []string
+
+	// Handle backward compatibility: convert single device_id to array
+	if len(req.DeviceIDs) > 0 {
+		deviceIdsToStore = req.DeviceIDs
+	} else if req.DeviceID != "" {
+		deviceIdsToStore = []string{req.DeviceID}
+	} else {
+		deviceIdsToStore = []string{} // Empty array
+	}
+
+	// Marshal device IDs to JSON
+	deviceIdsBytes, err := json.Marshal(deviceIdsToStore)
+	if err != nil {
+		log.Printf("❌ Error marshaling device_ids: %v", err)
+		response := ApiResponse{
+			Success: false,
+			Message: "Error processing device IDs",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+	deviceIdsJSON = string(deviceIdsBytes)
+
 	// Insert into database
 	currentTime := time.Now().Unix()
 	insertSQL := `
-	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_id)
+	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_ids)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := db.Exec(insertSQL, req.OperationID, req.UserID, currentTime, req.OperationType, 
-		req.EntityType, req.EntityID, req.OperationData, req.DeviceID)
+	_, err = db.Exec(insertSQL, req.OperationID, req.UserID, currentTime, req.OperationType, 
+		req.EntityType, req.EntityID, req.OperationData, deviceIdsJSON)
 	if err != nil {
 		log.Printf("❌ Database insert error: %v", err)
 		response := ApiResponse{
@@ -380,8 +554,8 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✅ Added sync operation: %s for user %s (type: %s, entity: %s/%s)", 
-		req.OperationID, req.UserID, req.OperationType, req.EntityType, req.EntityID)
+	log.Printf("✅ Added sync operation: %s for user %s (type: %s, entity: %s/%s, devices: %v)", 
+		req.OperationID, req.UserID, req.OperationType, req.EntityType, req.EntityID, deviceIdsToStore)
 
 	response := ApiResponse{
 		Success: true,
@@ -394,6 +568,172 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(response)
+}
+
+// handleAddDeviceToOperation maneja las solicitudes POST para añadir un device_id a una operación existente
+// Permite que múltiples dispositivos marquen que han procesado una operación
+func handleAddDeviceToOperation(w http.ResponseWriter, r *http.Request) {
+	log.Printf("📥 Received request: %s %s", r.Method, r.URL.Path)
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request body
+	var req struct {
+		OperationID string `json:"operation_id"`
+		DeviceID    string `json:"device_id"`
+	}
+	
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ JSON decode error: %v", err)
+		response := ApiResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate required fields
+	if req.OperationID == "" || req.DeviceID == "" {
+		response := ApiResponse{
+			Success: false,
+			Message: "Missing required fields: operation_id and device_id",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Add device to operation
+	err := addDeviceToOperation(req.OperationID, req.DeviceID)
+	if err != nil {
+		log.Printf("❌ Error adding device to operation: %v", err)
+		response := ApiResponse{
+			Success: false,
+			Message: "Error updating operation",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	log.Printf("✅ Added device %s to operation %s", req.DeviceID, req.OperationID)
+
+	response := ApiResponse{
+		Success: true,
+		Message: "Device added to operation successfully",
+		Data: map[string]interface{}{
+			"operation_id": req.OperationID,
+			"device_id":    req.DeviceID,
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(response)
+}
+
+// BatchUpdateDeviceRequest estructura para solicitudes de actualización batch de device_ids
+// Permite marcar múltiples operaciones como procesadas por un dispositivo específico
+type BatchUpdateDeviceRequest struct {
+	OperationIDs []string `json:"operation_ids"` // Array of operation IDs to update
+	DeviceID     string   `json:"device_id"`     // Device ID to add to each operation
+}
+
+// handleBatchUpdateDeviceOperations maneja las solicitudes POST para añadir un device_id a múltiples operaciones
+// Se ejecuta después de procesar exitosamente todas las operaciones en incrementalSyncService
+func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
+	log.Printf("📥 Received batch device update request: %s %s", r.Method, r.URL.Path)
+
+	if r.Method != "POST" {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse request body
+	var req BatchUpdateDeviceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("❌ JSON decode error: %v", err)
+		response := ApiResponse{
+			Success: false,
+			Message: "Invalid JSON format",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	// Validate required fields
+	if len(req.OperationIDs) == 0 || req.DeviceID == "" {
+		response := ApiResponse{
+			Success: false,
+			Message: "Missing required fields: operation_ids array and device_id are required",
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(response)
+		return
+	}
+
+	log.Printf("🔄 Processing batch update for %d operations with device_id: %s", len(req.OperationIDs), req.DeviceID)
+
+	// Track successful and failed updates
+	var successfulUpdates []string
+	var failedUpdates []string
+
+	// Process each operation ID
+	for _, operationID := range req.OperationIDs {
+		err := addDeviceToOperation(operationID, req.DeviceID)
+		if err != nil {
+			log.Printf("❌ Error adding device %s to operation %s: %v", req.DeviceID, operationID, err)
+			failedUpdates = append(failedUpdates, operationID)
+		} else {
+			successfulUpdates = append(successfulUpdates, operationID)
+		}
+	}
+
+	// Log results
+	log.Printf("✅ Batch update completed: %d successful, %d failed", len(successfulUpdates), len(failedUpdates))
+	
+	// Determine response status
+	allSuccessful := len(failedUpdates) == 0
+	statusCode := http.StatusOK
+	message := fmt.Sprintf("Batch update completed: %d successful, %d failed", len(successfulUpdates), len(failedUpdates))
+	
+	if !allSuccessful && len(successfulUpdates) == 0 {
+		// All failed
+		statusCode = http.StatusInternalServerError
+		message = "All batch updates failed"
+	} else if !allSuccessful {
+		// Partial success
+		statusCode = http.StatusPartialContent
+		message = "Batch update partially successful"
+	}
+
+	response := ApiResponse{
+		Success: allSuccessful,
+		Message: message,
+		Data: map[string]interface{}{
+			"device_id":          req.DeviceID,
+			"total_operations":   len(req.OperationIDs),
+			"successful_updates": successfulUpdates,
+			"failed_updates":     failedUpdates,
+			"success_count":      len(successfulUpdates),
+			"failure_count":      len(failedUpdates),
+		},
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
 	json.NewEncoder(w).Encode(response)
 }
 
@@ -427,12 +767,16 @@ func main() {
 	// Define routes with CORS middleware
 	router.HandleFunc("/delta-sync/fetch", corsMiddleware(handleFetchSyncOperations)).Methods("GET", "OPTIONS")
 	router.HandleFunc("/delta-sync/add", corsMiddleware(handleAddSyncOperation)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/delta-sync/add-device", corsMiddleware(handleAddDeviceToOperation)).Methods("POST", "OPTIONS")
+	router.HandleFunc("/delta-sync/batch-update-device", corsMiddleware(handleBatchUpdateDeviceOperations)).Methods("POST", "OPTIONS")
 	router.HandleFunc("/health", corsMiddleware(handleHealth)).Methods("GET", "OPTIONS")
 
 	log.Printf("🚀 Delta Sync service starting on port %s", port)
 	log.Printf("📍 Available endpoints:")
 	log.Printf("   GET  /delta-sync/fetch?user_id=<id>&timestamp=<unix_timestamp>")
 	log.Printf("   POST /delta-sync/add")
+	log.Printf("   POST /delta-sync/add-device")
+	log.Printf("   POST /delta-sync/batch-update-device")
 	log.Printf("   GET  /health")
 
 	// Start server

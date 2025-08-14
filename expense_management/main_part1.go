@@ -455,36 +455,68 @@ func getEnvOrDefault(key, defaultValue string) string {
 }
 
 // addSyncOperation adds a sync operation record to the database
-// This enables incremental synchronization tracking for expense operations
+// Implements timestamp adjustment and device_ids JSON array for multi-device sync
 func addSyncOperation(userID, operationType, entityType, entityID, operationData string, operationID string, deviceID string, clientTimestamp int64) error {
 	// Use provided operationID or generate a new one if not provided
 	if operationID == "" {
 		operationID = fmt.Sprintf("%s_%s_%s_%d", entityType, operationType, entityID, time.Now().UnixNano())
 	}
 
-	// Use client timestamp if provided, otherwise use server timestamp
-	var createdAt int64
-	if clientTimestamp > 0 {
-		createdAt = clientTimestamp
-		log.Printf("🔄 Using client timestamp for sync operation: %d", clientTimestamp)
+	// Prepare device_ids JSON array
+	var deviceIDs []string
+	if deviceID != "" {
+		deviceIDs = []string{deviceID}
 	} else {
-		createdAt = time.Now().Unix()
-		log.Printf("⏰ Using server timestamp for sync operation: %d", createdAt)
+		deviceIDs = []string{} // Empty array if no device ID provided
+	}
+	
+	// Marshal device IDs to JSON
+	deviceIDsJSON, err := json.Marshal(deviceIDs)
+	if err != nil {
+		log.Printf("Error marshaling device_ids: %v", err)
+		return err
 	}
 
-	// Insert sync operation record
+	// Timestamp adjustment: check if client timestamp is older than latest timestamp
+	var latestTimestamp int64
+	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error checking latest timestamp: %v", err)
+		return err
+	}
+
+	// Use client timestamp if provided, otherwise use server timestamp
+	var adjustedTimestamp int64
+	if clientTimestamp > 0 {
+		adjustedTimestamp = clientTimestamp
+		// Adjust timestamp if necessary to maintain chronological ordering
+		if clientTimestamp <= latestTimestamp {
+			adjustedTimestamp = latestTimestamp + 1
+			log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
+				clientTimestamp, adjustedTimestamp, latestTimestamp)
+		}
+		log.Printf("🔄 Using adjusted client timestamp for sync operation: %d", adjustedTimestamp)
+	} else {
+		adjustedTimestamp = time.Now().Unix()
+		if adjustedTimestamp <= latestTimestamp {
+			adjustedTimestamp = latestTimestamp + 1
+		}
+		log.Printf("⏰ Using server timestamp for sync operation: %d", adjustedTimestamp)
+	}
+
+	// Insert sync operation record with device_ids JSON array
 	insertSQL := `
-	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_id)
+	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_ids)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := db.Exec(insertSQL, operationID, userID, createdAt, operationType, entityType, entityID, operationData, deviceID)
+	_, err = db.Exec(insertSQL, operationID, userID, adjustedTimestamp, operationType, entityType, entityID, operationData, string(deviceIDsJSON))
 	if err != nil {
 		log.Printf("❌ Error inserting sync operation: %v", err)
 		return fmt.Errorf("error inserting sync operation: %v", err)
 	}
 
-	log.Printf("✅ Sync operation added: %s for user %s (type: %s, entity: %s/%s)", 
-		operationID, userID, operationType, entityType, entityID)
+	log.Printf("✅ Sync operation added: %s for user %s (type: %s, entity: %s/%s), device_ids: %v, adjusted timestamp: %d", 
+		operationID, userID, operationType, entityType, entityID, deviceIDs, adjustedTimestamp)
 	
 	return nil
 }
