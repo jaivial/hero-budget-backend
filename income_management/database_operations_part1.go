@@ -191,11 +191,12 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	serverTimestamp := time.Now().Unix()
 	
 	// Insert sync operation record with all required fields
+	// Use client timestamp for created_at to maintain proper synchronization ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
 			user_id, operation_id, action, table_name, record_id, data, 
 			device_id, client_timestamp, server_timestamp, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	
 	result, err := db.Exec(
@@ -209,6 +210,7 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		deviceID,
 		clientTimestamp,
 		serverTimestamp,
+		clientTimestamp, // Use client timestamp for created_at
 	)
 	
 	if err != nil {

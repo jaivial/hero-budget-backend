@@ -3,7 +3,10 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 // handleUpdateBill maneja las solicitudes POST para actualizar facturas existentes
@@ -90,6 +93,57 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 	}); err != nil {
 		sendErrorResponse(w, "Error updating bill payments", http.StatusInternalServerError)
 		return
+	}
+	
+	// Record sync operation if sync parameters are provided
+	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for bill update: operation_id=%s, device_id=%s, timestamp=%d", 
+			updateRequest.OperationID, updateRequest.DeviceID, updateRequest.Timestamp)
+		
+		// Get updated bill data for sync operation
+		updatedBillData, err := getBillOldData(db, updateRequest.BillID, updateRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Could not fetch updated bill data for sync operation: %v", err)
+		} else {
+			// Create sync operation data with updated bill structure
+			syncData := map[string]interface{}{
+				"id":              updateRequest.BillID,
+				"user_id":         updateRequest.UserID,
+				"name":            updatedBillData.Name,
+				"amount":          updatedBillData.Amount,
+				"due_date":        updatedBillData.DueDate,
+				"category":        updatedBillData.Category,
+				"icon":            updatedBillData.Icon,
+				"start_date":      updatedBillData.StartDate,
+				"payment_day":     updatedBillData.PaymentDay,
+				"duration_months": updatedBillData.DurationMonths,
+				"regularity":      updatedBillData.Regularity,
+				"payment_method":  updatedBillData.PaymentMethod,
+				"created_at":      updatedBillData.CreatedAt,
+				"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
+			}
+			
+			// Add sync operation record to database
+			err = addSyncOperation(
+				updateRequest.UserID,
+				updateRequest.OperationID,
+				"update",
+				"bills",
+				strconv.Itoa(updateRequest.BillID),
+				syncData,
+				updateRequest.DeviceID,
+				updateRequest.Timestamp,
+			)
+			
+			if err != nil {
+				log.Printf("Warning: Failed to record sync operation: %v", err)
+				// Don't fail the bill update for sync errors, just log warning
+			} else {
+				log.Printf("Successfully recorded sync operation for bill ID: %d", updateRequest.BillID)
+			}
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 	
 	// Invalidate bills cache for this user since a bill was updated

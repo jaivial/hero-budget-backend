@@ -83,6 +83,10 @@ type UpdateBillRequest struct {
 	Category       string  `json:"category,omitempty"`
 	Icon           string  `json:"icon,omitempty"`
 	PaymentMethod  string  `json:"payment_method,omitempty"`
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // SyncOperation estructura para registrar operaciones de sincronización
@@ -317,11 +321,12 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	serverTimestamp := time.Now().Unix()
 	
 	// Insert sync operation record with all required fields
+	// Use client timestamp for created_at to maintain proper synchronization ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
 			user_id, operation_id, action, table_name, record_id, data, 
 			device_id, client_timestamp, server_timestamp, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	
 	result, err := db.Exec(
@@ -335,6 +340,7 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		deviceID,
 		clientTimestamp,
 		serverTimestamp,
+		clientTimestamp, // Use client timestamp for created_at
 	)
 	
 	if err != nil {
