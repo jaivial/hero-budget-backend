@@ -318,6 +318,7 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 			string(operationData),
 			expense.OperationID,
 			expense.DeviceID,
+			expense.Timestamp,
 		)
 		if err != nil {
 			log.Printf("Warning: Error adding sync operation (continuing): %v", err)
@@ -455,21 +456,28 @@ func getEnvOrDefault(key, defaultValue string) string {
 
 // addSyncOperation adds a sync operation record to the database
 // This enables incremental synchronization tracking for expense operations
-func addSyncOperation(userID, operationType, entityType, entityID, operationData string, operationID string, deviceID string) error {
+func addSyncOperation(userID, operationType, entityType, entityID, operationData string, operationID string, deviceID string, clientTimestamp int64) error {
 	// Use provided operationID or generate a new one if not provided
 	if operationID == "" {
 		operationID = fmt.Sprintf("%s_%s_%s_%d", entityType, operationType, entityID, time.Now().UnixNano())
 	}
 
-	// Current timestamp for created_at field
-	currentTime := time.Now().Unix()
+	// Use client timestamp if provided, otherwise use server timestamp
+	var createdAt int64
+	if clientTimestamp > 0 {
+		createdAt = clientTimestamp
+		log.Printf("🔄 Using client timestamp for sync operation: %d", clientTimestamp)
+	} else {
+		createdAt = time.Now().Unix()
+		log.Printf("⏰ Using server timestamp for sync operation: %d", createdAt)
+	}
 
 	// Insert sync operation record
 	insertSQL := `
 	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_id)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err := db.Exec(insertSQL, operationID, userID, currentTime, operationType, entityType, entityID, operationData, deviceID)
+	_, err := db.Exec(insertSQL, operationID, userID, createdAt, operationType, entityType, entityID, operationData, deviceID)
 	if err != nil {
 		log.Printf("❌ Error inserting sync operation: %v", err)
 		return fmt.Errorf("error inserting sync operation: %v", err)
