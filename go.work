@@ -4,24 +4,17 @@ use (
 	./apple-auth
 	./bills_management
 	./budget_management
-	./budget_overview_fetch
 	./cash_bank_management
 	./categories_management
 	./common
-	./dashboard_data
 	./expense_management
-	./fetch_dashboard
 	./google_auth
 	./income_management
-	./initial_fetch_db
-	./language_cookie
-	./money_flow_sync
 	./profile_management
 	./reset_password
 	./savings_management
 	./signin
 	./signup
-	./sync_service
 	./transaction_delete_service
 	./user_locale
 )

@@ -23,11 +23,8 @@ ALL_SERVICES=(
     "apple-auth:8100"
     "google_auth:8081"
     "signup:8082"
-    "language_cookie:8083"
     "signin:8084"
-    "fetch_dashboard:8085"
     "reset_password:8086"
-    "dashboard_data:8087"
     "budget_management:8088"
     "savings_management:8089"
     "cash_bank_management:8090"
@@ -37,11 +34,7 @@ ALL_SERVICES=(
     "expense_management:8094"
     "transaction_delete_service:8095"
     "categories_management:8096"
-    "money_flow_sync:8097"
-    "budget_overview_fetch:8098"
     "user_locale:8099"
-    "sync_service:8101"
-    "initial_fetch_db:8102"
     "delta_sync:8103"
 )
 
@@ -49,9 +42,7 @@ ALL_SERVICES=(
 CRITICAL_SERVICES=(
     "google_auth:8081"
     "signin:8084"
-    "fetch_dashboard:8085"
     "cash_bank_management:8090"
-    "sync_service:8101"
 )
 
 # Función para crear backup de la base de datos
@@ -299,11 +290,11 @@ update_all_dependencies() {
     echo -e "\n${CYAN}🔧 Actualizando dependencias de todos los servicios...${NC}"
     
     local services=(
-        "apple-auth" "bills_management" "budget_management" "budget_overview_fetch"
-        "cash_bank_management" "categories_management" "dashboard_data" "expense_management"
-        "fetch_dashboard" "google_auth" "income_management" "money_flow_sync"
+        "apple-auth" "bills_management" "budget_management"
+        "cash_bank_management" "categories_management" "expense_management"
+        "google_auth" "income_management"
         "profile_management" "reset_password" "signin" "signup" "user_locale"
-        "savings_management" "language_cookie" "transaction_delete_service"
+        "savings_management" "transaction_delete_service"
     )
     
     for service in "${services[@]}"; do
