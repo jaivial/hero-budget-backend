@@ -215,13 +215,17 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Estructura para la solicitud de pago
+	// Estructura para la solicitud de pago con parámetros de sincronización
 	var req struct {
 		UserID        string `json:"user_id"`
 		BillID        int    `json:"bill_id"`
 		YearMonth     string `json:"year_month"`
 		PaymentDate   string `json:"payment_date"`
 		PaymentMethod string `json:"payment_method"`
+		// Sync operation parameters for incremental synchronization
+		OperationID   string `json:"operation_id,omitempty"`   // Unique ID for sync operation
+		DeviceID      string `json:"device_id,omitempty"`      // Device identifier for sync
+		Timestamp     int64  `json:"timestamp,omitempty"`      // Client-side timestamp
 	}
 
 	// Decodificar solicitud
@@ -242,6 +246,44 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error marking bill as paid: %v", err)
 		sendErrorResponse(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	// Record sync operation if sync parameters are provided
+	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
+		log.Printf("Recording sync operation for bill payment: operation_id=%s, device_id=%s, timestamp=%d", 
+			req.OperationID, req.DeviceID, req.Timestamp)
+		
+		// Create sync operation data for bill payment
+		syncData := map[string]interface{}{
+			"user_id":        req.UserID,
+			"bill_id":        req.BillID,
+			"year_month":     req.YearMonth,
+			"payment_date":   req.PaymentDate,
+			"payment_method": req.PaymentMethod,
+			"payment_status": "paid",
+			"processed_at":   time.Now().Format("2006-01-02 15:04:05"),
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			req.UserID,
+			req.OperationID,
+			"pay",
+			"bill_payments",
+			fmt.Sprintf("%d-%s", req.BillID, req.YearMonth),
+			syncData,
+			req.DeviceID,
+			req.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation for bill payment: %v", err)
+			// Don't fail the bill payment for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for bill payment: bill_id=%d, year_month=%s", req.BillID, req.YearMonth)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 
 	// Invalidate bills cache for this user since bill payment status changed
