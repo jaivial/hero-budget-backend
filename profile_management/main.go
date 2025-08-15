@@ -47,6 +47,10 @@ type ProfileUpdateRequest struct {
 	GivenName       string `json:"given_name,omitempty"`
 	FamilyName      string `json:"family_name,omitempty"`
 	ProfileImageB64 string `json:"profile_image_base64,omitempty"`
+	// Sync operation parameters for incremental synchronization
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 }
 
 type PasswordUpdateRequest struct {
@@ -127,6 +131,89 @@ func init() {
 	}
 
 	log.Println("Profile Management service initialized successfully")
+}
+
+// addSyncOperation registra una operación de sincronización en la tabla sync_operations
+// Implements timestamp adjustment and device_ids JSON array for multi-device sync
+func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
+		userID, operationID, action, tableName, recordID, deviceID)
+	
+	// Serialize operation data to JSON for storage
+	dataJSON, err := json.Marshal(data)
+	if err != nil {
+		log.Printf("Error marshaling sync operation data: %v", err)
+		return err
+	}
+	
+	// Prepare device_ids JSON array
+	var deviceIDs []string
+	if deviceID != "" {
+		deviceIDs = []string{deviceID}
+	} else {
+		deviceIDs = []string{} // Empty array if no device ID provided
+	}
+	
+	// Marshal device IDs to JSON
+	deviceIDsJSON, err := json.Marshal(deviceIDs)
+	if err != nil {
+		log.Printf("Error marshaling device_ids: %v", err)
+		return err
+	}
+	
+	// Timestamp adjustment: check if client timestamp is older than latest timestamp
+	var latestTimestamp int64
+	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
+	if err != nil && err != sql.ErrNoRows {
+		log.Printf("Error checking latest timestamp: %v", err)
+		return err
+	}
+	
+	// Adjust timestamp if necessary to maintain chronological ordering
+	adjustedTimestamp := clientTimestamp
+	if clientTimestamp <= latestTimestamp {
+		adjustedTimestamp = latestTimestamp + 1
+		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
+			clientTimestamp, adjustedTimestamp, latestTimestamp)
+	}
+	
+	// Use current server timestamp
+	serverTimestamp := time.Now().Unix()
+	
+	// Insert sync operation record with device_ids JSON array
+	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
+	insertQuery := `
+		INSERT INTO sync_operations (
+			user_id, operation_id, action, table_name, record_id, data, 
+			device_ids, client_timestamp, server_timestamp, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+	`
+	
+	result, err := db.Exec(
+		insertQuery,
+		userID,
+		operationID,
+		action,
+		tableName,
+		recordID,
+		string(dataJSON),
+		string(deviceIDsJSON), // Store device IDs as JSON array
+		clientTimestamp,
+		serverTimestamp,
+		adjustedTimestamp, // Use adjusted timestamp for created_at
+	)
+	
+	if err != nil {
+		log.Printf("Error inserting sync operation: %v", err)
+		return err
+	}
+	
+	// Log successful operation insertion for debugging
+	syncOpID, _ := result.LastInsertId()
+	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
+		syncOpID, deviceIDs, adjustedTimestamp)
+	
+	return nil
 }
 
 func main() {
@@ -410,6 +497,37 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Record sync operation if sync parameters are provided
+	// Add operation to sync_operations table for multi-device synchronization
+	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
+		// Prepare sync operation data for recording
+		syncOperationData := map[string]interface{}{
+			"user_id": req.UserID,
+			"action":  "update",
+			"type":    "profile_picture",
+			"image_size": len(processedImage),
+		}
+		
+		// Record the sync operation in sync_operations table
+		err = addSyncOperation(
+			fmt.Sprintf("%d", req.UserID),
+			req.OperationID,
+			"update",
+			"profile_picture",
+			fmt.Sprintf("%d", req.UserID),
+			syncOperationData,
+			req.DeviceID,
+			req.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the response - sync operation recording is optional
+		} else {
+			log.Printf("✅ Sync operation recorded successfully for profile picture update: %s", req.OperationID)
+		}
+	}
+
 	// Return success response with updated user data
 	log.Printf("📤🎉 EDIT PROFILE PICTURE: SENDING SUCCESS RESPONSE...")
 	w.Header().Set("Content-Type", "application/json")
@@ -614,6 +732,43 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 
 	rowsAffected, _ := result.RowsAffected()
 	log.Printf("Successfully updated user %d, %d rows affected", req.UserID, rowsAffected)
+
+	// Record sync operation if sync parameters are provided
+	// Add operation to sync_operations table for multi-device synchronization
+	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
+		// Prepare sync operation data for recording
+		syncOperationData := map[string]interface{}{
+			"user_id":    req.UserID,
+			"name":       req.Name,
+			"given_name": req.GivenName,
+			"family_name": req.FamilyName,
+			"action":     "update",
+		}
+		
+		// Include profile image info if it was updated
+		if req.ProfileImageB64 != "" {
+			syncOperationData["has_profile_image"] = true
+		}
+		
+		// Record the sync operation in sync_operations table
+		err = addSyncOperation(
+			fmt.Sprintf("%d", req.UserID),
+			req.OperationID,
+			"update",
+			"profile_info",
+			fmt.Sprintf("%d", req.UserID),
+			syncOperationData,
+			req.DeviceID,
+			req.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the response - sync operation recording is optional
+		} else {
+			log.Printf("✅ Sync operation recorded successfully for profile update: %s", req.OperationID)
+		}
+	}
 
 	// Get the updated user to return in the response
 	var user User
@@ -1070,6 +1225,10 @@ type UserUpdateRequest struct {
 	Email      string `json:"email,omitempty"`
 	GivenName  string `json:"given_name,omitempty"`
 	FamilyName string `json:"family_name,omitempty"`
+	// Sync operation parameters for incremental synchronization
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 }
 
 // handleGetUserInfo handles GET requests for user information
@@ -1192,6 +1351,39 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("Successfully updated user %s", updateRequest.ID)
+
+	// Record sync operation if sync parameters are provided
+	// Add operation to sync_operations table for multi-device synchronization
+	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
+		// Prepare sync operation data for recording
+		syncOperationData := map[string]interface{}{
+			"user_id":     userIDInt,
+			"name":        updateRequest.Name,
+			"email":       updateRequest.Email,
+			"given_name":  updateRequest.GivenName,
+			"family_name": updateRequest.FamilyName,
+			"action":      "update",
+		}
+		
+		// Record the sync operation in sync_operations table
+		err = addSyncOperation(
+			updateRequest.ID,
+			updateRequest.OperationID,
+			"update",
+			"profile_info",
+			updateRequest.ID,
+			syncOperationData,
+			updateRequest.DeviceID,
+			updateRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the response - sync operation recording is optional
+		} else {
+			log.Printf("✅ Sync operation recorded successfully for user update: %s", updateRequest.OperationID)
+		}
+	}
 
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")

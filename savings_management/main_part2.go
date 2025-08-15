@@ -77,6 +77,43 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Record sync operation if sync parameters are provided
+	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for savings update: operation_id=%s, device_id=%s, timestamp=%d", 
+			updateRequest.OperationID, updateRequest.DeviceID, updateRequest.Timestamp)
+		
+		// Create sync operation data for savings update
+		syncData := map[string]interface{}{
+			"user_id":   updateRequest.UserID,
+			"available": currentSavings.Available,
+			"goal":      currentSavings.Goal,
+			"period":    currentSavings.Period,
+			"percent":   currentSavings.Percent,
+			"action":    "update_savings",
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			updateRequest.UserID,
+			updateRequest.OperationID,
+			"update",
+			"savings",
+			fmt.Sprintf("%s", updateRequest.UserID),
+			syncData,
+			updateRequest.DeviceID,
+			updateRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation for savings update: %v", err)
+			// Don't fail the savings update for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for savings update: user=%s", updateRequest.UserID)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+	}
+
 	// Invalidate cache since savings data was updated
 	// Cache invalidation asegura consistencia de datos
 	if cacheManager != nil {
@@ -127,6 +164,39 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error deleting savings data: %v", err)
 		sendErrorResponse(w, "Error deleting savings data", http.StatusInternalServerError)
 		return
+	}
+
+	// Record sync operation if sync parameters are provided
+	if deleteRequest.OperationID != "" && deleteRequest.DeviceID != "" && deleteRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for savings delete: operation_id=%s, device_id=%s, timestamp=%d", 
+			deleteRequest.OperationID, deleteRequest.DeviceID, deleteRequest.Timestamp)
+		
+		// Create sync operation data for savings delete
+		syncData := map[string]interface{}{
+			"user_id": deleteRequest.UserID,
+			"action":  "delete_savings",
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			deleteRequest.UserID,
+			deleteRequest.OperationID,
+			"delete",
+			"savings",
+			fmt.Sprintf("%s", deleteRequest.UserID),
+			syncData,
+			deleteRequest.DeviceID,
+			deleteRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation for savings delete: %v", err)
+			// Don't fail the savings delete for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for savings delete: user=%s", deleteRequest.UserID)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 
 	// Invalidate cache since savings data was deleted

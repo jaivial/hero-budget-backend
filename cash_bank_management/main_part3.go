@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
@@ -112,6 +113,45 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Printf("Error adding transaction to history: %v", err)
 		// Continue despite the error - no bloquea operación principal
+	}
+
+	// Record sync operation if sync parameters are provided
+	if transferRequest.OperationID != "" && transferRequest.DeviceID != "" && transferRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for cash-to-bank transfer: operation_id=%s, device_id=%s, timestamp=%d", 
+			transferRequest.OperationID, transferRequest.DeviceID, transferRequest.Timestamp)
+		
+		// Create sync operation data for cash-to-bank transfer
+		syncData := map[string]interface{}{
+			"user_id":       transferRequest.UserID,
+			"amount":        transferRequest.Amount,
+			"date":          transferRequest.Date,
+			"transfer_type": "cash_to_bank",
+			"from_amount":   distribution.CashAmount + transferRequest.Amount, // Original cash amount
+			"to_amount":     distribution.BankAmount,                          // New bank amount
+			"processed_at":  transferYearMonth,
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			transferRequest.UserID,
+			transferRequest.OperationID,
+			"transfer",
+			"cash_bank_transfers",
+			fmt.Sprintf("%s-%s", transferRequest.UserID, transferYearMonth),
+			syncData,
+			transferRequest.DeviceID,
+			transferRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation for cash-to-bank transfer: %v", err)
+			// Don't fail the transfer for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for cash-to-bank transfer: user=%s, amount=%.2f", 
+				transferRequest.UserID, transferRequest.Amount)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 
 	// Invalidate caches since transfer affects distribution
@@ -234,6 +274,45 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 	err = addTransaction(transferRequest.UserID, "bank_to_cash", transferRequest.Amount, transferRequest.Date)
 	if err != nil {
 		log.Printf("Error adding transaction to history: %v", err)
+	}
+
+	// Record sync operation if sync parameters are provided
+	if transferRequest.OperationID != "" && transferRequest.DeviceID != "" && transferRequest.Timestamp > 0 {
+		log.Printf("Recording sync operation for bank-to-cash transfer: operation_id=%s, device_id=%s, timestamp=%d", 
+			transferRequest.OperationID, transferRequest.DeviceID, transferRequest.Timestamp)
+		
+		// Create sync operation data for bank-to-cash transfer
+		syncData := map[string]interface{}{
+			"user_id":       transferRequest.UserID,
+			"amount":        transferRequest.Amount,
+			"date":          transferRequest.Date,
+			"transfer_type": "bank_to_cash",
+			"from_amount":   distribution.BankAmount + transferRequest.Amount, // Original bank amount
+			"to_amount":     distribution.CashAmount,                          // New cash amount
+			"processed_at":  transferYearMonth,
+		}
+		
+		// Add sync operation record to database
+		err = addSyncOperation(
+			transferRequest.UserID,
+			transferRequest.OperationID,
+			"transfer",
+			"cash_bank_transfers",
+			fmt.Sprintf("%s-%s", transferRequest.UserID, transferYearMonth),
+			syncData,
+			transferRequest.DeviceID,
+			transferRequest.Timestamp,
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation for bank-to-cash transfer: %v", err)
+			// Don't fail the transfer for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for bank-to-cash transfer: user=%s, amount=%.2f", 
+				transferRequest.UserID, transferRequest.Amount)
+		}
+	} else {
+		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
 	}
 
 	// Invalidate caches
