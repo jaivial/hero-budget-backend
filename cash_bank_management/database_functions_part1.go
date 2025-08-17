@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
-	"time"
 )
 
 // Funciones de base de datos para Cash Bank Management - Parte 1

@@ -293,3 +293,73 @@ func updateCascadeForPeriodIncome(userID, tableName, periodColumn, period string
 	log.Printf("Updated cascade for income in period %s: amount %.2f (%s)", period, amount, paymentMethod)
 	return nil
 }
+
+// updateSubsequentPeriods es una función genérica que maneja actualizaciones de cascada para diferentes tipos de períodos
+// Se usa como fallback para casos no específicos o tipos de período no cubiertos por las funciones especializadas
+func updateSubsequentPeriods(userID, tableName, periodType string, transactionDate time.Time) error {
+	log.Printf("Using generic updateSubsequentPeriods for user %s, table %s, period type %s", userID, tableName, periodType)
+	
+	// Para la implementación genérica, usar lógica similar a updateSubsequentMonthsForExpense
+	// pero sin hacer cambios específicos de amount ya que no tenemos esa información en este contexto
+	
+	var nextPeriods []string
+	var periodColumn string
+	
+	// Determinar los períodos futuros y la columna correspondiente
+	switch periodType {
+	case "monthly":
+		periodColumn = "year_month"
+		// Buscar hasta 24 meses hacia adelante
+		for i := 1; i <= 24; i++ {
+			nextDate := transactionDate.AddDate(0, i, 0)
+			nextPeriod := calculatePeriodIdentifier(nextDate, periodType)
+			nextPeriods = append(nextPeriods, nextPeriod)
+		}
+	case "quarterly":
+		periodColumn = "year_quarter"
+		// Buscar hasta 8 trimestres hacia adelante
+		for i := 1; i <= 8; i++ {
+			nextDate := transactionDate.AddDate(0, i*3, 0)
+			nextPeriod := calculatePeriodIdentifier(nextDate, periodType)
+			nextPeriods = append(nextPeriods, nextPeriod)
+		}
+	case "annual":
+		periodColumn = "year"
+		// Buscar hasta 10 años hacia adelante
+		for i := 1; i <= 10; i++ {
+			nextDate := transactionDate.AddDate(i, 0, 0)
+			nextPeriod := calculatePeriodIdentifier(nextDate, periodType)
+			nextPeriods = append(nextPeriods, nextPeriod)
+		}
+	default:
+		// Para tipos desconocidos, usar period como columna genérica
+		periodColumn = "period"
+		nextPeriod := transactionDate.Format("2006-01-02")
+		nextPeriods = append(nextPeriods, nextPeriod)
+	}
+	
+	// Simplemente actualizar los timestamps de los períodos futuros que existan
+	// Esta es una implementación conservadora que no modifica balances sin información específica
+	for _, nextPeriod := range nextPeriods {
+		var exists bool
+		checkQuery := fmt.Sprintf(`SELECT COUNT(*) > 0 FROM %s WHERE user_id = ? AND %s = ?`, tableName, periodColumn)
+		err := db.QueryRow(checkQuery, userID, nextPeriod).Scan(&exists)
+		if err != nil {
+			log.Printf("Error checking period %s existence: %v", nextPeriod, err)
+			continue
+		}
+		
+		if exists {
+			// Solo actualizar timestamp para indicar que fue procesado
+			updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND %s = ?", tableName, periodColumn)
+			_, err = db.Exec(updateQuery, userID, nextPeriod)
+			if err != nil {
+				log.Printf("Error updating timestamp for period %s: %v", nextPeriod, err)
+			} else {
+				log.Printf("Updated timestamp for period %s in table %s", nextPeriod, tableName)
+			}
+		}
+	}
+	
+	return nil
+}

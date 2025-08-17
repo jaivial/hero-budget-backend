@@ -1,8 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import ()
 
 // Funciones de base de datos para Cash Bank Management - Parte 2
 // Continuación de operaciones CRUD y funciones auxiliares
