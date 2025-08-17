@@ -171,23 +171,12 @@ func cascadeUpdateFutureMonths(userID string, fromMonth string, cashDelta float6
 	return nil
 }
 
-// updateCashBankDistribution actualiza distribución en todas las tablas periódicas
-// Mantiene consistencia entre tablas diarias, semanales, mensuales, etc.
-// Incluye tabla legacy para compatibilidad con versiones anteriores
+// updateCashBankDistribution actualiza distribución solo en tabla mensual para performance
+// Mantiene compatibilidad con tabla legacy cash_bank
 func updateCashBankDistribution(distribution CashBankDistribution) error {
-	// Get current date and time periods for all table updates
-	// Obtener fecha actual y todos los períodos para actualizar tablas
-	now := time.Now()
-	currentDate := now.Format("2006-01-02")
-	currentMonth := now.Format("2006-01")
-	currentWeek := getWeekPeriod(now)
-	currentQuarter := getQuarterPeriod(now)
-	currentSemiannual := getSemiannualPeriod(now)
-	currentYear := now.Format("2006")
-
-	// Update all period tables with new distribution
-	// Actualizar todas las tablas periódicas con nueva distribución
-	err := updateAllPeriodTables(distribution, currentDate, currentMonth, currentWeek, currentQuarter, currentSemiannual, currentYear)
+	// Only update monthly_cash_bank_balance for performance
+	// Solo actualizar tabla mensual para mejor rendimiento
+	err := updateMonthlyTable(distribution)
 	if err != nil {
 		return err
 	}
@@ -246,79 +235,61 @@ func updateCashBankDistribution(distribution CashBankDistribution) error {
 	return err
 }
 
-// Helper functions for period calculations
-// Funciones auxiliares para cálculos de períodos
-// Estas funciones generan identificadores únicos para cada período
+// updateMonthlyTable actualiza solo la tabla mensual para mejor rendimiento
+// Simplificada para manejar únicamente monthly_cash_bank_balance
+func updateMonthlyTable(distribution CashBankDistribution) error {
+	// Check if entry exists for this user and month
+	// Verificar si existe entrada para este usuario y mes
+	var count int
+	query := `SELECT COUNT(*) FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
+	err := db.QueryRow(query, distribution.UserID, distribution.Month).Scan(&count)
+	if err != nil {
+		return err
+	}
 
-// getWeekPeriod retorna período semanal en formato YYYY-WW
-func getWeekPeriod(t time.Time) string {
-	year, week := t.ISOWeek()
-	return fmt.Sprintf("%d-%02d", year, week)
+	if count > 0 {
+		// Update existing entry with new values
+		// Actualizar entrada existente con nuevos valores
+		updateQuery := `
+			UPDATE monthly_cash_bank_balance
+			SET cash_amount = ?,
+				bank_amount = ?,
+				balance_cash_amount = ?,
+				balance_bank_amount = ?,
+				total_balance = ?,
+				updated_at = CURRENT_TIMESTAMP
+			WHERE user_id = ? AND year_month = ?
+		`
+
+		_, err = db.Exec(updateQuery,
+			distribution.CashAmount,
+			distribution.BankAmount,
+			distribution.CashAmount,
+			distribution.BankAmount,
+			distribution.MonthlyTotal,
+			distribution.UserID,
+			distribution.Month,
+		)
+	} else {
+		// Insert new entry for this month
+		// Insertar nueva entrada para este mes
+		insertQuery := `
+			INSERT INTO monthly_cash_bank_balance (
+				user_id, year_month, cash_amount, bank_amount, balance_cash_amount, balance_bank_amount, total_balance
+			) VALUES (?, ?, ?, ?, ?, ?, ?)
+		`
+
+		_, err = db.Exec(insertQuery,
+			distribution.UserID,
+			distribution.Month,
+			distribution.CashAmount,
+			distribution.BankAmount,
+			distribution.CashAmount,
+			distribution.BankAmount,
+			distribution.MonthlyTotal,
+		)
+	}
+
+	return err
 }
 
-// getQuarterPeriod retorna período trimestral en formato YYYY-Q
-func getQuarterPeriod(t time.Time) string {
-	quarter := (int(t.Month())-1)/3 + 1
-	return fmt.Sprintf("%d-%d", t.Year(), quarter)
-}
-
-// getSemiannualPeriod retorna período semestral en formato YYYY-H
-func getSemiannualPeriod(t time.Time) string {
-	semiannual := (int(t.Month())-1)/6 + 1
-	return fmt.Sprintf("%d-%d", t.Year(), semiannual)
-}
-
-// updateAllPeriodTables actualiza todas las tablas periódicas con nueva distribución
-// Mantiene consistencia entre todos los períodos de tiempo
-// Utiliza función genérica para evitar duplicación de código
-func updateAllPeriodTables(distribution CashBankDistribution, currentDate, currentMonth, currentWeek, currentQuarter, currentSemiannual, currentYear string) error {
-	// Update daily_cash_bank_balance
-	// Actualizar balance diario
-	err := updatePeriodTable("daily_cash_bank_balance", "date", currentDate, distribution)
-	if err != nil {
-		log.Printf("Error updating daily_cash_bank_balance: %v", err)
-		return err
-	}
-
-	// Update weekly_cash_bank_balance
-	// Actualizar balance semanal
-	err = updatePeriodTable("weekly_cash_bank_balance", "year_week", currentWeek, distribution)
-	if err != nil {
-		log.Printf("Error updating weekly_cash_bank_balance: %v", err)
-		return err
-	}
-
-	// Update monthly_cash_bank_balance
-	// Actualizar balance mensual
-	err = updatePeriodTable("monthly_cash_bank_balance", "year_month", currentMonth, distribution)
-	if err != nil {
-		log.Printf("Error updating monthly_cash_bank_balance: %v", err)
-		return err
-	}
-
-	// Update quarterly_cash_bank_balance
-	// Actualizar balance trimestral
-	err = updatePeriodTable("quarterly_cash_bank_balance", "year_quarter", currentQuarter, distribution)
-	if err != nil {
-		log.Printf("Error updating quarterly_cash_bank_balance: %v", err)
-		return err
-	}
-
-	// Update semiannual_cash_bank_balance
-	// Actualizar balance semestral
-	err = updatePeriodTable("semiannual_cash_bank_balance", "year_half", currentSemiannual, distribution)
-	if err != nil {
-		log.Printf("Error updating semiannual_cash_bank_balance: %v", err)
-		return err
-	}
-
-	// Update annual_cash_bank_balance
-	// Actualizar balance anual
-	err = updatePeriodTable("annual_cash_bank_balance", "year", currentYear, distribution)
-	if err != nil {
-		log.Printf("Error updating annual_cash_bank_balance: %v", err)
-		return err
-	}
-
-	return nil
-}
