@@ -681,12 +681,12 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	// Verify token is valid and get the user
 	var userID int
 	var currentPassword string
-	var expires time.Time
+	var expiresStr sql.NullString // Changed to handle NULL values and string scanning
 
 	err := db.QueryRow(
 		"SELECT id, password, reset_expires FROM users WHERE reset_token = ? AND id = ?",
 		req.Token, req.UserID,
-	).Scan(&userID, &currentPassword, &expires)
+	).Scan(&userID, &currentPassword, &expiresStr)
 
 	if err == sql.ErrNoRows {
 		log.Printf("Invalid token or user ID mismatch: %s, %d", req.Token, req.UserID)
@@ -701,12 +701,26 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if token is expired
-	if time.Now().After(expires) {
-		log.Printf("Token expired: %s", req.Token)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusBadRequest)
-		json.NewEncoder(w).Encode(map[string]string{"error": "Reset token has expired"})
-		return
+	if expiresStr.Valid && expiresStr.String != "" {
+		// Parse the datetime string from database
+		expires, err := time.Parse("2006-01-02 15:04:05", expiresStr.String)
+		if err != nil {
+			// Try alternative format if the first one fails
+			expires, err = time.Parse(time.RFC3339, expiresStr.String)
+			if err != nil {
+				log.Printf("Failed to parse expiration time: %v", err)
+				http.Error(w, "Invalid token expiration format", http.StatusInternalServerError)
+				return
+			}
+		}
+		
+		if time.Now().After(expires) {
+			log.Printf("Token expired: %s", req.Token)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "Reset token has expired"})
+			return
+		}
 	}
 
 	// Check if new password is the same as current password
