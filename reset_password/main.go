@@ -724,7 +724,8 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check if new password is the same as current password
-	if req.NewPassword == currentPassword {
+	// Skip comparison if current password is empty/null (e.g., for OAuth users)
+	if currentPassword != "" && req.NewPassword == currentPassword {
 		log.Printf("New password cannot be the same as current password")
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
