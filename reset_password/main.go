@@ -341,7 +341,7 @@ func handleCheckEmail(w http.ResponseWriter, r *http.Request) {
 	var userID int
 	var name string
 
-	err := db.QueryRow("SELECT id, name FROM users WHERE email = ?", req.Email).Scan(&userID, &name)
+	err := db.QueryRow("SELECT id, name FROM users WHERE email = ? AND type = 'email'", req.Email).Scan(&userID, &name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// Email doesn't exist
@@ -537,7 +537,7 @@ func handleResetRequest(w http.ResponseWriter, r *http.Request) {
 	var userID int
 	var name string
 
-	err = db.QueryRow("SELECT id, name FROM users WHERE email = ?", req.Email).Scan(&userID, &name)
+	err = db.QueryRow("SELECT id, name FROM users WHERE email = ? AND type = 'email'", req.Email).Scan(&userID, &name)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No user found with email: %s", req.Email)
@@ -559,7 +559,7 @@ func handleResetRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Update user with reset token
 	_, err = db.Exec(
-		"UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
+		"UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ? AND type = 'email'",
 		resetToken, expiresAt, userID,
 	)
 
@@ -620,7 +620,7 @@ func handleValidateToken(w http.ResponseWriter, r *http.Request) {
 	var expires time.Time
 
 	err := db.QueryRow(
-		"SELECT id, email, reset_expires FROM users WHERE reset_token = ?",
+		"SELECT id, email, reset_expires FROM users WHERE reset_token = ? AND type = 'email'",
 		req.Token,
 	).Scan(&userID, &email, &expires)
 
@@ -684,7 +684,7 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 	var expiresStr sql.NullString // Changed to handle NULL values and string scanning
 
 	err := db.QueryRow(
-		"SELECT id, password, reset_expires FROM users WHERE reset_token = ? AND id = ?",
+		"SELECT id, password, reset_expires FROM users WHERE reset_token = ? AND id = ? AND type = 'email'",
 		req.Token, req.UserID,
 	).Scan(&userID, &currentPassword, &expiresStr)
 
@@ -735,7 +735,7 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 
 	// Update the password and clear reset token
 	_, err = db.Exec(
-		"UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+		"UPDATE users SET password = ?, reset_token = NULL, reset_expires = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND type = 'email'",
 		req.NewPassword, userID,
 	)
 

@@ -268,7 +268,7 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Update last login time
-	_, err = db.Exec("UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = ?", user.ID)
+	_, err = db.Exec("UPDATE users SET updated_at = CURRENT_TIMESTAMP WHERE id = ? AND type = 'email'", user.ID)
 	if err != nil {
 		log.Printf("Failed to update last login time: %v", err)
 		// Continue anyway, not critical
