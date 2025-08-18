@@ -52,10 +52,11 @@ type AddSyncOperationRequest struct {
 }
 
 // FetchSyncOperationsRequest estructura para solicitudes de obtención de operaciones
-// Permite filtrar por usuario y timestamp para sincronización incremental
+// Permite filtrar por usuario y timestamp o por operation_id para sincronización incremental
 type FetchSyncOperationsRequest struct {
-	UserID    string `json:"user_id"`
-	Timestamp int64  `json:"timestamp"`
+	UserID          string `json:"user_id"`
+	Timestamp       int64  `json:"timestamp"`       // Legacy timestamp-based sync
+	LastOperationID string `json:"last_operation_id"` // New operation ID-based sync
 }
 
 // ApiResponse estructura estándar para respuestas de la API
@@ -339,7 +340,8 @@ func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 }
 
 // handleFetchSyncOperations maneja las solicitudes GET para obtener operaciones de sincronización
-// Retorna todas las operaciones más recientes que el timestamp proporcionado
+// Retorna todas las operaciones más recientes que el timestamp o operation_id proporcionado
+// Supports both timestamp-based (legacy) and operation ID-based sync
 func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	log.Printf("📥 Received request: %s %s", r.Method, r.URL.Path)
 
@@ -351,11 +353,13 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	// Get parameters from query string
 	userID := r.URL.Query().Get("user_id")
 	timestampStr := r.URL.Query().Get("timestamp")
+	lastOperationID := r.URL.Query().Get("last_operation_id")
 
-	if userID == "" || timestampStr == "" {
+	// Validate user_id is always required
+	if userID == "" {
 		response := ApiResponse{
 			Success: false,
-			Message: "user_id and timestamp parameters are required",
+			Message: "user_id parameter is required",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -363,12 +367,59 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Parse timestamp
-	timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
-	if err != nil {
+	var query string
+	var queryArgs []interface{}
+
+	// Determine sync method based on parameters
+	if lastOperationID != "" {
+		// Operation ID-based sync (preferred method)
+		log.Printf("🔄 Using operation ID-based sync for user %s from operation_id: %s", userID, lastOperationID)
+		
+		if lastOperationID == "null" {
+			// First-time sync - get all operations for this user
+			query = `
+			SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+			FROM sync_operations 
+			WHERE user_id = ?
+			ORDER BY created_at ASC, operation_id ASC`
+			queryArgs = []interface{}{userID}
+			log.Printf("🆕 First-time sync - fetching all operations for user %s", userID)
+		} else {
+			// Incremental sync - get operations after the specified operation_id
+			query = `
+			SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+			FROM sync_operations 
+			WHERE user_id = ? AND operation_id > ?
+			ORDER BY created_at ASC, operation_id ASC`
+			queryArgs = []interface{}{userID, lastOperationID}
+			log.Printf("📈 Incremental sync - fetching operations after %s for user %s", lastOperationID, userID)
+		}
+	} else if timestampStr != "" {
+		// Legacy timestamp-based sync (backward compatibility)
+		log.Printf("🕒 Using legacy timestamp-based sync for user %s from timestamp: %s", userID, timestampStr)
+		
+		timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
+		if err != nil {
+			response := ApiResponse{
+				Success: false,
+				Message: "Invalid timestamp format",
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		
+		query = `
+		SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+		FROM sync_operations 
+		WHERE user_id = ? AND created_at > ?
+		ORDER BY created_at ASC, operation_id ASC`
+		queryArgs = []interface{}{userID, timestamp}
+	} else {
 		response := ApiResponse{
 			Success: false,
-			Message: "Invalid timestamp format",
+			Message: "Either timestamp or last_operation_id parameter is required",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
@@ -376,14 +427,8 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Query database for sync operations with device_ids JSON array
-	query := `
-	SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
-	FROM sync_operations 
-	WHERE user_id = ? AND created_at > ?
-	ORDER BY created_at ASC`
-
-	rows, err := db.Query(query, userID, timestamp)
+	// Execute query
+	rows, err := db.Query(query, queryArgs...)
 	if err != nil {
 		log.Printf("❌ Database query error: %v", err)
 		response := ApiResponse{
@@ -436,7 +481,17 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✅ Retrieved %d sync operations for user %s since timestamp %d", len(operations), userID, timestamp)
+	// Log success message with appropriate parameter
+	if lastOperationID != "" {
+		if lastOperationID == "null" {
+			log.Printf("✅ Retrieved %d sync operations for user %s (first-time sync)", len(operations), userID)
+		} else {
+			log.Printf("✅ Retrieved %d sync operations for user %s since operation_id %s", len(operations), userID, lastOperationID)
+		}
+	} else {
+		timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
+		log.Printf("✅ Retrieved %d sync operations for user %s since timestamp %d (legacy)", len(operations), userID, timestamp)
+	}
 
 	response := ApiResponse{
 		Success: true,
@@ -834,7 +889,8 @@ func main() {
 
 	log.Printf("🚀 Delta Sync service starting on port %s", port)
 	log.Printf("📍 Available endpoints:")
-	log.Printf("   GET  /delta-sync/fetch?user_id=<id>&timestamp=<unix_timestamp>")
+	log.Printf("   GET  /delta-sync/fetch?user_id=<id>&last_operation_id=<operation_id>  (preferred)")
+	log.Printf("   GET  /delta-sync/fetch?user_id=<id>&timestamp=<unix_timestamp>      (legacy)")
 	log.Printf("   POST /delta-sync/add")
 	log.Printf("   POST /delta-sync/add-device")
 	log.Printf("   POST /delta-sync/batch-update-device")
