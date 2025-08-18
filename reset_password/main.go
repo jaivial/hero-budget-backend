@@ -263,11 +263,11 @@ func init() {
 		dbPath = getEnvOrDefault("DB_PROD_PATH", "/opt/hero_budget/database/hero_budget.db")
 		log.Printf("🏭 Running in PRODUCTION mode - Database: %s", dbPath)
 	} else if *devMode {
-		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "../google_auth/users.db")
 		log.Printf("🔧 Running in DEVELOPMENT mode - Database: %s", dbPath)
 	} else {
 		// Default to development mode if no flag specified
-		dbPath = getEnvOrDefault("DB_DEV_PATH", "./users.db")
+		dbPath = getEnvOrDefault("DB_DEV_PATH", "../google_auth/users.db")
 		log.Printf("🔧 Running in DEVELOPMENT mode (default) - Database: %s", dbPath)
 	}
 
