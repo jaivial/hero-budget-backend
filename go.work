@@ -3,10 +3,10 @@ go 1.24.3
 use (
 	./apple-auth
 	./bills_management
-	./budget_management
 	./cash_bank_management
 	./categories_management
 	./common
+	./delta_sync
 	./expense_management
 	./google_auth
 	./income_management
