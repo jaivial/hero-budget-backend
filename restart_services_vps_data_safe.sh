@@ -34,8 +34,8 @@ ALL_SERVICES=(
     "expense_management:8094"
     "transaction_delete_service:8095"
     "categories_management:8096"
-    "delta_sync:8097"
     "user_locale:8099"
+    "delta_sync:8097"
 )
 
 # Servicios críticos (se inician primero)
