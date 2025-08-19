@@ -266,13 +266,48 @@ func createTablesIfNotExist() {
 	db.Exec(`ALTER TABLE sync_operations ADD COLUMN client_timestamp INTEGER DEFAULT 0`)
 	db.Exec(`ALTER TABLE sync_operations ADD COLUMN server_timestamp INTEGER DEFAULT 0`)
 	
-	// Create index on operation_id for fast lookups and ordering
+	// Migration: Update operation_type constraint to include 'pay' action
+	// SQLite doesn't support modifying CHECK constraints directly, so we need to recreate the table
+	db.Exec(`
+		-- Create temporary table with updated schema
+		CREATE TABLE IF NOT EXISTS sync_operations_new (
+			operation_id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			created_at INTEGER NOT NULL,
+			operation_type TEXT NOT NULL CHECK (operation_type IN ('create', 'update', 'delete', 'pay')),
+			entity_type TEXT NOT NULL,
+			entity_id TEXT NOT NULL,
+			operation_data TEXT NOT NULL,
+			device_ids TEXT DEFAULT '[]',
+			client_timestamp INTEGER DEFAULT 0,
+			server_timestamp INTEGER DEFAULT 0
+		);
+		
+		-- Copy existing data to new table
+		INSERT OR IGNORE INTO sync_operations_new 
+		SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, 
+		       operation_data, device_ids, client_timestamp, server_timestamp 
+		FROM sync_operations;
+		
+		-- Drop old table and rename new one
+		DROP TABLE IF EXISTS sync_operations_old;
+		ALTER TABLE sync_operations RENAME TO sync_operations_old;
+		ALTER TABLE sync_operations_new RENAME TO sync_operations;
+		DROP TABLE sync_operations_old;
+	`)
+	
+	// Recreate indexes on the updated sync_operations table
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id 
 		ON sync_operations(operation_id)`)
 	
-	// Create index on user_id and operation_id for user-specific queries
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_operation 
 		ON sync_operations(user_id, operation_id)`)
+		
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_created 
+		ON sync_operations(user_id, created_at)`)
+		
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity 
+		ON sync_operations(user_id, entity_type, entity_id)`)
 	
 	// Añadir columna bill_id a expenses si no existe
 	db.Exec("ALTER TABLE expenses ADD COLUMN bill_id INTEGER;")
