@@ -9,7 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gorilla/mux"
@@ -22,6 +24,79 @@ var db *sql.DB
 
 // Context for database operations
 var ctx = context.Background()
+
+// Operation ID utility functions for timestamp-based format
+
+// operationIdPattern defines the expected timestamp-based operation ID format
+// Expected format: {timestamp_ms}_{sequence_number}
+// Example: 1755209423000_001
+var operationIdPattern = regexp.MustCompile(`^\d{13}_\d{3}$`)
+
+// isValidOperationId validates if operation ID follows timestamp-based format
+// Parameters:
+//   - operationId: Operation ID to validate
+// Returns: bool - true if valid format, false otherwise
+func isValidOperationId(operationId string) bool {
+	if operationId == "" {
+		return false
+	}
+	return operationIdPattern.MatchString(operationId)
+}
+
+// extractTimestampFromOperationId extracts timestamp from operation ID
+// Parameters:
+//   - operationId: Operation ID in timestamp_sequence format
+// Returns: int64, bool - timestamp in milliseconds and success flag
+func extractTimestampFromOperationId(operationId string) (int64, bool) {
+	if !isValidOperationId(operationId) {
+		return 0, false
+	}
+	
+	parts := strings.Split(operationId, "_")
+	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return 0, false
+	}
+	
+	return timestamp, true
+}
+
+// shouldFetchAllOperations checks if operation ID represents a "fetch all" scenario
+// When last operation ID is null or "null", all operations need to be fetched
+// Parameters:
+//   - operationId: Operation ID to check
+// Returns: bool - true if should fetch all operations
+func shouldFetchAllOperations(operationId string) bool {
+	return operationId == "" || operationId == "null"
+}
+
+// generateOperationId creates a new timestamp-based operation ID
+// Format: {timestamp_ms}_{sequence_number}
+// Parameters:
+//   - timestamp: Unix timestamp in milliseconds (use time.Now().UnixMilli())
+//   - sequence: Sequence number within the same millisecond (001-999)
+// Returns: string - formatted operation ID
+func generateOperationId(timestamp int64, sequence int) string {
+	return fmt.Sprintf("%d_%03d", timestamp, sequence)
+}
+
+// getSyncScopeDescription generates human-readable description of sync scope
+// Parameters:
+//   - lastOperationId: Last processed operation ID
+// Returns: string - description of what will be synced
+func getSyncScopeDescription(lastOperationId string) string {
+	if shouldFetchAllOperations(lastOperationId) {
+		return "Full sync required - fetching all operations from server"
+	}
+	
+	timestamp, valid := extractTimestampFromOperationId(lastOperationId)
+	if valid {
+		return fmt.Sprintf("Incremental sync - fetching operations after %s", 
+			time.UnixMilli(timestamp).Format(time.RFC3339))
+	}
+	
+	return "Incremental sync - fetching recent operations"
+}
 
 // SyncOperation estructura que representa una operación de sincronización
 // Almacena todas las operaciones de datos para funcionalidad de sincronización incremental
@@ -373,26 +448,39 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	// Determine sync method based on parameters
 	if lastOperationID != "" {
 		// Operation ID-based sync (preferred method)
-		log.Printf("🔄 Using operation ID-based sync for user %s from operation_id: %s", userID, lastOperationID)
+		syncScope := getSyncScopeDescription(lastOperationID)
+		isValidFormat := isValidOperationId(lastOperationID) || shouldFetchAllOperations(lastOperationID)
 		
-		if lastOperationID == "null" {
-			// First-time sync - get all operations for this user
+		log.Printf("🔄 Using operation ID-based sync for user %s", userID)
+		log.Printf("   - Last operation ID: %s", lastOperationID)
+		log.Printf("   - Valid format: %t", isValidFormat)
+		log.Printf("   - Sync scope: %s", syncScope)
+		
+		if shouldFetchAllOperations(lastOperationID) {
+			// First-time sync - get all operations for this user (ordered by timestamp-based operation_id)
 			query = `
 			SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
 			FROM sync_operations 
 			WHERE user_id = ?
-			ORDER BY created_at ASC, operation_id ASC`
+			ORDER BY operation_id ASC`
 			queryArgs = []interface{}{userID}
-			log.Printf("🆕 First-time sync - fetching all operations for user %s", userID)
+			log.Printf("🆕 First-time sync - fetching all operations for user %s (timestamp-ordered)", userID)
 		} else {
+			// Validate operation ID format for incremental sync
+			if !isValidOperationId(lastOperationID) {
+				log.Printf("⚠️ Warning: Operation ID '%s' does not match expected timestamp format", lastOperationID)
+				// Continue with string comparison for backward compatibility
+			}
+			
 			// Incremental sync - get operations after the specified operation_id
+			// Using operation_id > ? works correctly for timestamp-based IDs due to lexicographic ordering
 			query = `
 			SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
 			FROM sync_operations 
 			WHERE user_id = ? AND operation_id > ?
-			ORDER BY created_at ASC, operation_id ASC`
+			ORDER BY operation_id ASC`
 			queryArgs = []interface{}{userID, lastOperationID}
-			log.Printf("📈 Incremental sync - fetching operations after %s for user %s", lastOperationID, userID)
+			log.Printf("📈 Incremental sync - fetching operations after %s for user %s (timestamp-ordered)", lastOperationID, userID)
 		}
 	} else if timestampStr != "" {
 		// Legacy timestamp-based sync (backward compatibility)
@@ -481,16 +569,43 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Log success message with appropriate parameter
+	// Log success message with detailed operation ID information
 	if lastOperationID != "" {
-		if lastOperationID == "null" {
-			log.Printf("✅ Retrieved %d sync operations for user %s (first-time sync)", len(operations), userID)
+		syncScope := getSyncScopeDescription(lastOperationID)
+		
+		if shouldFetchAllOperations(lastOperationID) {
+			log.Printf("✅ Retrieved %d sync operations for user %s (FULL SYNC)", len(operations), userID)
+			log.Printf("   - Sync scope: %s", syncScope)
+			log.Printf("   - Ordering: timestamp-based operation_id ASC")
 		} else {
-			log.Printf("✅ Retrieved %d sync operations for user %s since operation_id %s", len(operations), userID, lastOperationID)
+			isValidFormat := isValidOperationId(lastOperationID)
+			log.Printf("✅ Retrieved %d sync operations for user %s (INCREMENTAL SYNC)", len(operations), userID)
+			log.Printf("   - Last operation ID: %s (valid format: %t)", lastOperationID, isValidFormat)
+			log.Printf("   - Sync scope: %s", syncScope)
+			log.Printf("   - Ordering: timestamp-based operation_id ASC")
+		}
+		
+		// Log first and last operation IDs if we have results
+		if len(operations) > 0 {
+			firstOp := operations[0]
+			lastOp := operations[len(operations)-1]
+			log.Printf("   - First operation: %s", firstOp.OperationID)
+			log.Printf("   - Last operation: %s", lastOp.OperationID)
+			
+			// Validate the ordering
+			firstTimestamp, firstValid := extractTimestampFromOperationId(firstOp.OperationID)
+			lastTimestamp, lastValid := extractTimestampFromOperationId(lastOp.OperationID)
+			if firstValid && lastValid && len(operations) > 1 {
+				if firstTimestamp <= lastTimestamp {
+					log.Printf("   - ✅ Operation order validated: chronologically correct")
+				} else {
+					log.Printf("   - ⚠️ Operation order warning: not chronological")
+				}
+			}
 		}
 	} else {
 		timestamp, _ := strconv.ParseInt(timestampStr, 10, 64)
-		log.Printf("✅ Retrieved %d sync operations for user %s since timestamp %d (legacy)", len(operations), userID, timestamp)
+		log.Printf("✅ Retrieved %d sync operations for user %s since timestamp %d (LEGACY SYNC)", len(operations), userID, timestamp)
 	}
 
 	response := ApiResponse{
@@ -539,6 +654,16 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(response)
 		return
+	}
+
+	// Validate operation ID format
+	if !isValidOperationId(req.OperationID) {
+		log.Printf("⚠️ Warning: Operation ID '%s' does not match expected timestamp format (expected: {timestamp_ms}_{sequence_number})", req.OperationID)
+		log.Printf("   - Example valid format: 1755209423000_001")
+		log.Printf("   - Continuing with operation add, but ordering may not be optimal")
+	} else {
+		timestamp, _ := extractTimestampFromOperationId(req.OperationID)
+		log.Printf("✅ Operation ID format validated: %s (timestamp: %s)", req.OperationID, time.UnixMilli(timestamp).Format(time.RFC3339))
 	}
 
 	// Validate operation_type
