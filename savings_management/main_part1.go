@@ -2,13 +2,11 @@ package main
 
 import (
 	"database/sql"
-	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/herobudget/backend/common"
 	"github.com/joho/godotenv"
