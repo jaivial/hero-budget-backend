@@ -137,42 +137,37 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("DEBUG - Emoji después de creación: %s", createdCategory.Emoji)
 
-	// Record sync operation if sync parameters are provided
-	if addRequest.OperationID != "" && addRequest.DeviceID != "" && addRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for category creation: operation_id=%s, device_id=%s, timestamp=%d", 
-			addRequest.OperationID, addRequest.DeviceID, addRequest.Timestamp)
-		
-		// Create sync operation data with created category structure
-		syncData := map[string]interface{}{
-			"id":         createdCategory.ID,
-			"user_id":    createdCategory.UserID,
-			"name":       createdCategory.Name,
-			"type":       createdCategory.Type,
-			"emoji":      createdCategory.Emoji,
-			"created_at": createdCategory.CreatedAt,
-			"updated_at": createdCategory.UpdatedAt,
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			addRequest.UserID,
-			addRequest.OperationID,
-			"create",
-			"categories",
-			strconv.Itoa(createdCategory.ID),
-			syncData,
-			addRequest.DeviceID,
-			addRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the category creation for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for category ID: %d", createdCategory.ID)
-		}
+	// Record sync operation with auto-generated operation_id (consistent pattern from implementation guide)
+	log.Printf("Recording sync operation for category creation with auto-generated operation_id")
+	
+	// Create sync operation data with created category structure
+	syncData := map[string]interface{}{
+		"id":         createdCategory.ID,
+		"user_id":    createdCategory.UserID,
+		"name":       createdCategory.Name,
+		"type":       createdCategory.Type,
+		"emoji":      createdCategory.Emoji,
+		"created_at": createdCategory.CreatedAt,
+		"updated_at": createdCategory.UpdatedAt,
+	}
+	
+	// Always add sync operation record to database - auto-generate operation_id if not provided
+	err = addSyncOperation(
+		addRequest.UserID,
+		addRequest.OperationID, // Will auto-generate if empty or invalid
+		"create",
+		"categories",
+		strconv.Itoa(createdCategory.ID),
+		syncData,
+		addRequest.DeviceID, // Use device_id from request (can be empty)
+		addRequest.Timestamp, // Use timestamp from request (can be 0)
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for category creation: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for category creation: ID %d", createdCategory.ID)
 	}
 
 	// Invalidate cache after adding category para mantener consistencia
@@ -258,42 +253,37 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("DEBUG - Emoji después de actualización: %s", updatedCategory.Emoji)
 
-	// Record sync operation if sync parameters are provided
-	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for category update: operation_id=%s, device_id=%s, timestamp=%d", 
-			updateRequest.OperationID, updateRequest.DeviceID, updateRequest.Timestamp)
-		
-		// Create sync operation data with updated category structure
-		syncData := map[string]interface{}{
-			"id":         updatedCategory.ID,
-			"user_id":    updatedCategory.UserID,
-			"name":       updatedCategory.Name,
-			"type":       updatedCategory.Type,
-			"emoji":      updatedCategory.Emoji,
-			"created_at": updatedCategory.CreatedAt,
-			"updated_at": updatedCategory.UpdatedAt,
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			updateRequest.UserID,
-			updateRequest.OperationID,
-			"update",
-			"categories",
-			strconv.Itoa(updateRequest.CategoryID),
-			syncData,
-			updateRequest.DeviceID,
-			updateRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the category update for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for category ID: %d", updateRequest.CategoryID)
-		}
+	// Record sync operation with auto-generated operation_id (consistent pattern from implementation guide)
+	log.Printf("Recording sync operation for category update with auto-generated operation_id")
+	
+	// Create sync operation data with updated category structure
+	syncData := map[string]interface{}{
+		"id":         updatedCategory.ID,
+		"user_id":    updatedCategory.UserID,
+		"name":       updatedCategory.Name,
+		"type":       updatedCategory.Type,
+		"emoji":      updatedCategory.Emoji,
+		"created_at": updatedCategory.CreatedAt,
+		"updated_at": updatedCategory.UpdatedAt,
+	}
+	
+	// Always add sync operation record to database - auto-generate operation_id if not provided
+	err = addSyncOperation(
+		updateRequest.UserID,
+		updateRequest.OperationID, // Will auto-generate if empty or invalid
+		"update",
+		"categories",
+		strconv.Itoa(updateRequest.CategoryID),
+		syncData,
+		updateRequest.DeviceID, // Use device_id from request (can be empty)
+		updateRequest.Timestamp, // Use timestamp from request (can be 0)
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for category update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for category update: ID %d", updateRequest.CategoryID)
 	}
 
 	// Invalidate cache after updating category para mantener consistencia
