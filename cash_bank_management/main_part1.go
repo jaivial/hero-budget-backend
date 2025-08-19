@@ -133,6 +133,12 @@ func init() {
 	// Las tablas son creadas por el servicio de inicialización centralizada
 	log.Println("✅ Using centralized database schema - no local DDL operations")
 	
+	// Update sync_operations schema for cash_bank operation types
+	// Actualiza el esquema de sync_operations para soportar operaciones cash_bank
+	if err := updateSyncOperationsSchema(); err != nil {
+		log.Fatalf("❌ Failed to update sync_operations schema: %v", err)
+	}
+	
 	// Initialize cache manager for performance optimization
 	// Inicializa el gestor de cache Redis para optimizar consultas frecuentes
 	// Si falla la inicialización, continúa sin cache (degradación elegante)
