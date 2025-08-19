@@ -6,7 +6,6 @@ use (
 	./cash_bank_management
 	./categories_management
 	./common
-	./delta_sync
 	./expense_management
 	./google_auth
 	./income_management
