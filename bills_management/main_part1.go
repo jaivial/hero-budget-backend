@@ -480,7 +480,6 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	
 	// Prepare device_ids JSON array - store null if deviceID is empty
 	var deviceIDsJSON []byte
-	var err error
 	if deviceID != "" {
 		deviceIDs := []string{deviceID}
 		deviceIDsJSON, err = json.Marshal(deviceIDs)
