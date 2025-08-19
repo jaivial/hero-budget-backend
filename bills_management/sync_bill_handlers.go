@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -95,9 +96,9 @@ func handleSyncBillBatch(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// handleSyncBillChanges obtiene cambios de facturas desde el último sync
-// Endpoint: GET /bills/sync/changes
-// Permite al cliente obtener actualizaciones del servidor sin enviar datos
+// handleSyncBillChanges obtiene cambios de facturas desde el último sync usando operation_id
+// Endpoint: GET /bills/sync/changes?user_id=X&last_operation_id=Y
+// Compatible con el nuevo sistema operation_id-based para sincronización incremental
 func handleSyncBillChanges(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		sendErrorResponse(w, "Método no permitido", http.StatusMethodNotAllowed)
@@ -106,28 +107,42 @@ func handleSyncBillChanges(w http.ResponseWriter, r *http.Request) {
 
 	// Extraer parámetros de la consulta
 	userID := r.URL.Query().Get("user_id")
-	lastSync := r.URL.Query().Get("last_sync")
+	lastOperationId := r.URL.Query().Get("last_operation_id")
+	limitStr := r.URL.Query().Get("limit")
 	
 	if userID == "" {
 		sendErrorResponse(w, "user_id es requerido", http.StatusBadRequest)
 		return
 	}
 
-	// Crear solicitud de cambios
-	changesRequest := SyncBillChangesRequest{
-		UserID:   userID,
-		LastSync: lastSync,
-		Limit:    50, // Límite predeterminado
-		Offset:   0,
+	// Parse limit parameter
+	limit := 50 // Default limit
+	if limitStr != "" {
+		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
+			limit = parsedLimit
+		}
 	}
 
-	// Obtener cambios desde el servidor
-	response, err := getBillChanges(changesRequest)
+	log.Printf("Fetching bill operations for user %s since operation_id: %s (limit: %d)", 
+		userID, lastOperationId, limit)
+
+	// Crear solicitud de cambios con operation_id
+	changesRequest := SyncBillOperationChangesRequest{
+		UserID:          userID,
+		LastOperationId: lastOperationId,
+		Limit:           limit,
+		Offset:          0,
+	}
+
+	// Obtener cambios basados en operation_id desde el servidor
+	response, err := getBillOperationChanges(changesRequest)
 	if err != nil {
-		log.Printf("Error obteniendo cambios de facturas: %v", err)
+		log.Printf("Error obteniendo cambios de facturas por operation_id: %v", err)
 		sendErrorResponse(w, "Error obteniendo cambios", http.StatusInternalServerError)
 		return
 	}
+
+	log.Printf("Returning %d bill operations for user %s", len(response.Operations), userID)
 
 	// Enviar respuesta con los cambios
 	w.Header().Set("Content-Type", "application/json")

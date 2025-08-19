@@ -9,6 +9,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
+	"strconv"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -243,6 +246,31 @@ func createTablesIfNotExist() {
 		UNIQUE(bill_id, year_month)
 	)`)
 	
+	// Create sync_operations table with new operation-id based schema
+	// This matches the delta_sync format for consistency across services
+	db.Exec(`CREATE TABLE IF NOT EXISTS sync_operations (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id TEXT NOT NULL,
+		operation_id TEXT NOT NULL,
+		operation_type TEXT NOT NULL,
+		entity_type TEXT NOT NULL,
+		entity_id TEXT NOT NULL,
+		operation_data TEXT NOT NULL,
+		device_ids TEXT DEFAULT '[]',
+		client_timestamp INTEGER DEFAULT 0,
+		server_timestamp INTEGER DEFAULT 0,
+		created_at INTEGER DEFAULT 0,
+		UNIQUE(operation_id)
+	)`)
+	
+	// Create index on operation_id for fast lookups and ordering
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id 
+		ON sync_operations(operation_id)`)
+	
+	// Create index on user_id and operation_id for user-specific queries
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_operation 
+		ON sync_operations(user_id, operation_id)`)
+	
 	// Añadir columna bill_id a expenses si no existe
 	db.Exec("ALTER TABLE expenses ADD COLUMN bill_id INTEGER;")
 }
@@ -303,11 +331,145 @@ func getStringValueOrDefault(value, defaultValue string) string {
 	return defaultValue
 }
 
+// Operation ID utility functions for timestamp-based format
+
+// isValidOperationId validates if operation ID follows timestamp-based format
+// Expected format: {timestamp_ms}_{sequence_number}
+// Parameters:
+//   - operationId: Operation ID to validate
+// Returns: boolean - true if valid format, false otherwise
+func isValidOperationId(operationId string) bool {
+	if operationId == "" {
+		return false
+	}
+	
+	// Expected format: 1755209423000_001
+	operationIdPattern := `^\d{13}_\d{3}$`
+	matched, err := regexp.MatchString(operationIdPattern, operationId)
+	if err != nil {
+		log.Printf("Error validating operation ID pattern: %v", err)
+		return false
+	}
+	
+	return matched
+}
+
+// extractTimestampFromOperationId extracts timestamp from operation ID
+// Parameters:
+//   - operationId: Operation ID in timestamp_sequence format
+// Returns: int64 - timestamp in milliseconds or 0 if invalid
+func extractTimestampFromOperationId(operationId string) int64 {
+	if !isValidOperationId(operationId) {
+		return 0
+	}
+	
+	parts := strings.Split(operationId, "_")
+	if len(parts) != 2 {
+		return 0
+	}
+	
+	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		log.Printf("Error parsing timestamp from operation ID: %v", err)
+		return 0
+	}
+	
+	return timestamp
+}
+
+// getLastOperationIdForUser retrieves the last operation ID for a specific user
+// Parameters:
+//   - userID: User identifier
+// Returns: string - last operation ID or empty string if none exists
+func getLastOperationIdForUser(userID string) (string, error) {
+	var lastOperationId string
+	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			// No operations found for this user
+			log.Printf("No previous operations found for user: %s", userID)
+			return "", nil
+		}
+		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
+		return "", err
+	}
+	
+	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
+	return lastOperationId, nil
+}
+
+// generateNextOperationId generates the next operation ID for a user
+// Gets the last operation ID and adds +1 millisecond time unit
+// Parameters:
+//   - userID: User identifier
+// Returns: string - new operation ID in format {timestamp_ms}_{sequence_number}
+func generateNextOperationId(userID string) (string, error) {
+	log.Printf("Generating next operation ID for user: %s", userID)
+	
+	// Get the last operation ID for this user
+	lastOperationId, err := getLastOperationIdForUser(userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get last operation ID: %v", err)
+	}
+	
+	var nextTimestamp int64
+	var sequenceNumber int = 1
+	
+	if lastOperationId == "" {
+		// No previous operations, start with current timestamp
+		nextTimestamp = time.Now().UnixMilli()
+		log.Printf("No previous operations, starting with timestamp: %d", nextTimestamp)
+	} else {
+		// Extract timestamp from last operation ID
+		lastTimestamp := extractTimestampFromOperationId(lastOperationId)
+		if lastTimestamp == 0 {
+			// Invalid last operation ID format, use current timestamp
+			nextTimestamp = time.Now().UnixMilli()
+			log.Printf("Invalid last operation ID format, using current timestamp: %d", nextTimestamp)
+		} else {
+			// Add 1 millisecond to ensure chronological ordering
+			nextTimestamp = lastTimestamp + 1
+			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
+		}
+	}
+	
+	// Format as {timestamp_ms}_{sequence_number}
+	// Using 001 format for sequence to maintain 3-digit consistency
+	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
+	
+	log.Printf("Generated operation ID: %s", operationId)
+	return operationId, nil
+}
+
 // addSyncOperation registra una operación de sincronización en la tabla sync_operations
-// Implements timestamp adjustment and device_ids JSON array for multi-device sync
-func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
-		userID, operationID, action, tableName, recordID, deviceID)
+// Now uses the new operation_id system with timestamp-based format and automatic generation
+func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+		userID, providedOperationID, action, tableName, recordID, deviceID)
+	
+	// Generate operation ID if not provided or if provided ID is not valid timestamp format
+	var operationID string
+	var err error
+	
+	if providedOperationID != "" && isValidOperationId(providedOperationID) {
+		// Use provided operation ID if it's valid
+		operationID = providedOperationID
+		log.Printf("Using provided operation ID: %s", operationID)
+	} else {
+		// Generate new timestamp-based operation ID
+		operationID, err = generateNextOperationId(userID)
+		if err != nil {
+			log.Printf("Error generating operation ID: %v", err)
+			return fmt.Errorf("failed to generate operation ID: %v", err)
+		}
+		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
+	}
+	
+	// Validate that we have a valid operation ID
+	if !isValidOperationId(operationID) {
+		return fmt.Errorf("invalid operation ID format: %s", operationID)
+	}
 	
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
@@ -331,30 +493,22 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		return err
 	}
 	
-	// Timestamp adjustment: check if client timestamp is older than latest timestamp
-	var latestTimestamp int64
-	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error checking latest timestamp: %v", err)
-		return err
-	}
-	
-	// Adjust timestamp if necessary to maintain chronological ordering
-	adjustedTimestamp := clientTimestamp
-	if clientTimestamp <= latestTimestamp {
-		adjustedTimestamp = latestTimestamp + 1
-		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
-			clientTimestamp, adjustedTimestamp, latestTimestamp)
+	// For operation-based sync, use the timestamp from the operation ID
+	// Extract timestamp from operation ID for created_at field
+	operationTimestamp := extractTimestampFromOperationId(operationID)
+	if operationTimestamp == 0 {
+		// Fallback to current timestamp if extraction fails
+		operationTimestamp = time.Now().UnixMilli()
+		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
 	
 	// Use current server timestamp
-	serverTimestamp := time.Now().Unix()
+	serverTimestamp := time.Now().UnixMilli()
 	
-	// Insert sync operation record with device_ids JSON array
-	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
+	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
-			user_id, operation_id, action, table_name, record_id, data, 
+			user_id, operation_id, operation_type, entity_type, entity_id, operation_data, 
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
@@ -363,14 +517,14 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		insertQuery,
 		userID,
 		operationID,
-		action,
-		tableName,
-		recordID,
-		string(dataJSON),
-		string(deviceIDsJSON), // Store device IDs as JSON array
-		clientTimestamp,
-		serverTimestamp,
-		adjustedTimestamp, // Use adjusted timestamp for created_at
+		action,            // operation_type (create, update, delete, pay)
+		tableName,         // entity_type (bills, bill_payments)
+		recordID,          // entity_id
+		string(dataJSON),  // operation_data
+		string(deviceIDsJSON), // device_ids as JSON array
+		clientTimestamp,   // client_timestamp (original from client)
+		serverTimestamp,   // server_timestamp (when processed)
+		operationTimestamp, // created_at (extracted from operation_id for ordering)
 	)
 	
 	if err != nil {
@@ -380,8 +534,8 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
-		syncOpID, deviceIDs, adjustedTimestamp)
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+		syncOpID, operationID, operationTimestamp)
 	
 	return nil
 }

@@ -159,3 +159,42 @@ type BillSyncOptions struct {
 	HandleOverdueStatus bool `json:"handle_overdue_status"` // Manejar estados de atraso
 	AutoResolvePayments bool `json:"auto_resolve_payments"` // Resolver automáticamente conflictos de pago
 }
+
+// New operation-based sync structures for bills management
+
+// SyncBillOperationChangesRequest solicita operaciones de facturas desde operation_id
+// Utiliza el nuevo sistema de operation_id para sincronización incremental
+type SyncBillOperationChangesRequest struct {
+	UserID          string `json:"user_id"`           // ID del usuario
+	LastOperationId string `json:"last_operation_id"` // Último operation_id procesado (puede ser null)
+	Limit           int    `json:"limit"`             // Límite de operaciones a retornar
+	Offset          int    `json:"offset"`            // Offset para paginación
+}
+
+// SyncBillOperationChangesResponse contiene operaciones de facturas para sincronización
+// Compatible con el sistema operation_id-based usado por delta_sync
+type SyncBillOperationChangesResponse struct {
+	Success       bool                `json:"success"`        // Éxito de la operación
+	Message       string              `json:"message"`        // Mensaje descriptivo
+	Operations    []BillSyncOperation `json:"operations"`     // Operaciones de facturas
+	HasMore       bool                `json:"has_more"`       // Indica si hay más operaciones
+	TotalCount    int                 `json:"total_count"`    // Total de operaciones disponibles
+	LastOperation string              `json:"last_operation"` // Último operation_id incluido
+	ServerTime    string              `json:"server_time"`    // Timestamp actual del servidor
+}
+
+// BillSyncOperation representa una operación de sincronización para facturas
+// Estructura compatible con delta_sync para mantener consistencia
+type BillSyncOperation struct {
+	ID            int    `json:"id"`             // ID único de la operación
+	UserID        string `json:"user_id"`        // ID del usuario
+	OperationID   string `json:"operation_id"`   // Operation ID timestamp-based
+	OperationType string `json:"operation_type"` // "create", "update", "delete", "pay"
+	EntityType    string `json:"entity_type"`    // "bills", "bill_payments"
+	EntityID      string `json:"entity_id"`      // ID de la entidad afectada
+	OperationData string `json:"operation_data"` // Datos JSON de la operación
+	DeviceIDs     string `json:"device_ids"`     // JSON array de device IDs
+	ClientTimestamp  int64 `json:"client_timestamp"`  // Timestamp del cliente
+	ServerTimestamp  int64 `json:"server_timestamp"`  // Timestamp del servidor
+	CreatedAt        int64 `json:"created_at"`        // Timestamp extraído del operation_id
+}

@@ -238,7 +238,7 @@ func processDeleteBillOperation(offlineBill OfflineBill) error {
 	return nil
 }
 
-// getBillChanges obtiene cambios de facturas del servidor desde último sync
+// getBillChanges obtiene cambios de facturas del servidor desde último sync (legacy)
 // Implementa paginación y filtrado por usuario
 func getBillChanges(request SyncBillChangesRequest) (*SyncBillChangesResponse, error) {
 	// Por ahora, implementación simple que retorna todas las facturas del usuario
@@ -256,6 +256,124 @@ func getBillChanges(request SyncBillChangesRequest) (*SyncBillChangesResponse, e
 		TotalChanges: len(bills),
 		LastSync:     time.Now().UTC().Format(time.RFC3339),
 		ServerTime:   time.Now().UTC().Format(time.RFC3339),
+	}
+	
+	return response, nil
+}
+
+// getBillOperationChanges obtiene operaciones de facturas desde último operation_id
+// Compatible con el nuevo sistema operation_id-based para sincronización incremental
+func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBillOperationChangesResponse, error) {
+	log.Printf("Fetching bill operations for user %s since operation_id: %s", 
+		request.UserID, request.LastOperationId)
+	
+	// Build query to get operations since last operation_id
+	var query string
+	var args []interface{}
+	
+	if request.LastOperationId == "" {
+		// First sync - get all operations for this user
+		query = `
+			SELECT id, user_id, operation_id, operation_type, entity_type, entity_id, 
+				   operation_data, device_ids, client_timestamp, server_timestamp, created_at
+			FROM sync_operations 
+			WHERE user_id = ? 
+			ORDER BY operation_id ASC 
+			LIMIT ?
+		`
+		args = []interface{}{request.UserID, request.Limit}
+		log.Printf("First sync for user %s - fetching all operations (limit: %d)", request.UserID, request.Limit)
+	} else {
+		// Incremental sync - get operations after last operation_id
+		query = `
+			SELECT id, user_id, operation_id, operation_type, entity_type, entity_id, 
+				   operation_data, device_ids, client_timestamp, server_timestamp, created_at
+			FROM sync_operations 
+			WHERE user_id = ? AND operation_id > ?
+			ORDER BY operation_id ASC 
+			LIMIT ?
+		`
+		args = []interface{}{request.UserID, request.LastOperationId, request.Limit}
+		log.Printf("Incremental sync for user %s since operation_id %s (limit: %d)", 
+			request.UserID, request.LastOperationId, request.Limit)
+	}
+	
+	// Execute query
+	rows, err := db.Query(query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("error querying sync operations: %v", err)
+	}
+	defer rows.Close()
+	
+	// Process results
+	var operations []BillSyncOperation
+	var lastOperationId string
+	
+	for rows.Next() {
+		var op BillSyncOperation
+		err := rows.Scan(
+			&op.ID,
+			&op.UserID,
+			&op.OperationID,
+			&op.OperationType,
+			&op.EntityType,
+			&op.EntityID,
+			&op.OperationData,
+			&op.DeviceIDs,
+			&op.ClientTimestamp,
+			&op.ServerTimestamp,
+			&op.CreatedAt,
+		)
+		if err != nil {
+			log.Printf("Error scanning operation row: %v", err)
+			continue
+		}
+		
+		operations = append(operations, op)
+		lastOperationId = op.OperationID
+	}
+	
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating operation rows: %v", err)
+	}
+	
+	// Check if there are more operations available
+	hasMore := false
+	if len(operations) == request.Limit {
+		// Check if there are more operations beyond this batch
+		var count int
+		countQuery := `SELECT COUNT(*) FROM sync_operations WHERE user_id = ? AND operation_id > ?`
+		err = db.QueryRow(countQuery, request.UserID, lastOperationId).Scan(&count)
+		if err == nil && count > 0 {
+			hasMore = true
+		}
+	}
+	
+	// Get total count for this user
+	var totalCount int
+	totalQuery := `SELECT COUNT(*) FROM sync_operations WHERE user_id = ?`
+	if request.LastOperationId != "" {
+		totalQuery += ` AND operation_id > ?`
+		err = db.QueryRow(totalQuery, request.UserID, request.LastOperationId).Scan(&totalCount)
+	} else {
+		err = db.QueryRow(totalQuery, request.UserID).Scan(&totalCount)
+	}
+	if err != nil {
+		log.Printf("Warning: Could not get total count: %v", err)
+		totalCount = len(operations)
+	}
+	
+	log.Printf("Found %d operations for user %s, hasMore: %t, totalCount: %d", 
+		len(operations), request.UserID, hasMore, totalCount)
+	
+	response := &SyncBillOperationChangesResponse{
+		Success:       true,
+		Message:       "Operaciones obtenidas exitosamente",
+		Operations:    operations,
+		HasMore:       hasMore,
+		TotalCount:    totalCount,
+		LastOperation: lastOperationId,
+		ServerTime:    time.Now().UTC().Format(time.RFC3339),
 	}
 	
 	return response, nil
