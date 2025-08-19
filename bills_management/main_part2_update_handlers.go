@@ -95,55 +95,74 @@ func handleUpdateBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	
-	// Record sync operation if sync parameters are provided
-	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for bill update: operation_id=%s, device_id=%s, timestamp=%d", 
-			updateRequest.OperationID, updateRequest.DeviceID, updateRequest.Timestamp)
+	// Always record sync operation with auto-generated operation_id (like add handler)
+	log.Printf("Recording sync operation for bill update with auto-generated operation_id")
+	
+	// Get updated bill data for sync operation
+	updatedBillData, err := getBillOldData(db, updateRequest.BillID, updateRequest.UserID)
+	if err != nil {
+		log.Printf("Warning: Could not fetch updated bill data for sync operation: %v", err)
+		// Still try to record sync operation with basic data
+		syncData := map[string]interface{}{
+			"id":      updateRequest.BillID,
+			"user_id": updateRequest.UserID,
+			"updated_at": time.Now().Format("2006-01-02 15:04:05"),
+		}
 		
-		// Get updated bill data for sync operation
-		updatedBillData, err := getBillOldData(db, updateRequest.BillID, updateRequest.UserID)
+		// Add sync operation record to database
+		err = addSyncOperation(
+			updateRequest.UserID,
+			"", // Empty operation_id will trigger auto-generation
+			"update",
+			"bills",
+			strconv.Itoa(updateRequest.BillID),
+			syncData,
+			updateRequest.DeviceID, // Use device_id from request
+			0, // Timestamp will be auto-generated
+		)
+		
 		if err != nil {
-			log.Printf("Warning: Could not fetch updated bill data for sync operation: %v", err)
+			log.Printf("Warning: Failed to record sync operation with basic data: %v", err)
 		} else {
-			// Create sync operation data with updated bill structure
-			syncData := map[string]interface{}{
-				"id":              updateRequest.BillID,
-				"user_id":         updateRequest.UserID,
-				"name":            updatedBillData.Name,
-				"amount":          updatedBillData.Amount,
-				"due_date":        updatedBillData.DueDate,
-				"category":        updatedBillData.Category,
-				"icon":            updatedBillData.Icon,
-				"start_date":      updatedBillData.StartDate,
-				"payment_day":     updatedBillData.PaymentDay,
-				"duration_months": updatedBillData.DurationMonths,
-				"regularity":      updatedBillData.Regularity,
-				"payment_method":  updatedBillData.PaymentMethod,
-				"created_at":      updatedBillData.CreatedAt,
-				"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
-			}
-			
-			// Add sync operation record to database
-			err = addSyncOperation(
-				updateRequest.UserID,
-				updateRequest.OperationID,
-				"update",
-				"bills",
-				strconv.Itoa(updateRequest.BillID),
-				syncData,
-				updateRequest.DeviceID,
-				updateRequest.Timestamp,
-			)
-			
-			if err != nil {
-				log.Printf("Warning: Failed to record sync operation: %v", err)
-				// Don't fail the bill update for sync errors, just log warning
-			} else {
-				log.Printf("Successfully recorded sync operation for bill ID: %d", updateRequest.BillID)
-			}
+			log.Printf("Successfully recorded sync operation with basic data for bill ID: %d", updateRequest.BillID)
 		}
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		// Create complete sync operation data with updated bill structure
+		syncData := map[string]interface{}{
+			"id":              updateRequest.BillID,
+			"user_id":         updateRequest.UserID,
+			"name":            updatedBillData.Name,
+			"amount":          updatedBillData.Amount,
+			"due_date":        updatedBillData.DueDate,
+			"category":        updatedBillData.Category,
+			"icon":            updatedBillData.Icon,
+			"start_date":      updatedBillData.StartDate,
+			"payment_day":     updatedBillData.PaymentDay,
+			"duration_months": updatedBillData.DurationMonths,
+			"regularity":      updatedBillData.Regularity,
+			"payment_method":  updatedBillData.PaymentMethod,
+			"created_at":      updatedBillData.CreatedAt,
+			"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
+		}
+		
+		// Add sync operation record to database with device_id from request
+		err = addSyncOperation(
+			updateRequest.UserID,
+			"", // Empty operation_id will trigger auto-generation
+			"update",
+			"bills",
+			strconv.Itoa(updateRequest.BillID),
+			syncData,
+			updateRequest.DeviceID, // Use device_id from request
+			0, // Timestamp will be auto-generated
+		)
+		
+		if err != nil {
+			log.Printf("Warning: Failed to record sync operation: %v", err)
+			// Don't fail the bill update for sync errors, just log warning
+		} else {
+			log.Printf("Successfully recorded sync operation for bill ID: %d", updateRequest.BillID)
+		}
 	}
 	
 	// Invalidate bills cache for this user since a bill was updated
