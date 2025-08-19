@@ -143,49 +143,44 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	// Obtener ID de la factura creada
 	billID, _ := result.LastInsertId()
 
-	// Record sync operation if sync parameters are provided
-	if addRequest.OperationID != "" && addRequest.DeviceID != "" && addRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for bill creation: operation_id=%s, device_id=%s, timestamp=%d", 
-			addRequest.OperationID, addRequest.DeviceID, addRequest.Timestamp)
-		
-		// Create sync operation data matching the bill structure
-		syncData := map[string]interface{}{
-			"id":              int(billID),
-			"user_id":         addRequest.UserID,
-			"name":            addRequest.Name,
-			"amount":          addRequest.Amount,
-			"due_date":        addRequest.DueDate,
-			"category":        addRequest.Category,
-			"icon":            addRequest.Icon,
-			"start_date":      addRequest.StartDate,
-			"payment_day":     addRequest.PaymentDay,
-			"duration_months": addRequest.DurationMonths,
-			"regularity":      addRequest.Regularity,
-			"payment_method":  addRequest.PaymentMethod,
-			"created_at":      time.Now().Format("2006-01-02 15:04:05"),
-			"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			addRequest.UserID,
-			addRequest.OperationID,
-			"create",
-			"bills",
-			strconv.FormatInt(billID, 10),
-			syncData,
-			addRequest.DeviceID,
-			addRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the bill creation for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for bill ID: %d", billID)
-		}
+	// Always record sync operation with auto-generated operation_id
+	log.Printf("Recording sync operation for bill creation with auto-generated operation_id")
+	
+	// Create sync operation data matching the bill structure
+	syncData := map[string]interface{}{
+		"id":              int(billID),
+		"user_id":         addRequest.UserID,
+		"name":            addRequest.Name,
+		"amount":          addRequest.Amount,
+		"due_date":        addRequest.DueDate,
+		"category":        addRequest.Category,
+		"icon":            addRequest.Icon,
+		"start_date":      addRequest.StartDate,
+		"payment_day":     addRequest.PaymentDay,
+		"duration_months": addRequest.DurationMonths,
+		"regularity":      addRequest.Regularity,
+		"payment_method":  addRequest.PaymentMethod,
+		"created_at":      time.Now().Format("2006-01-02 15:04:05"),
+		"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	// Add sync operation record to database with null device_id and timestamp
+	err = addSyncOperation(
+		addRequest.UserID,
+		"", // Empty operation_id - will be auto-generated
+		"create",
+		"bills",
+		strconv.FormatInt(billID, 10),
+		syncData,
+		"", // Empty device_id - will be stored as null
+		0,  // Zero timestamp - will be stored as null
+	)
+	
+	if err != nil {
+		log.Printf("Warning: Failed to record sync operation: %v", err)
+		// Don't fail the bill creation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("Successfully recorded sync operation for bill ID: %d", billID)
 	}
 	
 	// CORREGIDO: Aplicar la factura usando lógica acumulativa

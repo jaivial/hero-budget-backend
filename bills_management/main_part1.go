@@ -478,19 +478,20 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		return err
 	}
 	
-	// Prepare device_ids JSON array
-	var deviceIDs []string
+	// Prepare device_ids JSON array - store null if deviceID is empty
+	var deviceIDsJSON []byte
+	var err error
 	if deviceID != "" {
-		deviceIDs = []string{deviceID}
+		deviceIDs := []string{deviceID}
+		deviceIDsJSON, err = json.Marshal(deviceIDs)
+		if err != nil {
+			log.Printf("Error marshaling device_ids: %v", err)
+			return err
+		}
 	} else {
-		deviceIDs = []string{} // Empty array if no device ID provided
-	}
-	
-	// Marshal device IDs to JSON
-	deviceIDsJSON, err := json.Marshal(deviceIDs)
-	if err != nil {
-		log.Printf("Error marshaling device_ids: %v", err)
-		return err
+		// Store null for empty device_ids
+		deviceIDsJSON = []byte("null")
+		log.Printf("Device ID empty, storing null in device_ids column")
 	}
 	
 	// For operation-based sync, use the timestamp from the operation ID
@@ -504,6 +505,15 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	
 	// Use current server timestamp
 	serverTimestamp := time.Now().UnixMilli()
+	
+	// Handle client timestamp - use null if 0
+	var clientTimestampValue interface{}
+	if clientTimestamp == 0 {
+		clientTimestampValue = nil
+		log.Printf("Client timestamp is 0, storing null in client_timestamp column")
+	} else {
+		clientTimestampValue = clientTimestamp
+	}
 	
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
@@ -521,8 +531,8 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		tableName,         // entity_type (bills, bill_payments)
 		recordID,          // entity_id
 		string(dataJSON),  // operation_data
-		string(deviceIDsJSON), // device_ids as JSON array
-		clientTimestamp,   // client_timestamp (original from client)
+		string(deviceIDsJSON), // device_ids as JSON array or null
+		clientTimestampValue,  // client_timestamp (original from client or null)
 		serverTimestamp,   // server_timestamp (when processed)
 		operationTimestamp, // created_at (extracted from operation_id for ordering)
 	)
