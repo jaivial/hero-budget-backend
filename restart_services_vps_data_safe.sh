@@ -287,29 +287,75 @@ start_service() {
     clean_conflicting_files "$service_name"
     cd "$service_path"
     
+    # Resolver problemas de go.work workspace
+    echo -e "${BLUE}    🔧 Resolviendo configuración de Go workspace...${NC}"
+    
+    # Método 1: Desactivar go.work temporalmente para este servicio
+    export GOWORK=off
+    
     # Inicializar go.mod si no existe
     if [ ! -f "go.mod" ]; then
+        echo -e "${BLUE}    📦 Inicializando go.mod para $service_name...${NC}"
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
     fi
     
-    # Descargar dependencias
+    # Descargar dependencias con workspace desactivado
+    echo -e "${BLUE}    📥 Descargando dependencias...${NC}"
     /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
-    # Verificar compilación con manejo mejorado de errores
+    # Verificar compilación con workspace desactivado
+    echo -e "${BLUE}    🔨 Verificando compilación...${NC}"
     if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
-        echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
-        echo -e "${YELLOW}    📋 Error de compilación:${NC}"
-        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+        echo -e "${YELLOW}    ⚠️  Compilación inicial falló, intentando métodos alternativos...${NC}"
+        
+        # Método 2: Intentar añadir al workspace
         cd "$BASE_PATH"
-        return 1
+        if [ -f "go.work" ]; then
+            echo -e "${BLUE}    🔧 Añadiendo $service_name al workspace...${NC}"
+            /usr/local/go/bin/go work use "./$service_name" >> "/tmp/${service_name}.log" 2>&1
+            cd "$service_path"
+            
+            # Intentar compilar de nuevo con workspace
+            export GOWORK=
+            if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+                echo -e "${RED}    ❌ Error de compilación para $service_name después de workspace fix${NC}"
+                echo -e "${YELLOW}    📋 Últimos errores de compilación:${NC}"
+                tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+                
+                # Método 3: Forzar sin workspace como último recurso
+                echo -e "${YELLOW}    🔧 Intentando compilación forzada sin workspace...${NC}"
+                export GOWORK=off
+                if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+                    echo -e "${RED}    ❌ Error de compilación final para $service_name${NC}"
+                    cd "$BASE_PATH"
+                    return 1
+                fi
+            fi
+        else
+            echo -e "${RED}    ❌ Error de compilación para $service_name y no se encontró go.work${NC}"
+            echo -e "${YELLOW}    📋 Error de compilación:${NC}"
+            tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+            cd "$BASE_PATH"
+            return 1
+        fi
     fi
+    
+    # Limpiar archivo de prueba
     rm -f "/tmp/test_${service_name}"
+    echo -e "${GREEN}    ✅ Compilación exitosa para $service_name${NC}"
     
     # Configurar variables de entorno específicas por servicio
     local env_vars="CGO_ENABLED=1"
     if [ "$service_name" = "sync_service" ]; then
         env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db"
+    elif [ "$service_name" = "delta_sync" ]; then
+        env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db DELTA_SYNC_PORT=$port"
+    fi
+    
+    # Mantener GOWORK=off para ejecución si fue necesario
+    if [ "$GOWORK" = "off" ]; then
+        env_vars="$env_vars GOWORK=off"
     fi
     
     # Ejecutar en background
@@ -317,8 +363,15 @@ start_service() {
     local pid=$!
     
     echo -e "${GREEN}  ✅ $service_name iniciado (PID: $pid)${NC}"
+    
+    # Verificar que el servicio responde
     cd "$BASE_PATH"
-    sleep 1
+    sleep 2
+    if verify_service "$service_name" "$port"; then
+        echo -e "${GREEN}    ✅ $service_name responde correctamente en puerto $port${NC}"
+    else
+        echo -e "${YELLOW}    ⚠️  $service_name puede estar iniciando...${NC}"
+    fi
 }
 
 # Función para limpiar archivos conflictivos específicos de un servicio
@@ -520,29 +573,75 @@ start_service_with_flags() {
     clean_conflicting_files "$service_name"
     cd "$service_path"
     
+    # Resolver problemas de go.work workspace
+    echo -e "${BLUE}    🔧 Resolviendo configuración de Go workspace...${NC}"
+    
+    # Método 1: Desactivar go.work temporalmente para este servicio
+    export GOWORK=off
+    
     # Inicializar go.mod si no existe
     if [ ! -f "go.mod" ]; then
+        echo -e "${BLUE}    📦 Inicializando go.mod para $service_name...${NC}"
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
     fi
     
-    # Descargar dependencias
+    # Descargar dependencias con workspace desactivado
+    echo -e "${BLUE}    📥 Descargando dependencias...${NC}"
     /usr/local/go/bin/go mod tidy >> "/tmp/${service_name}.log" 2>&1
     /usr/local/go/bin/go mod download >> "/tmp/${service_name}.log" 2>&1
     
-    # Verificar compilación con manejo mejorado de errores
+    # Verificar compilación con workspace desactivado
+    echo -e "${BLUE}    🔨 Verificando compilación...${NC}"
     if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
-        echo -e "${RED}    ❌ Error de compilación para $service_name${NC}"
-        echo -e "${YELLOW}    📋 Error de compilación:${NC}"
-        tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+        echo -e "${YELLOW}    ⚠️  Compilación inicial falló, intentando métodos alternativos...${NC}"
+        
+        # Método 2: Intentar añadir al workspace
         cd "$BASE_PATH"
-        return 1
+        if [ -f "go.work" ]; then
+            echo -e "${BLUE}    🔧 Añadiendo $service_name al workspace...${NC}"
+            /usr/local/go/bin/go work use "./$service_name" >> "/tmp/${service_name}.log" 2>&1
+            cd "$service_path"
+            
+            # Intentar compilar de nuevo con workspace
+            export GOWORK=
+            if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+                echo -e "${RED}    ❌ Error de compilación para $service_name después de workspace fix${NC}"
+                echo -e "${YELLOW}    📋 Últimos errores de compilación:${NC}"
+                tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+                
+                # Método 3: Forzar sin workspace como último recurso
+                echo -e "${YELLOW}    🔧 Intentando compilación forzada sin workspace...${NC}"
+                export GOWORK=off
+                if ! /usr/local/go/bin/go build -buildvcs=false -o "/tmp/test_${service_name}" . >> "/tmp/${service_name}.log" 2>&1; then
+                    echo -e "${RED}    ❌ Error de compilación final para $service_name${NC}"
+                    cd "$BASE_PATH"
+                    return 1
+                fi
+            fi
+        else
+            echo -e "${RED}    ❌ Error de compilación para $service_name y no se encontró go.work${NC}"
+            echo -e "${YELLOW}    📋 Error de compilación:${NC}"
+            tail -5 "/tmp/${service_name}.log" | sed 's/^/    /'
+            cd "$BASE_PATH"
+            return 1
+        fi
     fi
+    
+    # Limpiar archivo de prueba
     rm -f "/tmp/test_${service_name}"
+    echo -e "${GREEN}    ✅ Compilación exitosa para $service_name${NC}"
     
     # Configurar variables de entorno específicas por servicio
     local env_vars="CGO_ENABLED=1"
     if [ "$service_name" = "sync_service" ]; then
         env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db"
+    elif [ "$service_name" = "delta_sync" ]; then
+        env_vars="$env_vars DATABASE_PATH=/opt/hero_budget/database/hero_budget.db DELTA_SYNC_PORT=$port"
+    fi
+    
+    # Mantener GOWORK=off para ejecución si fue necesario
+    if [ "$GOWORK" = "off" ]; then
+        env_vars="$env_vars GOWORK=off"
     fi
     
     # Ejecutar en background con flags
@@ -552,11 +651,17 @@ start_service_with_flags() {
     echo -e "${GREEN}  ✅ $service_name iniciado con $flags (PID: $pid)${NC}"
     
     # Verificar que el servicio responde
-    sleep 2
+    sleep 3
     if verify_service "$service_name" "$port"; then
         echo -e "${GREEN}    ✅ $service_name responde correctamente en puerto $port${NC}"
     else
-        echo -e "${YELLOW}    ⚠️  $service_name puede estar iniciando...${NC}"
+        echo -e "${YELLOW}    ⚠️  $service_name puede estar iniciando, esperando un poco más...${NC}"
+        sleep 2
+        if verify_service "$service_name" "$port"; then
+            echo -e "${GREEN}    ✅ $service_name ahora responde en puerto $port${NC}"
+        else
+            echo -e "${YELLOW}    ⚠️  $service_name aún no responde, revisar logs${NC}"
+        fi
     fi
     
     cd "$BASE_PATH"
