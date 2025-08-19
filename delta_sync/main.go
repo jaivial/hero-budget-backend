@@ -472,18 +472,52 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 			// Validate operation ID format for incremental sync
 			if !isValidOperationId(lastOperationID) {
 				log.Printf("⚠️ Warning: Operation ID '%s' does not match expected timestamp format", lastOperationID)
-				// Continue with string comparison for backward compatibility
+				// For non-standard operation IDs, get the created_at timestamp for comparison
+				var lastTimestamp int64
+				err := db.QueryRow("SELECT created_at FROM sync_operations WHERE operation_id = ? AND user_id = ?", lastOperationID, userID).Scan(&lastTimestamp)
+				if err != nil {
+					log.Printf("❌ Error getting timestamp for operation %s: %v", lastOperationID, err)
+					// Fallback to string comparison for backward compatibility
+					query = `
+					SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+					FROM sync_operations 
+					WHERE user_id = ? AND operation_id > ?
+					ORDER BY operation_id ASC`
+					queryArgs = []interface{}{userID, lastOperationID}
+					log.Printf("📈 Using fallback string comparison for operation %s", lastOperationID)
+				} else {
+					// Use timestamp-based comparison for proper chronological ordering
+					query = `
+					SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+					FROM sync_operations 
+					WHERE user_id = ? AND created_at > ?
+					ORDER BY operation_id ASC`
+					queryArgs = []interface{}{userID, lastTimestamp}
+					log.Printf("📈 Using timestamp comparison after operation %s (timestamp: %d)", lastOperationID, lastTimestamp)
+				}
+			} else {
+				// Extract timestamp from valid operation ID for timestamp-based comparison
+				lastTimestamp, valid := extractTimestampFromOperationId(lastOperationID)
+				if !valid {
+					log.Printf("❌ Failed to extract timestamp from valid operation ID format: %s", lastOperationID)
+					// Fallback to string comparison
+					query = `
+					SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+					FROM sync_operations 
+					WHERE user_id = ? AND operation_id > ?
+					ORDER BY operation_id ASC`
+					queryArgs = []interface{}{userID, lastOperationID}
+				} else {
+					// Use timestamp-based comparison for proper chronological ordering
+					query = `
+					SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
+					FROM sync_operations 
+					WHERE user_id = ? AND created_at > ?
+					ORDER BY operation_id ASC`
+					queryArgs = []interface{}{userID, lastTimestamp}
+					log.Printf("📈 Using timestamp comparison for valid operation ID %s (timestamp: %d)", lastOperationID, lastTimestamp)
+				}
 			}
-			
-			// Incremental sync - get operations after the specified operation_id
-			// Using operation_id > ? works correctly for timestamp-based IDs due to lexicographic ordering
-			query = `
-			SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
-			FROM sync_operations 
-			WHERE user_id = ? AND operation_id > ?
-			ORDER BY operation_id ASC`
-			queryArgs = []interface{}{userID, lastOperationID}
-			log.Printf("📈 Incremental sync - fetching operations after %s for user %s (timestamp-ordered)", lastOperationID, userID)
 		}
 	} else if timestampStr != "" {
 		// Legacy timestamp-based sync (backward compatibility)
