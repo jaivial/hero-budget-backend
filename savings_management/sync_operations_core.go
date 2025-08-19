@@ -53,22 +53,29 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	return timestamp
 }
 
-// getLastGlobalOperationId retrieves the globally last operation ID across all users
+// getLastGlobalOperationId retrieves the globally last valid timestamp-format operation ID across all users
 // Used for generating chronologically ordered operation IDs that maintain global sync order
 func getLastGlobalOperationId() (string, error) {
 	var lastOperationId string
-	err := db.QueryRow("SELECT operation_id FROM sync_operations ORDER BY operation_id DESC LIMIT 1").Scan(&lastOperationId)
+	// Only select operation IDs that follow the timestamp format: 13-digit timestamp + underscore + 3-digit sequence
+	err := db.QueryRow(`
+		SELECT operation_id 
+		FROM sync_operations 
+		WHERE operation_id REGEXP '^[0-9]{13}_[0-9]{3}$' 
+		ORDER BY operation_id DESC 
+		LIMIT 1
+	`).Scan(&lastOperationId)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("No previous operations found in sync_operations table")
+			log.Printf("No previous timestamp-format operations found in sync_operations table")
 			return "", nil
 		}
 		log.Printf("Error retrieving last global operation ID: %v", err)
 		return "", err
 	}
 	
-	log.Printf("Retrieved last global operation ID: %s", lastOperationId)
+	log.Printf("Retrieved last global timestamp-format operation ID: %s", lastOperationId)
 	return lastOperationId, nil
 }
 
