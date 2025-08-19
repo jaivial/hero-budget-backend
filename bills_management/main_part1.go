@@ -261,6 +261,11 @@ func createTablesIfNotExist() {
 		server_timestamp INTEGER DEFAULT 0
 	)`)
 	
+	// Migration: Add missing columns to existing sync_operations table
+	// These ALTER TABLE statements are safe to run multiple times
+	db.Exec(`ALTER TABLE sync_operations ADD COLUMN client_timestamp INTEGER DEFAULT 0`)
+	db.Exec(`ALTER TABLE sync_operations ADD COLUMN server_timestamp INTEGER DEFAULT 0`)
+	
 	// Create index on operation_id for fast lookups and ordering
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id 
 		ON sync_operations(operation_id)`)
