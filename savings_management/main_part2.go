@@ -11,6 +11,137 @@ import (
 // Funciones de base de datos y handlers complementarios para savings_management
 // Contiene operaciones CRUD, validaciones y handlers de endpoints restantes
 
+// SavingsCreateRequest estructura para solicitudes de creación de metas de ahorro
+// Permite crear nuevas metas de ahorro con parámetros de sincronización
+type SavingsCreateRequest struct {
+	UserID    string  `json:"user_id"`              // ID del usuario que crea la meta
+	Available float64 `json:"available,omitempty"`  // Cantidad disponible inicial (opcional)
+	Goal      float64 `json:"goal"`                 // Meta de ahorro a establecer
+	Period    string  `json:"period,omitempty"`     // Período para la meta (opcional, default: monthly)
+	// Sync operation parameters for incremental synchronization
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
+}
+
+// handleCreateSavings maneja las solicitudes de creación de metas de ahorro
+// Endpoint: POST /savings/create
+// Crea una nueva meta de ahorro para un usuario específico con cálculos automáticos
+func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse the request body with error handling
+	var createRequest SavingsCreateRequest
+	err := json.NewDecoder(r.Body).Decode(&createRequest)
+	if err != nil {
+		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	// Validate the request - user ID and goal are mandatory
+	if createRequest.UserID == "" {
+		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
+		return
+	}
+	if createRequest.Goal <= 0 {
+		sendErrorResponse(w, "Goal must be greater than 0", http.StatusBadRequest)
+		return
+	}
+
+	// Set defaults if not provided
+	if createRequest.Period == "" {
+		createRequest.Period = "monthly"
+	}
+	if createRequest.Available < 0 {
+		createRequest.Available = 0
+	}
+
+	// Create new savings data with calculations
+	newSavings := SavingsData{
+		UserID:    createRequest.UserID,
+		Available: createRequest.Available,
+		Goal:      createRequest.Goal,
+		Period:    createRequest.Period,
+	}
+
+	// Calculate the percentage of goal achievement
+	if newSavings.Goal > 0 {
+		newSavings.Percent = (newSavings.Available / newSavings.Goal) * 100
+	} else {
+		newSavings.Percent = 0
+	}
+
+	// Calculate need to save and daily target for goal tracking
+	newSavings.NeedToSave = newSavings.Goal - newSavings.Available
+	if newSavings.NeedToSave < 0 {
+		newSavings.NeedToSave = 0
+	}
+	// Assuming goal needs to be achieved within a month (30 days)
+	newSavings.DailyTarget = newSavings.NeedToSave / 30
+
+	// Save the new savings data to database
+	err = updateSavingsData(newSavings) // Using updateSavingsData as it handles upserts
+	if err != nil {
+		log.Printf("Error creating savings data: %v", err)
+		sendErrorResponse(w, "Error creating savings data", http.StatusInternalServerError)
+		return
+	}
+
+	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
+	log.Printf("Recording sync operation for savings create with auto-generated operation_id")
+	
+	// Create sync operation data for savings create
+	syncData := map[string]interface{}{
+		"user_id":   createRequest.UserID,
+		"available": newSavings.Available,
+		"goal":      newSavings.Goal,
+		"period":    newSavings.Period,
+		"percent":   newSavings.Percent,
+		"action":    "create_savings",
+	}
+	
+	// Add sync operation record to database with auto-generated operation_id
+	err = addSyncOperation(
+		createRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"create",
+		"savings",
+		fmt.Sprintf("%s", createRequest.UserID),
+		syncData,
+		createRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for savings create: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for savings create: user=%s", createRequest.UserID)
+	}
+
+	// Invalidate cache since new savings data was created
+	if cacheManager != nil {
+		err = cacheManager.InvalidateSavingsCache(createRequest.UserID)
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", createRequest.UserID, err)
+		}
+		
+		// Also invalidate dashboard cache since savings affect dashboard
+		err = cacheManager.InvalidateDashboardCache(createRequest.UserID, "monthly")
+		if err != nil {
+			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", createRequest.UserID, err)
+		}
+		
+		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", createRequest.UserID)
+	}
+
+	// Return success response with created data
+	sendSuccessResponse(w, "Savings goal created successfully", newSavings)
+}
+
 // handleUpdateSavings maneja las solicitudes de actualización de ahorros
 // Endpoint: POST /savings/update
 // Actualiza los datos de ahorro para un usuario específico con cálculos automáticos
@@ -77,41 +208,36 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record sync operation if sync parameters are provided
-	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for savings update: operation_id=%s, device_id=%s, timestamp=%d", 
-			updateRequest.OperationID, updateRequest.DeviceID, updateRequest.Timestamp)
-		
-		// Create sync operation data for savings update
-		syncData := map[string]interface{}{
-			"user_id":   updateRequest.UserID,
-			"available": currentSavings.Available,
-			"goal":      currentSavings.Goal,
-			"period":    currentSavings.Period,
-			"percent":   currentSavings.Percent,
-			"action":    "update_savings",
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			updateRequest.UserID,
-			updateRequest.OperationID,
-			"update",
-			"savings",
-			fmt.Sprintf("%s", updateRequest.UserID),
-			syncData,
-			updateRequest.DeviceID,
-			updateRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation for savings update: %v", err)
-			// Don't fail the savings update for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for savings update: user=%s", updateRequest.UserID)
-		}
+	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
+	log.Printf("Recording sync operation for savings update with auto-generated operation_id")
+	
+	// Create sync operation data for savings update
+	syncData := map[string]interface{}{
+		"user_id":   updateRequest.UserID,
+		"available": currentSavings.Available,
+		"goal":      currentSavings.Goal,
+		"period":    currentSavings.Period,
+		"percent":   currentSavings.Percent,
+		"action":    "update_savings",
+	}
+	
+	// Add sync operation record to database with auto-generated operation_id
+	err = addSyncOperation(
+		updateRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"update",
+		"savings",
+		fmt.Sprintf("%s", updateRequest.UserID),
+		syncData,
+		updateRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for savings update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for savings update: user=%s", updateRequest.UserID)
 	}
 
 	// Invalidate cache since savings data was updated
@@ -166,37 +292,32 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record sync operation if sync parameters are provided
-	if deleteRequest.OperationID != "" && deleteRequest.DeviceID != "" && deleteRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for savings delete: operation_id=%s, device_id=%s, timestamp=%d", 
-			deleteRequest.OperationID, deleteRequest.DeviceID, deleteRequest.Timestamp)
-		
-		// Create sync operation data for savings delete
-		syncData := map[string]interface{}{
-			"user_id": deleteRequest.UserID,
-			"action":  "delete_savings",
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			deleteRequest.UserID,
-			deleteRequest.OperationID,
-			"delete",
-			"savings",
-			fmt.Sprintf("%s", deleteRequest.UserID),
-			syncData,
-			deleteRequest.DeviceID,
-			deleteRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation for savings delete: %v", err)
-			// Don't fail the savings delete for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for savings delete: user=%s", deleteRequest.UserID)
-		}
+	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
+	log.Printf("Recording sync operation for savings delete with auto-generated operation_id")
+	
+	// Create sync operation data for savings delete
+	syncData := map[string]interface{}{
+		"user_id": deleteRequest.UserID,
+		"action":  "delete_savings",
+	}
+	
+	// Add sync operation record to database with auto-generated operation_id
+	err = addSyncOperation(
+		deleteRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"delete",
+		"savings",
+		fmt.Sprintf("%s", deleteRequest.UserID),
+		syncData,
+		deleteRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for savings delete: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for savings delete: user=%s", deleteRequest.UserID)
 	}
 
 	// Invalidate cache since savings data was deleted

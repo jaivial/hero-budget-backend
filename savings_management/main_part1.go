@@ -128,6 +128,11 @@ func init() {
 		log.Println("✅ Cache manager initialized successfully")
 	}
 
+	// Update sync_operations schema to support savings-specific operation types
+	if err := updateSyncOperationsSchema(); err != nil {
+		log.Printf("Warning: Failed to update sync_operations schema: %v", err)
+	}
+
 	log.Println("Savings Management service initialized successfully")
 }
 
@@ -136,88 +141,8 @@ func init() {
 // in backend/database_schema.sql and managed by the centralized database
 // initialization service to maintain consistency across all services.
 
-// addSyncOperation registra una operación de sincronización en la tabla sync_operations
-// Implements timestamp adjustment and device_ids JSON array for multi-device sync
-func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
-		userID, operationID, action, tableName, recordID, deviceID)
-	
-	// Serialize operation data to JSON for storage
-	dataJSON, err := json.Marshal(data)
-	if err != nil {
-		log.Printf("Error marshaling sync operation data: %v", err)
-		return err
-	}
-	
-	// Prepare device_ids JSON array
-	var deviceIDs []string
-	if deviceID != "" {
-		deviceIDs = []string{deviceID}
-	} else {
-		deviceIDs = []string{} // Empty array if no device ID provided
-	}
-	
-	// Marshal device IDs to JSON
-	deviceIDsJSON, err := json.Marshal(deviceIDs)
-	if err != nil {
-		log.Printf("Error marshaling device_ids: %v", err)
-		return err
-	}
-	
-	// Timestamp adjustment: check if client timestamp is older than latest timestamp
-	var latestTimestamp int64
-	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error checking latest timestamp: %v", err)
-		return err
-	}
-	
-	// Adjust timestamp if necessary to maintain chronological ordering
-	adjustedTimestamp := clientTimestamp
-	if clientTimestamp <= latestTimestamp {
-		adjustedTimestamp = latestTimestamp + 1
-		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
-			clientTimestamp, adjustedTimestamp, latestTimestamp)
-	}
-	
-	// Use current server timestamp
-	serverTimestamp := time.Now().Unix()
-	
-	// Insert sync operation record with device_ids JSON array
-	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
-	insertQuery := `
-		INSERT INTO sync_operations (
-			user_id, operation_id, operation_type, entity_type, entity_id, operation_data, 
-			device_ids, client_timestamp, server_timestamp, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-	`
-	
-	result, err := db.Exec(
-		insertQuery,
-		userID,
-		operationID,
-		action,
-		tableName,
-		recordID,
-		string(dataJSON),
-		string(deviceIDsJSON), // Store device IDs as JSON array
-		clientTimestamp,
-		serverTimestamp,
-		adjustedTimestamp, // Use adjusted timestamp for created_at
-	)
-	
-	if err != nil {
-		log.Printf("Error inserting sync operation: %v", err)
-		return err
-	}
-	
-	// Log successful operation insertion for debugging
-	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
-		syncOpID, deviceIDs, adjustedTimestamp)
-	
-	return nil
-}
+// addSyncOperation function is now in sync_operations_core.go
+// This provides enhanced operation ID generation and schema validation
 
 // main función principal que inicia el servidor y configura las rutas
 // Establece el servidor HTTP con middleware CORS y handlers de savings
@@ -225,6 +150,7 @@ func main() {
 	// Set up CORS middleware and savings management routes
 	// Rutas principales para operaciones CRUD de ahorros
 	http.HandleFunc("/savings/fetch", corsMiddleware(handleFetchSavings))
+	http.HandleFunc("/savings/create", corsMiddleware(handleCreateSavings))
 	http.HandleFunc("/savings/update", corsMiddleware(handleUpdateSavings))
 	http.HandleFunc("/savings/delete", corsMiddleware(handleDeleteSavings))
 	http.HandleFunc("/health", corsMiddleware(handleHealth))
