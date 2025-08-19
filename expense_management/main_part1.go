@@ -51,11 +51,19 @@ type UpdateExpenseRequest struct {
 	Category      string  `json:"category,omitempty"`
 	PaymentMethod string  `json:"payment_method,omitempty"`
 	Description   string  `json:"description,omitempty"`
+	// Sync operation parameters for incremental synchronization
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique ID for sync operation
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp
 }
 
 type DeleteExpenseRequest struct {
 	UserID    string `json:"user_id"`
 	ExpenseID int    `json:"expense_id"`
+	// Sync operation parameters for incremental synchronization
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique ID for sync operation
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp
 }
 
 type ApiResponse struct {
@@ -129,6 +137,12 @@ func init() {
 	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
 	// Tables are now created by centralized database initialization
 	log.Println("✅ Using centralized database schema - no local DDL operations")
+	
+	// Initialize sync operations schema for expense management
+	err = initializeSyncOperationsSchema()
+	if err != nil {
+		log.Printf("Warning: Failed to initialize sync operations schema: %v", err)
+	}
 	
 	// Initialize cache manager for Redis operations
 	cacheManager, err = common.NewCacheManager()
@@ -294,9 +308,12 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		// Continue despite error since expense was added successfully
 	}
 
-	// Add sync operation record for incremental synchronization
-	// Create operation data JSON with expense details
-	operationData, err := json.Marshal(map[string]interface{}{
+	// Record sync operation following the implementation guide pattern
+	// All handlers must use the same consistent pattern
+	log.Printf("Recording sync operation for expense creation with auto-generated operation_id")
+	
+	// Create sync operation data
+	syncData := map[string]interface{}{
 		"id":             expenseID,
 		"user_id":        expense.UserID,
 		"amount":         expense.Amount,
@@ -305,25 +322,25 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		"payment_method": expense.PaymentMethod,
 		"description":    expense.Description,
 		"created_at":     time.Now().Format(time.RFC3339),
-	})
+	}
+	
+	// Add sync operation record - always record with auto-generation
+	err = addSyncOperation(
+		expense.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"create",
+		"expenses",
+		fmt.Sprintf("%d", expenseID),
+		syncData,
+		expense.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
 	if err != nil {
-		log.Printf("Warning: Error marshaling operation data for sync: %v", err)
+		log.Printf("❌ ERROR: Failed to record sync operation for expense creation: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
 	} else {
-		// Add sync operation record using client timestamp if provided
-		err = addSyncOperation(
-			expense.UserID,
-			"create",
-			"expense", 
-			fmt.Sprintf("%d", expenseID),
-			string(operationData),
-			expense.OperationID,
-			expense.DeviceID,
-			expense.Timestamp,
-		)
-		if err != nil {
-			log.Printf("Warning: Error adding sync operation (continuing): %v", err)
-			// Don't fail the expense creation for sync errors
-		}
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for expense creation")
 	}
 
 	// Invalidate cache since expense data was modified
@@ -337,7 +354,7 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "PUT" {
+	if r.Method != "POST" {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -389,6 +406,52 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// Record sync operation following the implementation guide pattern
+	log.Printf("Recording sync operation for expense update with auto-generated operation_id")
+	
+	// Create sync operation data
+	syncData := map[string]interface{}{
+		"id":             updateRequest.ExpenseID,
+		"user_id":        updateRequest.UserID,
+		"updated_at":     time.Now().Format(time.RFC3339),
+	}
+	
+	// Add only the fields that were updated
+	if updateRequest.Amount > 0 {
+		syncData["amount"] = updateRequest.Amount
+	}
+	if updateRequest.Date != "" {
+		syncData["date"] = updateRequest.Date
+	}
+	if updateRequest.Category != "" {
+		syncData["category"] = updateRequest.Category
+	}
+	if updateRequest.PaymentMethod != "" {
+		syncData["payment_method"] = updateRequest.PaymentMethod
+	}
+	if updateRequest.Description != "" {
+		syncData["description"] = updateRequest.Description
+	}
+	
+	// Add sync operation record - always record with auto-generation
+	err = addSyncOperation(
+		updateRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"update",
+		"expenses",
+		fmt.Sprintf("%d", updateRequest.ExpenseID),
+		syncData,
+		updateRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for expense update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for expense update")
+	}
+
 	// Invalidate cache since expense data was modified
 	invalidateExpenseCache(updateRequest.UserID)
 
@@ -397,7 +460,7 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
-	if r.Method != "DELETE" {
+	if r.Method != "POST" {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
@@ -439,6 +502,40 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 		// Continue despite error since expense was deleted successfully
 	}
 
+	// Record sync operation following the implementation guide pattern
+	log.Printf("Recording sync operation for expense deletion with auto-generated operation_id")
+	
+	// Create sync operation data
+	syncData := map[string]interface{}{
+		"id":             deleteRequest.ExpenseID,
+		"user_id":        deleteRequest.UserID,
+		"amount":         expense.Amount,
+		"date":           expense.Date,
+		"category":       expense.Category,
+		"payment_method": expense.PaymentMethod,
+		"description":    expense.Description,
+		"deleted_at":     time.Now().Format(time.RFC3339),
+	}
+	
+	// Add sync operation record - always record with auto-generation
+	err = addSyncOperation(
+		deleteRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"delete",
+		"expenses",
+		fmt.Sprintf("%d", deleteRequest.ExpenseID),
+		syncData,
+		deleteRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for expense deletion: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for expense deletion")
+	}
+
 	// Invalidate cache since expense data was modified
 	invalidateExpenseCache(deleteRequest.UserID)
 
@@ -454,69 +551,5 @@ func getEnvOrDefault(key, defaultValue string) string {
 	return defaultValue
 }
 
-// addSyncOperation adds a sync operation record to the database
-// Implements timestamp adjustment and device_ids JSON array for multi-device sync
-func addSyncOperation(userID, operationType, entityType, entityID, operationData string, operationID string, deviceID string, clientTimestamp int64) error {
-	// Use provided operationID or generate a new one if not provided
-	if operationID == "" {
-		operationID = fmt.Sprintf("%s_%s_%s_%d", entityType, operationType, entityID, time.Now().UnixNano())
-	}
-
-	// Prepare device_ids JSON array
-	var deviceIDs []string
-	if deviceID != "" {
-		deviceIDs = []string{deviceID}
-	} else {
-		deviceIDs = []string{} // Empty array if no device ID provided
-	}
-	
-	// Marshal device IDs to JSON
-	deviceIDsJSON, err := json.Marshal(deviceIDs)
-	if err != nil {
-		log.Printf("Error marshaling device_ids: %v", err)
-		return err
-	}
-
-	// Timestamp adjustment: check if client timestamp is older than latest timestamp
-	var latestTimestamp int64
-	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error checking latest timestamp: %v", err)
-		return err
-	}
-
-	// Use client timestamp if provided, otherwise use server timestamp
-	var adjustedTimestamp int64
-	if clientTimestamp > 0 {
-		adjustedTimestamp = clientTimestamp
-		// Adjust timestamp if necessary to maintain chronological ordering
-		if clientTimestamp <= latestTimestamp {
-			adjustedTimestamp = latestTimestamp + 1
-			log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
-				clientTimestamp, adjustedTimestamp, latestTimestamp)
-		}
-		log.Printf("🔄 Using adjusted client timestamp for sync operation: %d", adjustedTimestamp)
-	} else {
-		adjustedTimestamp = time.Now().Unix()
-		if adjustedTimestamp <= latestTimestamp {
-			adjustedTimestamp = latestTimestamp + 1
-		}
-		log.Printf("⏰ Using server timestamp for sync operation: %d", adjustedTimestamp)
-	}
-
-	// Insert sync operation record with device_ids JSON array
-	insertSQL := `
-	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_ids)
-	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
-
-	_, err = db.Exec(insertSQL, operationID, userID, adjustedTimestamp, operationType, entityType, entityID, operationData, string(deviceIDsJSON))
-	if err != nil {
-		log.Printf("❌ Error inserting sync operation: %v", err)
-		return fmt.Errorf("error inserting sync operation: %v", err)
-	}
-
-	log.Printf("✅ Sync operation added: %s for user %s (type: %s, entity: %s/%s), device_ids: %v, adjusted timestamp: %d", 
-		operationID, userID, operationType, entityType, entityID, deviceIDs, adjustedTimestamp)
-	
-	return nil
-}
+// Note: addSyncOperation is now implemented in sync_operation_recorder.go
+// Following the sync operations implementation guide for consistency across services
