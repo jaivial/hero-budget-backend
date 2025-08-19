@@ -299,9 +299,8 @@ start_service() {
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
     fi
     
-    # Limpiar cache de Go para evitar problemas de compilación
-    echo -e "${BLUE}    🧹 Limpiando cache de Go...${NC}"
-    /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
+    # Cache cleaning removed - was causing service startup hangs
+    # Previous: /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
     
     # Descargar dependencias con workspace desactivado
     echo -e "${BLUE}    📥 Descargando dependencias...${NC}"
@@ -589,9 +588,8 @@ start_service_with_flags() {
         /usr/local/go/bin/go mod init $service_name >> "/tmp/${service_name}.log" 2>&1
     fi
     
-    # Limpiar cache de Go para evitar problemas de compilación
-    echo -e "${BLUE}    🧹 Limpiando cache de Go...${NC}"
-    /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
+    # Cache cleaning removed - was causing service startup hangs
+    # Previous: /usr/local/go/bin/go clean -cache >> "/tmp/${service_name}.log" 2>&1
     
     # Descargar dependencias con workspace desactivado
     echo -e "${BLUE}    📥 Descargando dependencias...${NC}"
