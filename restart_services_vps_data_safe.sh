@@ -152,6 +152,97 @@ stop_all_services() {
     echo -e "${GREEN}✅ Servicios existentes detenidos${NC}"
 }
 
+# Función para detener servicios específicos
+stop_selected_services() {
+    local service_indices=("$@")
+    echo -e "${YELLOW}🛑 Deteniendo servicios seleccionados...${NC}"
+    
+    for index in "${service_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        local pid=$(lsof -ti:$port 2>/dev/null)
+        
+        if [ ! -z "$pid" ]; then
+            echo -e "${YELLOW}  Deteniendo $service_name en puerto $port (PID: $pid)${NC}"
+            kill -15 $pid 2>/dev/null  # SIGTERM primero
+            sleep 2
+            if kill -0 $pid 2>/dev/null; then
+                kill -9 $pid 2>/dev/null  # SIGKILL si no responde
+            fi
+            echo -e "${GREEN}    ✅ $service_name detenido${NC}"
+        else
+            echo -e "${BLUE}    ℹ️  $service_name no estaba ejecutándose${NC}"
+        fi
+    done
+    
+    sleep 2
+    echo -e "${GREEN}✅ Servicios seleccionados detenidos${NC}"
+}
+
+# Función para iniciar servicios específicos
+start_selected_services() {
+    local service_indices=("$@")
+    local flags="${!#}"  # Último argumento son los flags
+    
+    # Si el último argumento no es un flag, usar vacío
+    if [[ ! "$flags" =~ ^--.*$ ]]; then
+        flags=""
+    fi
+    
+    echo -e "${CYAN}🚀 Iniciando servicios seleccionados...${NC}"
+    if [[ -n "$flags" ]]; then
+        echo -e "${BLUE}   Con flags: $flags${NC}"
+    fi
+    
+    # Separar servicios críticos de los normales
+    local critical_indices=()
+    local normal_indices=()
+    
+    for index in "${service_indices[@]}"; do
+        [[ "$index" =~ ^--.*$ ]] && continue  # Skip flags
+        
+        local service_info="${ALL_SERVICES[$index]}"
+        if [[ " ${CRITICAL_SERVICES[@]} " =~ " ${service_info} " ]]; then
+            critical_indices+=("$index")
+        else
+            normal_indices+=("$index")
+        fi
+    done
+    
+    # Iniciar servicios críticos primero
+    if [[ ${#critical_indices[@]} -gt 0 ]]; then
+        echo -e "${CYAN}📋 Iniciando servicios críticos seleccionados:${NC}"
+        for index in "${critical_indices[@]}"; do
+            local service_info="${ALL_SERVICES[$index]}"
+            local service_name=$(echo $service_info | cut -d':' -f1)
+            local port=$(echo $service_info | cut -d':' -f2)
+            
+            if [[ -n "$flags" ]]; then
+                start_service_with_flags "$service_name" "$port" "$flags"
+            else
+                start_service "$service_name" "$port"
+            fi
+        done
+    fi
+    
+    # Iniciar servicios normales
+    if [[ ${#normal_indices[@]} -gt 0 ]]; then
+        echo -e "${CYAN}📋 Iniciando servicios normales seleccionados:${NC}"
+        for index in "${normal_indices[@]}"; do
+            local service_info="${ALL_SERVICES[$index]}"
+            local service_name=$(echo $service_info | cut -d':' -f1)
+            local port=$(echo $service_info | cut -d':' -f2)
+            
+            if [[ -n "$flags" ]]; then
+                start_service_with_flags "$service_name" "$port" "$flags"
+            else
+                start_service "$service_name" "$port"
+            fi
+        done
+    fi
+}
+
 # Función para verificar dependencias del sistema
 check_system_dependencies() {
     echo -e "${YELLOW}🔍 Verificando dependencias del sistema...${NC}"
@@ -283,6 +374,97 @@ show_services_status() {
     done
     
     echo -e "\n${WHITE}📈 RESUMEN: ${GREEN}$active_count${NC}/${BLUE}${#ALL_SERVICES[@]}${NC} servicios activos${NC}"
+}
+
+# Función para mostrar menú de selección de servicios
+show_services_selection_menu() {
+    echo -e "\n${WHITE}🔧 SELECCIÓN DE SERVICIOS PARA REINICIAR${NC}"
+    echo -e "${WHITE}=============================================================================${NC}"
+    echo -e "${CYAN}Selecciona los servicios que deseas reiniciar:${NC}"
+    echo ""
+    
+    for ((i=0; i<${#ALL_SERVICES[@]}; i++)); do
+        local service_info="${ALL_SERVICES[$i]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        local status_text="🔴 INACTIVO"
+        local status_color="${RED}"
+        
+        if is_port_in_use "$port"; then
+            status_text="🟢 ACTIVO"
+            status_color="${GREEN}"
+        fi
+        
+        printf "${BLUE}%2d)${NC} %-35s ${YELLOW}:%s${NC} ${status_color}%s${NC}\n" \
+            $((i+1)) "$service_name" "$port" "$status_text"
+    done
+    
+    echo ""
+    echo -e "${GREEN}99)${NC} ${WHITE}Reiniciar TODOS los servicios${NC}"
+    echo -e "${GREEN}0)${NC}  ${WHITE}Cancelar operación${NC}"
+    echo ""
+}
+
+# Función para obtener selección del usuario
+get_user_service_selection() {
+    echo -e "${YELLOW}Ingresa los números separados por comas (ej: 1,3,5,12):${NC}"
+    read -p "Tu selección: " user_input
+    echo "$user_input"
+}
+
+# Función para validar selección del usuario
+validate_service_selection() {
+    local selection="$1"
+    
+    # Remover espacios y convertir a minúsculas
+    selection=$(echo "$selection" | tr -d ' ' | tr '[:upper:]' '[:lower:]')
+    
+    if [[ "$selection" == "0" ]]; then
+        return 0  # Cancelar es válido
+    elif [[ "$selection" == "99" ]]; then
+        return 0  # Todos los servicios es válido
+    fi
+    
+    # Validar formato y números
+    if [[ ! "$selection" =~ ^[0-9,]+$ ]]; then
+        echo -e "${RED}❌ Error: Solo se permiten números y comas${NC}"
+        return 1
+    fi
+    
+    # Validar cada número individualmente
+    IFS=',' read -ra NUMBERS <<< "$selection"
+    for number in "${NUMBERS[@]}"; do
+        if [[ ! "$number" =~ ^[0-9]+$ ]] || [[ "$number" -lt 1 ]] || [[ "$number" -gt ${#ALL_SERVICES[@]} ]]; then
+            echo -e "${RED}❌ Error: El número $number no es válido (debe estar entre 1 y ${#ALL_SERVICES[@]})${NC}"
+            return 1
+        fi
+    done
+    
+    return 0
+}
+
+# Función para parsear selección y obtener servicios
+parse_service_selection() {
+    local selection="$1"
+    local selected_services=()
+    
+    selection=$(echo "$selection" | tr -d ' ')
+    
+    if [[ "$selection" == "99" ]]; then
+        # Todos los servicios
+        for ((i=0; i<${#ALL_SERVICES[@]}; i++)); do
+            selected_services+=("$i")
+        done
+    elif [[ "$selection" != "0" ]]; then
+        # Servicios específicos
+        IFS=',' read -ra NUMBERS <<< "$selection"
+        for number in "${NUMBERS[@]}"; do
+            # Convertir de 1-indexado a 0-indexado
+            selected_services+=($((number-1)))
+        done
+    fi
+    
+    printf '%s\n' "${selected_services[@]}"
 }
 
 # Función para actualizar dependencias de todos los servicios
@@ -545,14 +727,290 @@ restart_all_services() {
     fi
 }
 
+# Función para reiniciar servicios automáticamente (sin interacción)
+restart_selected_services_auto() {
+    local flags="$1"
+    local selection="$2"
+    
+    echo -e "${CYAN}🤖 Reinicio automático de servicios seleccionados: $selection${NC}"
+    
+    # Validar selección
+    if ! validate_service_selection "$selection"; then
+        echo -e "${RED}❌ Error: Selección automática inválida: $selection${NC}"
+        return 1
+    fi
+    
+    # Procesar selección
+    if [[ "$selection" == "0" ]]; then
+        echo -e "${YELLOW}🚫 Selección automática: sin servicios para reiniciar${NC}"
+        return 0
+    fi
+    
+    # Obtener índices de servicios seleccionados
+    local selected_indices
+    mapfile -t selected_indices < <(parse_service_selection "$selection")
+    
+    if [[ ${#selected_indices[@]} -eq 0 ]]; then
+        echo -e "${YELLOW}🚫 No se seleccionaron servicios automáticamente${NC}"
+        return 0
+    fi
+    
+    # Mostrar servicios que se van a reiniciar
+    echo -e "\n${WHITE}📋 SERVICIOS SELECCIONADOS AUTOMÁTICAMENTE:${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        echo -e "${BLUE}  • $service_name ${YELLOW}(Puerto: $port)${NC}"
+    done
+    
+    # Verificar directorio base
+    if [ ! -d "$BASE_PATH" ]; then
+        echo -e "${RED}❌ Error: El directorio base $BASE_PATH no existe${NC}"
+        return 1
+    fi
+    
+    cd "$BASE_PATH" || return 1
+    echo -e "${GREEN}📂 Trabajando desde: $(pwd)${NC}"
+    
+    # Protección de datos para modo producción
+    if [[ "$flags" == "--produccion" ]]; then
+        echo -e "${CYAN}🔒 Modo producción: creando backup de seguridad...${NC}"
+        create_database_backup
+        restore_backup_if_needed
+    else
+        echo -e "${BLUE}🔧 Modo desarrollo: usando base de datos local${NC}"
+    fi
+    
+    # Verificar dependencias del sistema
+    check_system_dependencies
+    
+    # Detener servicios seleccionados
+    stop_selected_services "${selected_indices[@]}"
+    
+    # Actualizar dependencias solo de servicios seleccionados
+    echo -e "\n${CYAN}🔧 Actualizando dependencias de servicios seleccionados...${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        
+        if [[ -d "$service_name" ]]; then
+            echo -e "${BLUE}  🔧 Actualizando dependencias: $service_name${NC}"
+            cd "$service_name"
+            /usr/local/go/bin/go mod tidy > /dev/null 2>&1
+            /usr/local/go/bin/go mod download > /dev/null 2>&1
+            cd "$BASE_PATH"
+        fi
+    done
+    
+    # Iniciar servicios seleccionados
+    if [[ -n "$flags" ]]; then
+        start_selected_services "${selected_indices[@]}" "$flags"
+    else
+        start_selected_services "${selected_indices[@]}"
+    fi
+    
+    # Verificación final
+    echo -e "\n${WHITE}=== VERIFICACIÓN FINAL ===${NC}"
+    echo -e "${YELLOW}⏳ Esperando 5 segundos para inicialización...${NC}"
+    sleep 5
+    
+    # Verificar servicios reiniciados
+    local active_count=0
+    local total_selected=${#selected_indices[@]}
+    
+    echo -e "\n${WHITE}📊 ESTADO DE SERVICIOS REINICIADOS AUTOMÁTICAMENTE:${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        
+        if verify_service "$service_name" "$port"; then
+            ((active_count++))
+        fi
+    done
+    
+    # Mostrar resumen final
+    echo -e "\n${WHITE}"
+    echo "============================================================================="
+    echo "   ✅ SERVICIOS SELECCIONADOS REINICIADOS AUTOMÁTICAMENTE"
+    echo "   📊 Servicios activos: $active_count/$total_selected"
+    if [[ "$flags" == "--produccion" ]]; then
+        echo "   🏭 Modo: PRODUCCIÓN - Base de datos: /opt/hero_budget/database/hero_budget.db"
+    else
+        echo "   🔧 Modo: DESARROLLO - Base de datos: local users.db"
+    fi
+    echo "============================================================================="
+    echo -e "${NC}"
+    
+    if [[ $active_count -eq $total_selected ]]; then
+        echo -e "${GREEN}🎉 TODOS LOS SERVICIOS SELECCIONADOS ESTÁN FUNCIONANDO${NC}"
+    else
+        echo -e "${YELLOW}⚠️  $active_count/$total_selected servicios funcionando${NC}"
+        echo -e "${YELLOW}💡 Revisar logs en: /tmp/[servicio].log${NC}"
+    fi
+}
+
+# Función para reiniciar servicios seleccionados
+restart_selected_services() {
+    local flags="$1"
+    
+    # Mostrar estado actual
+    show_services_status
+    
+    # Mostrar menú de selección
+    show_services_selection_menu
+    
+    # Obtener selección del usuario
+    local selection
+    local max_attempts=3
+    local attempts=0
+    
+    while [[ $attempts -lt $max_attempts ]]; do
+        selection=$(get_user_service_selection)
+        
+        if validate_service_selection "$selection"; then
+            break
+        else
+            ((attempts++))
+            echo -e "${YELLOW}⚠️  Intento $attempts de $max_attempts${NC}"
+            if [[ $attempts -eq $max_attempts ]]; then
+                echo -e "${RED}❌ Máximo número de intentos alcanzado. Cancelando operación.${NC}"
+                return 1
+            fi
+        fi
+    done
+    
+    # Procesar selección
+    if [[ "$selection" == "0" ]]; then
+        echo -e "${YELLOW}🚫 Operación cancelada por el usuario${NC}"
+        return 0
+    fi
+    
+    # Obtener índices de servicios seleccionados
+    local selected_indices
+    mapfile -t selected_indices < <(parse_service_selection "$selection")
+    
+    if [[ ${#selected_indices[@]} -eq 0 ]]; then
+        echo -e "${YELLOW}🚫 No se seleccionaron servicios${NC}"
+        return 0
+    fi
+    
+    # Mostrar servicios que se van a reiniciar
+    echo -e "\n${WHITE}📋 SERVICIOS SELECCIONADOS PARA REINICIAR:${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        echo -e "${BLUE}  • $service_name ${YELLOW}(Puerto: $port)${NC}"
+    done
+    
+    # Confirmación
+    echo ""
+    read -p "¿Continuar con el reinicio de estos servicios? (y/N): " confirm
+    if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
+        echo -e "${YELLOW}🚫 Operación cancelada por el usuario${NC}"
+        return 0
+    fi
+    
+    # Verificar directorio base
+    if [ ! -d "$BASE_PATH" ]; then
+        echo -e "${RED}❌ Error: El directorio base $BASE_PATH no existe${NC}"
+        return 1
+    fi
+    
+    cd "$BASE_PATH" || return 1
+    echo -e "${GREEN}📂 Trabajando desde: $(pwd)${NC}"
+    
+    # Protección de datos para modo producción
+    if [[ "$flags" == "--produccion" ]]; then
+        echo -e "${CYAN}🔒 Modo producción: creando backup de seguridad...${NC}"
+        create_database_backup
+        restore_backup_if_needed
+    else
+        echo -e "${BLUE}🔧 Modo desarrollo: usando base de datos local${NC}"
+    fi
+    
+    # Verificar dependencias del sistema
+    check_system_dependencies
+    
+    # Detener servicios seleccionados
+    stop_selected_services "${selected_indices[@]}"
+    
+    # Actualizar dependencias solo de servicios seleccionados
+    echo -e "\n${CYAN}🔧 Actualizando dependencias de servicios seleccionados...${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        
+        if [[ -d "$service_name" ]]; then
+            echo -e "${BLUE}  🔧 Actualizando dependencias: $service_name${NC}"
+            cd "$service_name"
+            /usr/local/go/bin/go mod tidy > /dev/null 2>&1
+            /usr/local/go/bin/go mod download > /dev/null 2>&1
+            cd "$BASE_PATH"
+        fi
+    done
+    
+    # Iniciar servicios seleccionados
+    if [[ -n "$flags" ]]; then
+        start_selected_services "${selected_indices[@]}" "$flags"
+    else
+        start_selected_services "${selected_indices[@]}"
+    fi
+    
+    # Verificación final
+    echo -e "\n${WHITE}=== VERIFICACIÓN FINAL ===${NC}"
+    echo -e "${YELLOW}⏳ Esperando 5 segundos para inicialización...${NC}"
+    sleep 5
+    
+    # Verificar servicios reiniciados
+    local active_count=0
+    local total_selected=${#selected_indices[@]}
+    
+    echo -e "\n${WHITE}📊 ESTADO DE SERVICIOS REINICIADOS:${NC}"
+    for index in "${selected_indices[@]}"; do
+        local service_info="${ALL_SERVICES[$index]}"
+        local service_name=$(echo $service_info | cut -d':' -f1)
+        local port=$(echo $service_info | cut -d':' -f2)
+        
+        if verify_service "$service_name" "$port"; then
+            ((active_count++))
+        fi
+    done
+    
+    # Mostrar resumen final
+    echo -e "\n${WHITE}"
+    echo "============================================================================="
+    echo "   ✅ SERVICIOS SELECCIONADOS REINICIADOS"
+    echo "   📊 Servicios activos: $active_count/$total_selected"
+    if [[ "$flags" == "--produccion" ]]; then
+        echo "   🏭 Modo: PRODUCCIÓN - Base de datos: /opt/hero_budget/database/hero_budget.db"
+    else
+        echo "   🔧 Modo: DESARROLLO - Base de datos: local users.db"
+    fi
+    echo "============================================================================="
+    echo -e "${NC}"
+    
+    if [[ $active_count -eq $total_selected ]]; then
+        echo -e "${GREEN}🎉 TODOS LOS SERVICIOS SELECCIONADOS ESTÁN FUNCIONANDO${NC}"
+    else
+        echo -e "${YELLOW}⚠️  $active_count/$total_selected servicios funcionando${NC}"
+        echo -e "${YELLOW}💡 Revisar logs en: /tmp/[servicio].log${NC}"
+    fi
+}
+
 # Función para mostrar ayuda
 show_help() {
     echo -e "\n${WHITE}🔧 GESTIÓN DE MICROSERVICIOS GO - VPS (VERSIÓN SEGURA)${NC}"
     echo -e "${CYAN}Uso: $0 [OPCIÓN]${NC}"
     echo -e "\n${YELLOW}Opciones:${NC}"
     echo -e "  ${GREEN}-a, --all${NC}         Reiniciar TODOS los servicios con protección de datos"
+    echo -e "  ${GREEN}-i, --interactive${NC}  Reiniciar servicios SELECCIONADOS interactivamente"
     echo -e "  ${GREEN}--produccion${NC}       Reiniciar servicios en modo PRODUCCIÓN"
     echo -e "  ${GREEN}--dev${NC}             Reiniciar servicios en modo DESARROLLO" 
+    echo -e "  ${GREEN}--select-prod${NC}     Seleccionar servicios para reiniciar en modo PRODUCCIÓN"
+    echo -e "  ${GREEN}--select-dev${NC}      Seleccionar servicios para reiniciar en modo DESARROLLO"
     echo -e "  ${GREEN}-s, --status${NC}      Mostrar estado actual de todos los servicios"
     echo -e "  ${GREEN}-h, --help${NC}        Mostrar esta ayuda"
     echo -e "\n${YELLOW}Características de seguridad:${NC}"
@@ -560,6 +1018,7 @@ show_help() {
     echo -e "  ${GREEN}🔍 Verificación de integridad${NC} de la base de datos"
     echo -e "  ${GREEN}📊 Estadísticas de datos${NC} preservados"
     echo -e "  ${GREEN}🔄 Restauración automática${NC} desde backup si es necesario"
+    echo -e "  ${GREEN}🎯 Reinicio selectivo${NC} de servicios individuales"
 }
 
 # Función principal
@@ -575,6 +1034,10 @@ main() {
         "--all"|"-a"|"")
             restart_all_services
             ;;
+        "--interactive"|"-i")
+            echo -e "${GREEN}🎯 Reinicio interactivo de servicios seleccionados...${NC}"
+            restart_selected_services ""
+            ;;
         "--produccion")
             echo -e "${GREEN}🏭 Iniciando servicios en modo PRODUCCIÓN...${NC}"
             restart_all_services_with_flags "--produccion"
@@ -582,6 +1045,26 @@ main() {
         "--dev")
             echo -e "${GREEN}🔧 Iniciando servicios en modo DESARROLLO...${NC}"
             restart_all_services_with_flags "--dev"
+            ;;
+        "--select-prod")
+            echo -e "${GREEN}🎯🏭 Selección interactiva - Modo PRODUCCIÓN...${NC}"
+            restart_selected_services "--produccion"
+            ;;
+        "--select-dev")
+            echo -e "${GREEN}🎯🔧 Selección interactiva - Modo DESARROLLO...${NC}"
+            restart_selected_services "--dev"
+            ;;
+        "--select-prod-auto")
+            # Opción para deploybackend.sh - recibe selección automáticamente
+            echo -e "${GREEN}🤖🏭 Reinicio automático - Modo PRODUCCIÓN...${NC}"
+            read -r auto_selection
+            restart_selected_services_auto "--produccion" "$auto_selection"
+            ;;
+        "--select-dev-auto")
+            # Opción para deploybackend.sh - recibe selección automáticamente
+            echo -e "${GREEN}🤖🔧 Reinicio automático - Modo DESARROLLO...${NC}"
+            read -r auto_selection
+            restart_selected_services_auto "--dev" "$auto_selection"
             ;;
         "--status"|"-s")
             show_services_status
