@@ -388,6 +388,14 @@ clean_conflicting_files() {
                 rm -f "bills_management/main.go"
             fi
             ;;
+        "savings_management")
+            # Ensure savings_management uses all .go files for compilation
+            # Remove any standalone main.go that might conflict with part files
+            if [ -f "savings_management/main.go" ] && [ -f "savings_management/main_part1.go" ]; then
+                echo -e "${YELLOW}  Limpiando savings_management/main.go conflictivo (usando archivos part)${NC}"
+                mv "savings_management/main.go" "savings_management/main.go.backup_$(date +%s)" 2>/dev/null || true
+            fi
+            ;;
     esac
 }
 
