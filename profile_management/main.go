@@ -14,6 +14,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -131,13 +132,179 @@ func init() {
 	}
 
 	log.Println("Profile Management service initialized successfully")
+
+	// Initialize or update sync operations table schema
+	if err := updateSyncOperationsSchema(); err != nil {
+		log.Printf("Warning: Failed to initialize sync operations schema: %v", err)
+	} else {
+		log.Println("✅ Sync operations schema initialized successfully")
+	}
 }
 
-// addSyncOperation registra una operación de sincronización en la tabla sync_operations
-// Implements timestamp adjustment and device_ids JSON array for multi-device sync
-func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
-		userID, operationID, action, tableName, recordID, deviceID)
+// Operation ID generation utilities following the sync operations implementation guide
+
+// isValidOperationId validates if operation ID follows timestamp-based format
+// Expected format: {timestamp_ms}_{sequence_number}
+func isValidOperationId(operationId string) bool {
+	if operationId == "" {
+		return false
+	}
+	
+	// Expected format: 1755209423000_001
+	operationIdPattern := `^\\d{13}_\\d{3}$`
+	matched, err := regexp.MatchString(operationIdPattern, operationId)
+	if err != nil {
+		log.Printf("Error validating operation ID pattern: %v", err)
+		return false
+	}
+	
+	return matched
+}
+
+// extractTimestampFromOperationId extracts timestamp from operation ID
+func extractTimestampFromOperationId(operationId string) int64 {
+	if !isValidOperationId(operationId) {
+		return 0
+	}
+	
+	parts := strings.Split(operationId, "_")
+	if len(parts) != 2 {
+		return 0
+	}
+	
+	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		log.Printf("Error parsing timestamp from operation ID: %v", err)
+		return 0
+	}
+	
+	return timestamp
+}
+
+// getLastOperationIdForUser retrieves the last operation ID for a specific user
+func getLastOperationIdForUser(userID string) (string, error) {
+	var lastOperationId string
+	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("No previous operations found for user: %s", userID)
+			return "", nil
+		}
+		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
+		return "", err
+	}
+	
+	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
+	return lastOperationId, nil
+}
+
+// generateNextOperationId generates the next operation ID for a user
+// Gets the last operation ID and adds +1 millisecond time unit
+func generateNextOperationId(userID string) (string, error) {
+	log.Printf("Generating next operation ID for user: %s", userID)
+	
+	// Get the last operation ID for this user
+	lastOperationId, err := getLastOperationIdForUser(userID)
+	if err != nil {
+		return "", fmt.Errorf("failed to get last operation ID: %v", err)
+	}
+	
+	var nextTimestamp int64
+	var sequenceNumber int = 1
+	
+	if lastOperationId == "" {
+		// No previous operations, start with current timestamp
+		nextTimestamp = time.Now().UnixMilli()
+		log.Printf("No previous operations, starting with timestamp: %d", nextTimestamp)
+	} else {
+		// Extract timestamp from last operation ID
+		lastTimestamp := extractTimestampFromOperationId(lastOperationId)
+		if lastTimestamp == 0 {
+			// Invalid last operation ID format, use current timestamp
+			nextTimestamp = time.Now().UnixMilli()
+			log.Printf("Invalid last operation ID format, using current timestamp: %d", nextTimestamp)
+		} else {
+			// Add 1 millisecond to ensure chronological ordering
+			nextTimestamp = lastTimestamp + 1
+			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
+		}
+	}
+	
+	// Format as {timestamp_ms}_{sequence_number}
+	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
+	
+	log.Printf("Generated operation ID: %s", operationId)
+	return operationId, nil
+}
+
+// updateSyncOperationsSchema ensures the sync_operations table exists with proper constraints
+func updateSyncOperationsSchema() error {
+	// Create the sync_operations table if it doesn't exist
+	createTableSQL := `
+		CREATE TABLE IF NOT EXISTS sync_operations (
+			operation_id TEXT PRIMARY KEY,
+			user_id TEXT NOT NULL,
+			created_at INTEGER NOT NULL,
+			operation_type TEXT NOT NULL CHECK (operation_type IN ('create', 'update', 'delete', 'pay', 'transfer', 'update_cash', 'update_bank')),
+			entity_type TEXT NOT NULL,
+			entity_id TEXT NOT NULL,
+			operation_data TEXT NOT NULL,
+			device_ids TEXT DEFAULT '[]',
+			client_timestamp INTEGER DEFAULT 0,
+			server_timestamp INTEGER DEFAULT 0
+		);
+	`
+	
+	if _, err := db.Exec(createTableSQL); err != nil {
+		return fmt.Errorf("failed to create sync_operations table: %v", err)
+	}
+	
+	// Create necessary indexes for performance
+	indexes := []string{
+		"CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id ON sync_operations(operation_id);",
+		"CREATE INDEX IF NOT EXISTS idx_sync_operations_user_operation ON sync_operations(user_id, operation_id);",
+		"CREATE INDEX IF NOT EXISTS idx_sync_operations_user_created ON sync_operations(user_id, created_at);",
+		"CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity ON sync_operations(user_id, entity_type, entity_id);",
+	}
+	
+	for _, indexSQL := range indexes {
+		if _, err := db.Exec(indexSQL); err != nil {
+			log.Printf("Warning: Failed to create index: %v", err)
+		}
+	}
+	
+	return nil
+}
+
+// addSyncOperation records a sync operation in the sync_operations table
+// Uses the new operation_id system with timestamp-based format and automatic generation
+func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+		userID, providedOperationID, action, tableName, recordID, deviceID)
+	
+	// Generate operation ID if not provided or if provided ID is not valid timestamp format
+	var operationID string
+	var err error
+	
+	if providedOperationID != "" && isValidOperationId(providedOperationID) {
+		// Use provided operation ID if it's valid
+		operationID = providedOperationID
+		log.Printf("Using provided operation ID: %s", operationID)
+	} else {
+		// Generate new timestamp-based operation ID
+		operationID, err = generateNextOperationId(userID)
+		if err != nil {
+			log.Printf("Error generating operation ID: %v", err)
+			return fmt.Errorf("failed to generate operation ID: %v", err)
+		}
+		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
+	}
+	
+	// Validate that we have a valid operation ID
+	if !isValidOperationId(operationID) {
+		return fmt.Errorf("invalid operation ID format: %s", operationID)
+	}
 	
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
@@ -146,42 +313,40 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		return err
 	}
 	
-	// Prepare device_ids JSON array
-	var deviceIDs []string
+	// Prepare device_ids JSON array - store null if deviceID is empty
+	var deviceIDsJSON []byte
 	if deviceID != "" {
-		deviceIDs = []string{deviceID}
+		deviceIDs := []string{deviceID}
+		deviceIDsJSON, err = json.Marshal(deviceIDs)
+		if err != nil {
+			log.Printf("Error marshaling device_ids: %v", err)
+			return err
+		}
 	} else {
-		deviceIDs = []string{} // Empty array if no device ID provided
+		deviceIDsJSON = []byte("null")
+		log.Printf("Device ID empty, storing null in device_ids column")
 	}
 	
-	// Marshal device IDs to JSON
-	deviceIDsJSON, err := json.Marshal(deviceIDs)
-	if err != nil {
-		log.Printf("Error marshaling device_ids: %v", err)
-		return err
-	}
-	
-	// Timestamp adjustment: check if client timestamp is older than latest timestamp
-	var latestTimestamp int64
-	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error checking latest timestamp: %v", err)
-		return err
-	}
-	
-	// Adjust timestamp if necessary to maintain chronological ordering
-	adjustedTimestamp := clientTimestamp
-	if clientTimestamp <= latestTimestamp {
-		adjustedTimestamp = latestTimestamp + 1
-		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
-			clientTimestamp, adjustedTimestamp, latestTimestamp)
+	// Extract timestamp from operation ID for created_at field
+	operationTimestamp := extractTimestampFromOperationId(operationID)
+	if operationTimestamp == 0 {
+		operationTimestamp = time.Now().UnixMilli()
+		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
 	
 	// Use current server timestamp
-	serverTimestamp := time.Now().Unix()
+	serverTimestamp := time.Now().UnixMilli()
 	
-	// Insert sync operation record with device_ids JSON array
-	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
+	// Handle client timestamp - use null if 0
+	var clientTimestampValue interface{}
+	if clientTimestamp == 0 {
+		clientTimestampValue = nil
+		log.Printf("Client timestamp is 0, storing null in client_timestamp column")
+	} else {
+		clientTimestampValue = clientTimestamp
+	}
+	
+	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
 			user_id, operation_id, operation_type, entity_type, entity_id, operation_data, 
@@ -193,14 +358,14 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		insertQuery,
 		userID,
 		operationID,
-		action,
-		tableName,
-		recordID,
-		string(dataJSON),
-		string(deviceIDsJSON), // Store device IDs as JSON array
-		clientTimestamp,
-		serverTimestamp,
-		adjustedTimestamp, // Use adjusted timestamp for created_at
+		action,            // operation_type (create, update, delete, pay)
+		tableName,         // entity_type (profile_picture, profile_info)
+		recordID,          // entity_id
+		string(dataJSON),  // operation_data
+		string(deviceIDsJSON), // device_ids as JSON array or null
+		clientTimestampValue,  // client_timestamp (original from client or null)
+		serverTimestamp,   // server_timestamp (when processed)
+		operationTimestamp, // created_at (extracted from operation_id for ordering)
 	)
 	
 	if err != nil {
@@ -210,8 +375,8 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
-		syncOpID, deviceIDs, adjustedTimestamp)
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+		syncOpID, operationID, operationTimestamp)
 	
 	return nil
 }
@@ -497,35 +662,37 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Record sync operation if sync parameters are provided
-	// Add operation to sync_operations table for multi-device synchronization
-	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
-		// Prepare sync operation data for recording
-		syncOperationData := map[string]interface{}{
-			"user_id": req.UserID,
-			"action":  "update",
-			"type":    "profile_picture",
-			"image_size": len(processedImage),
-		}
-		
-		// Record the sync operation in sync_operations table
-		err = addSyncOperation(
-			fmt.Sprintf("%d", req.UserID),
-			req.OperationID,
-			"update",
-			"profile_picture",
-			fmt.Sprintf("%d", req.UserID),
-			syncOperationData,
-			req.DeviceID,
-			req.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the response - sync operation recording is optional
-		} else {
-			log.Printf("✅ Sync operation recorded successfully for profile picture update: %s", req.OperationID)
-		}
+	// Record sync operation with auto-generated operation_id if needed
+	// Following the consistent sync recording pattern from implementation guide
+	log.Printf("Recording sync operation for profile picture update with auto-generated operation_id")
+	
+	// Prepare sync operation data for recording
+	syncOperationData := map[string]interface{}{
+		"user_id":          req.UserID,
+		"action":           "update",
+		"type":             "profile_picture",
+		"image_size":       len(processedImage),
+		"processed_at":     time.Now().Format("2006-01-02 15:04:05"),
+		"has_profile_image": true,
+	}
+	
+	// Record the sync operation with auto-generation if operation_id not provided
+	err = addSyncOperation(
+		fmt.Sprintf("%d", req.UserID),
+		req.OperationID, // May be empty, will auto-generate if needed
+		"update",
+		"profile_picture",
+		fmt.Sprintf("%d", req.UserID),
+		syncOperationData,
+		req.DeviceID,
+		req.Timestamp,
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for profile picture update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for profile picture update")
 	}
 
 	// Return success response with updated user data
@@ -733,41 +900,43 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	rowsAffected, _ := result.RowsAffected()
 	log.Printf("Successfully updated user %d, %d rows affected", req.UserID, rowsAffected)
 
-	// Record sync operation if sync parameters are provided
-	// Add operation to sync_operations table for multi-device synchronization
-	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
-		// Prepare sync operation data for recording
-		syncOperationData := map[string]interface{}{
-			"user_id":    req.UserID,
-			"name":       req.Name,
-			"given_name": req.GivenName,
-			"family_name": req.FamilyName,
-			"action":     "update",
-		}
-		
-		// Include profile image info if it was updated
-		if req.ProfileImageB64 != "" {
-			syncOperationData["has_profile_image"] = true
-		}
-		
-		// Record the sync operation in sync_operations table
-		err = addSyncOperation(
-			fmt.Sprintf("%d", req.UserID),
-			req.OperationID,
-			"update",
-			"profile_info",
-			fmt.Sprintf("%d", req.UserID),
-			syncOperationData,
-			req.DeviceID,
-			req.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the response - sync operation recording is optional
-		} else {
-			log.Printf("✅ Sync operation recorded successfully for profile update: %s", req.OperationID)
-		}
+	// Record sync operation with auto-generated operation_id if needed
+	// Following the consistent sync recording pattern from implementation guide
+	log.Printf("Recording sync operation for profile info update with auto-generated operation_id")
+	
+	// Prepare sync operation data for recording
+	syncOperationData := map[string]interface{}{
+		"user_id":      req.UserID,
+		"name":         req.Name,
+		"given_name":   req.GivenName,
+		"family_name":  req.FamilyName,
+		"action":       "update",
+		"processed_at": time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	// Include profile image info if it was updated
+	if req.ProfileImageB64 != "" {
+		syncOperationData["has_profile_image"] = true
+		syncOperationData["image_size"] = len(req.ProfileImageB64)
+	}
+	
+	// Record the sync operation with auto-generation if operation_id not provided
+	err = addSyncOperation(
+		fmt.Sprintf("%d", req.UserID),
+		req.OperationID, // May be empty, will auto-generate if needed
+		"update",
+		"profile_info",
+		fmt.Sprintf("%d", req.UserID),
+		syncOperationData,
+		req.DeviceID,
+		req.Timestamp,
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for profile info update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for profile info update")
 	}
 
 	// Get the updated user to return in the response
@@ -1352,37 +1521,38 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("Successfully updated user %s", updateRequest.ID)
 
-	// Record sync operation if sync parameters are provided
-	// Add operation to sync_operations table for multi-device synchronization
-	if updateRequest.OperationID != "" && updateRequest.DeviceID != "" && updateRequest.Timestamp > 0 {
-		// Prepare sync operation data for recording
-		syncOperationData := map[string]interface{}{
-			"user_id":     userIDInt,
-			"name":        updateRequest.Name,
-			"email":       updateRequest.Email,
-			"given_name":  updateRequest.GivenName,
-			"family_name": updateRequest.FamilyName,
-			"action":      "update",
-		}
-		
-		// Record the sync operation in sync_operations table
-		err = addSyncOperation(
-			updateRequest.ID,
-			updateRequest.OperationID,
-			"update",
-			"profile_info",
-			updateRequest.ID,
-			syncOperationData,
-			updateRequest.DeviceID,
-			updateRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the response - sync operation recording is optional
-		} else {
-			log.Printf("✅ Sync operation recorded successfully for user update: %s", updateRequest.OperationID)
-		}
+	// Record sync operation with auto-generated operation_id if needed
+	// Following the consistent sync recording pattern from implementation guide
+	log.Printf("Recording sync operation for user info update with auto-generated operation_id")
+	
+	// Prepare sync operation data for recording
+	syncOperationData := map[string]interface{}{
+		"user_id":      userIDInt,
+		"name":         updateRequest.Name,
+		"email":        updateRequest.Email,
+		"given_name":   updateRequest.GivenName,
+		"family_name":  updateRequest.FamilyName,
+		"action":       "update",
+		"processed_at": time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	// Record the sync operation with auto-generation if operation_id not provided
+	err = addSyncOperation(
+		updateRequest.ID,
+		updateRequest.OperationID, // May be empty, will auto-generate if needed
+		"update",
+		"profile_info",
+		updateRequest.ID,
+		syncOperationData,
+		updateRequest.DeviceID,
+		updateRequest.Timestamp,
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for user info update: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for user info update")
 	}
 
 	// Return success response
