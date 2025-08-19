@@ -329,7 +329,7 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		expense.UserID,
 		"", // Empty operation_id triggers auto-generation
 		"create",
-		"expenses",
+		"expense",
 		fmt.Sprintf("%d", expenseID),
 		syncData,
 		expense.DeviceID, // Use device_id from request
@@ -438,7 +438,7 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 		updateRequest.UserID,
 		"", // Empty operation_id triggers auto-generation
 		"update",
-		"expenses",
+		"expense",
 		fmt.Sprintf("%d", updateRequest.ExpenseID),
 		syncData,
 		updateRequest.DeviceID, // Use device_id from request
@@ -522,7 +522,7 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 		deleteRequest.UserID,
 		"", // Empty operation_id triggers auto-generation
 		"delete",
-		"expenses",
+		"expense",
 		fmt.Sprintf("%d", deleteRequest.ExpenseID),
 		syncData,
 		deleteRequest.DeviceID, // Use device_id from request
