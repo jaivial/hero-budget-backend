@@ -56,27 +56,34 @@ func extractTimestampFromOperationId(operationId string) int64 {
 // getLastGlobalOperationId retrieves the globally last valid timestamp-format operation ID across all users
 // Used for generating chronologically ordered operation IDs that maintain global sync order
 func getLastGlobalOperationId() (string, error) {
-	var lastOperationId string
-	// Only select operation IDs that follow the timestamp format: 13-digit timestamp + underscore + 3-digit sequence
-	err := db.QueryRow(`
-		SELECT operation_id 
-		FROM sync_operations 
-		WHERE operation_id REGEXP '^[0-9]{13}_[0-9]{3}$' 
-		ORDER BY operation_id DESC 
-		LIMIT 1
-	`).Scan(&lastOperationId)
-	
+	// Get all operation IDs and filter in Go code since SQLite REGEXP is not always available
+	rows, err := db.Query("SELECT operation_id FROM sync_operations ORDER BY operation_id DESC")
 	if err != nil {
-		if err == sql.ErrNoRows {
-			log.Printf("No previous timestamp-format operations found in sync_operations table")
-			return "", nil
-		}
-		log.Printf("Error retrieving last global operation ID: %v", err)
+		log.Printf("Error querying sync_operations: %v", err)
 		return "", err
 	}
+	defer rows.Close()
 	
-	log.Printf("Retrieved last global timestamp-format operation ID: %s", lastOperationId)
-	return lastOperationId, nil
+	// Look for the first operation ID that matches timestamp format: 13-digit timestamp + underscore + 3-digit sequence
+	timestampPattern := regexp.MustCompile(`^\d{13}_\d{3}$`)
+	
+	for rows.Next() {
+		var operationId string
+		if err := rows.Scan(&operationId); err != nil {
+			log.Printf("Error scanning operation_id: %v", err)
+			continue
+		}
+		
+		// Check if this operation ID matches our timestamp format
+		if timestampPattern.MatchString(operationId) {
+			log.Printf("Retrieved last global timestamp-format operation ID: %s", operationId)
+			return operationId, nil
+		}
+	}
+	
+	// No timestamp-format operation IDs found
+	log.Printf("No previous timestamp-format operations found in sync_operations table")
+	return "", nil
 }
 
 // generateNextOperationId generates the next operation ID maintaining global chronological order
