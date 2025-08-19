@@ -53,61 +53,61 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	return timestamp
 }
 
-// getLastOperationIdForUser retrieves the last operation ID for a specific user
-// Used for generating chronologically ordered operation IDs
-func getLastOperationIdForUser(userID string) (string, error) {
+// getLastGlobalOperationId retrieves the globally last operation ID across all users
+// Used for generating chronologically ordered operation IDs that maintain global sync order
+func getLastGlobalOperationId() (string, error) {
 	var lastOperationId string
-	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
+	err := db.QueryRow("SELECT operation_id FROM sync_operations ORDER BY operation_id DESC LIMIT 1").Scan(&lastOperationId)
 	
 	if err != nil {
 		if err == sql.ErrNoRows {
-			log.Printf("No previous operations found for user: %s", userID)
+			log.Printf("No previous operations found in sync_operations table")
 			return "", nil
 		}
-		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
+		log.Printf("Error retrieving last global operation ID: %v", err)
 		return "", err
 	}
 	
-	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
+	log.Printf("Retrieved last global operation ID: %s", lastOperationId)
 	return lastOperationId, nil
 }
 
-// generateNextOperationId generates the next operation ID for a user
-// Gets the last operation ID and adds +1 millisecond time unit for proper ordering
+// generateNextOperationId generates the next operation ID maintaining global chronological order
+// Gets the globally last operation ID and adds +1 millisecond for proper sync ordering
 func generateNextOperationId(userID string) (string, error) {
-	log.Printf("Generating next operation ID for user: %s", userID)
+	log.Printf("Generating next operation ID for user: %s (using global ordering)", userID)
 	
-	// Get the last operation ID for this user
-	lastOperationId, err := getLastOperationIdForUser(userID)
+	// Get the globally last operation ID (across all users) for proper sync ordering
+	lastOperationId, err := getLastGlobalOperationId()
 	if err != nil {
-		return "", fmt.Errorf("failed to get last operation ID: %v", err)
+		return "", fmt.Errorf("failed to get last global operation ID: %v", err)
 	}
 	
 	var nextTimestamp int64
 	var sequenceNumber int = 1
 	
 	if lastOperationId == "" {
-		// No previous operations, start with current timestamp
+		// No previous operations in the entire table, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
-		log.Printf("No previous operations, starting with timestamp: %d", nextTimestamp)
+		log.Printf("No previous operations found globally, starting with timestamp: %d", nextTimestamp)
 	} else {
-		// Extract timestamp from last operation ID
+		// Extract timestamp from the globally last operation ID
 		lastTimestamp := extractTimestampFromOperationId(lastOperationId)
 		if lastTimestamp == 0 {
 			// Invalid last operation ID format, use current timestamp
 			nextTimestamp = time.Now().UnixMilli()
 			log.Printf("Invalid last operation ID format, using current timestamp: %d", nextTimestamp)
 		} else {
-			// Add 1 millisecond to ensure chronological ordering
+			// Add 1 millisecond to ensure chronological ordering globally
 			nextTimestamp = lastTimestamp + 1
-			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
+			log.Printf("Incremented timestamp from global last %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
 	
 	// Format as {timestamp_ms}_{sequence_number} with zero-padded sequence
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
 	
-	log.Printf("Generated operation ID: %s", operationId)
+	log.Printf("Generated operation ID: %s (maintains global sync order)", operationId)
 	return operationId, nil
 }
 
