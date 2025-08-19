@@ -236,7 +236,7 @@ func isValidOperationId(operationId string) bool {
 	}
 	
 	// Expected format: 1755209423000_001
-	operationIdPattern := `^\\d{13}_\\d{3}$`
+	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
 	if err != nil {
 		log.Printf("Error validating operation ID pattern: %v", err)
