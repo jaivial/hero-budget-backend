@@ -164,16 +164,16 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
 	}
 	
-	// Add sync operation record to database with null device_id and timestamp
+	// Add sync operation record to database with device_id and timestamp from request
 	err = addSyncOperation(
 		addRequest.UserID,
-		"", // Empty operation_id - will be auto-generated
+		addRequest.OperationID, // Use operation_id from request if provided, otherwise auto-generated
 		"create",
 		"bills",
 		strconv.FormatInt(billID, 10),
 		syncData,
-		"", // Empty device_id - will be stored as null
-		0,  // Zero timestamp - will be stored as null
+		addRequest.DeviceID,  // Use device_id from request
+		addRequest.Timestamp, // Use timestamp from request
 	)
 	
 	if err != nil {
