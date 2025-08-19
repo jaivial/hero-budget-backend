@@ -346,6 +346,19 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		clientTimestampValue = clientTimestamp
 	}
 	
+	// Log all parameters before insertion
+	log.Printf("DEBUG: About to insert sync operation with parameters:")
+	log.Printf("  userID: %s", userID)
+	log.Printf("  operationID: %s", operationID)
+	log.Printf("  action: %s", action)
+	log.Printf("  tableName: %s", tableName)
+	log.Printf("  recordID: %s", recordID)
+	log.Printf("  dataJSON: %s", string(dataJSON))
+	log.Printf("  deviceIDsJSON: %s", string(deviceIDsJSON))
+	log.Printf("  clientTimestampValue: %v", clientTimestampValue)
+	log.Printf("  serverTimestamp: %d", serverTimestamp)
+	log.Printf("  operationTimestamp: %d", operationTimestamp)
+	
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
@@ -353,6 +366,8 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
+	
+	log.Printf("DEBUG: Executing SQL query: %s", insertQuery)
 	
 	result, err := db.Exec(
 		insertQuery,
@@ -369,14 +384,29 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	)
 	
 	if err != nil {
-		log.Printf("Error inserting sync operation: %v", err)
+		log.Printf("ERROR: Failed to insert sync operation: %v", err)
+		log.Printf("ERROR: SQL was: %s", insertQuery)
 		return err
 	}
 	
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
-		syncOpID, operationID, operationTimestamp)
+	rowsAffected, _ := result.RowsAffected()
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d, rows_affected: %d", 
+		syncOpID, operationID, operationTimestamp, rowsAffected)
+	
+	// Verify the record was actually inserted by querying it back
+	var count int
+	countQuery := "SELECT COUNT(*) FROM sync_operations WHERE operation_id = ?"
+	err = db.QueryRow(countQuery, operationID).Scan(&count)
+	if err != nil {
+		log.Printf("WARNING: Failed to verify sync operation insertion: %v", err)
+	} else {
+		log.Printf("VERIFICATION: Found %d records with operation_id: %s", count, operationID)
+		if count == 0 {
+			log.Printf("ERROR: Sync operation was not found after insertion!")
+		}
+	}
 	
 	return nil
 }
