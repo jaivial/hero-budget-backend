@@ -271,7 +271,7 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
-			user_id, operation_id, action, table_name, record_id, data, 
+			user_id, operation_id, operation_type, entity_type, entity_id, operation_data, 
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`

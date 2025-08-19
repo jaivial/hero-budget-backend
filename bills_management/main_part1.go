@@ -249,18 +249,16 @@ func createTablesIfNotExist() {
 	// Create sync_operations table with new operation-id based schema
 	// This matches the delta_sync format for consistency across services
 	db.Exec(`CREATE TABLE IF NOT EXISTS sync_operations (
-		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		operation_id TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL,
-		operation_id TEXT NOT NULL,
-		operation_type TEXT NOT NULL,
+		created_at INTEGER NOT NULL,
+		operation_type TEXT NOT NULL CHECK (operation_type IN ('create', 'update', 'delete', 'pay')),
 		entity_type TEXT NOT NULL,
 		entity_id TEXT NOT NULL,
 		operation_data TEXT NOT NULL,
 		device_ids TEXT DEFAULT '[]',
 		client_timestamp INTEGER DEFAULT 0,
-		server_timestamp INTEGER DEFAULT 0,
-		created_at INTEGER DEFAULT 0,
-		UNIQUE(operation_id)
+		server_timestamp INTEGER DEFAULT 0
 	)`)
 	
 	// Create index on operation_id for fast lookups and ordering

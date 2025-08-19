@@ -214,16 +214,19 @@ func createTables() error {
 
 	// Create sync_operations table for tracking all data operations
 	// device_ids column stores JSON array of device IDs for multi-device support
+	// Unified schema compatible with all services (includes client_timestamp, server_timestamp for compatibility)
 	createTableSQL := `
 	CREATE TABLE IF NOT EXISTS sync_operations (
 		operation_id TEXT PRIMARY KEY,
 		user_id TEXT NOT NULL,
 		created_at INTEGER NOT NULL,
-		operation_type TEXT NOT NULL CHECK (operation_type IN ('create', 'update', 'delete')),
+		operation_type TEXT NOT NULL CHECK (operation_type IN ('create', 'update', 'delete', 'pay')),
 		entity_type TEXT NOT NULL,
 		entity_id TEXT NOT NULL,
 		operation_data TEXT NOT NULL,
-		device_ids TEXT DEFAULT '[]'
+		device_ids TEXT DEFAULT '[]',
+		client_timestamp INTEGER DEFAULT 0,
+		server_timestamp INTEGER DEFAULT 0
 	);`
 
 	_, err := db.Exec(createTableSQL)
