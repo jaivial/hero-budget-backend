@@ -89,44 +89,40 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 	// Set the ID of the newly added income
 	income.ID = incomeID
 
-	// Record sync operation if sync parameters are provided
-	if addRequest.OperationID != "" && addRequest.DeviceID != "" && addRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for income creation: operation_id=%s, device_id=%s, timestamp=%d", 
-			addRequest.OperationID, addRequest.DeviceID, addRequest.Timestamp)
-		
-		// Create sync operation data matching the income structure
-		syncData := map[string]interface{}{
-			"id":             incomeID,
-			"user_id":        income.UserID,
-			"amount":         income.Amount,
-			"date":           income.Date,
-			"category":       income.Category,
-			"payment_method": income.PaymentMethod,
-			"description":    income.Description,
-			"created_at":     time.Now().Format("2006-01-02 15:04:05"),
-			"updated_at":     time.Now().Format("2006-01-02 15:04:05"),
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			income.UserID,
-			addRequest.OperationID,
-			"create",
-			"incomes",
-			strconv.Itoa(incomeID),
-			syncData,
-			addRequest.DeviceID,
-			addRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the income creation for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for income ID: %d", incomeID)
-		}
+	// Record sync operation with auto-generated operation_id (following consistent pattern)
+	// Critical: ALL handlers must follow the same pattern for sync operations
+	log.Printf("Recording sync operation for income creation with auto-generated operation_id")
+	
+	// Create sync operation data matching the income structure
+	syncData := map[string]interface{}{
+		"id":             incomeID,
+		"user_id":        income.UserID,
+		"amount":         income.Amount,
+		"date":           income.Date,
+		"category":       income.Category,
+		"payment_method": income.PaymentMethod,
+		"description":    income.Description,
+		"created_at":     time.Now().Format("2006-01-02 15:04:05"),
+		"updated_at":     time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	// Add sync operation record to database with auto-generated operation_id
+	err = addSyncOperation(
+		income.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"create",
+		"incomes",
+		strconv.Itoa(incomeID),
+		syncData,
+		addRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for income creation: %v", err)
+		// Don't fail the income creation for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for income ID: %d", incomeID)
 	}
 
 	// Update cash or bank balance based on payment method

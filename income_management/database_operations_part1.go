@@ -174,11 +174,35 @@ func getIncomes(userID, category, startDate, endDate, paymentMethod string) ([]I
 	return incomes, nil
 }
 
-// addSyncOperation registra una operación de sincronización en la tabla sync_operations
-// Implements timestamp adjustment and device_ids JSON array for multi-device sync
-func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
-		userID, operationID, action, tableName, recordID, deviceID)
+// addSyncOperation records a sync operation in the sync_operations table
+// Uses the new operation_id system with timestamp-based format and automatic generation
+// Implementation following docs/SYNC_OPERATIONS_IMPLEMENTATION_GUIDE.md
+func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+		userID, providedOperationID, action, tableName, recordID, deviceID)
+	
+	// Generate operation ID if not provided or if provided ID is not valid timestamp format
+	var operationID string
+	var err error
+	
+	if providedOperationID != "" && isValidOperationId(providedOperationID) {
+		// Use provided operation ID if it's valid
+		operationID = providedOperationID
+		log.Printf("Using provided operation ID: %s", operationID)
+	} else {
+		// Generate new timestamp-based operation ID
+		operationID, err = generateNextOperationId(userID)
+		if err != nil {
+			log.Printf("Error generating operation ID: %v", err)
+			return fmt.Errorf("failed to generate operation ID: %v", err)
+		}
+		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
+	}
+	
+	// Validate that we have a valid operation ID
+	if !isValidOperationId(operationID) {
+		return fmt.Errorf("invalid operation ID format: %s", operationID)
+	}
 	
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
@@ -187,42 +211,40 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		return err
 	}
 	
-	// Prepare device_ids JSON array
-	var deviceIDs []string
+	// Prepare device_ids JSON array - store null if deviceID is empty
+	var deviceIDsJSON []byte
 	if deviceID != "" {
-		deviceIDs = []string{deviceID}
+		deviceIDs := []string{deviceID}
+		deviceIDsJSON, err = json.Marshal(deviceIDs)
+		if err != nil {
+			log.Printf("Error marshaling device_ids: %v", err)
+			return err
+		}
 	} else {
-		deviceIDs = []string{} // Empty array if no device ID provided
+		deviceIDsJSON = []byte("null")
+		log.Printf("Device ID empty, storing null in device_ids column")
 	}
 	
-	// Marshal device IDs to JSON
-	deviceIDsJSON, err := json.Marshal(deviceIDs)
-	if err != nil {
-		log.Printf("Error marshaling device_ids: %v", err)
-		return err
-	}
-	
-	// Timestamp adjustment: check if client timestamp is older than latest timestamp
-	var latestTimestamp int64
-	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
-	if err != nil && err != sql.ErrNoRows {
-		log.Printf("Error checking latest timestamp: %v", err)
-		return err
-	}
-	
-	// Adjust timestamp if necessary to maintain chronological ordering
-	adjustedTimestamp := clientTimestamp
-	if clientTimestamp <= latestTimestamp {
-		adjustedTimestamp = latestTimestamp + 1
-		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
-			clientTimestamp, adjustedTimestamp, latestTimestamp)
+	// Extract timestamp from operation ID for created_at field
+	operationTimestamp := extractTimestampFromOperationId(operationID)
+	if operationTimestamp == 0 {
+		operationTimestamp = time.Now().UnixMilli()
+		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
 	
 	// Use current server timestamp
-	serverTimestamp := time.Now().Unix()
+	serverTimestamp := time.Now().UnixMilli()
 	
-	// Insert sync operation record with device_ids JSON array
-	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
+	// Handle client timestamp - use null if 0
+	var clientTimestampValue interface{}
+	if clientTimestamp == 0 {
+		clientTimestampValue = nil
+		log.Printf("Client timestamp is 0, storing null in client_timestamp column")
+	} else {
+		clientTimestampValue = clientTimestamp
+	}
+	
+	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
 			user_id, operation_id, operation_type, entity_type, entity_id, operation_data, 
@@ -234,14 +256,14 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		insertQuery,
 		userID,
 		operationID,
-		action,
-		tableName,
-		recordID,
-		string(dataJSON),
-		string(deviceIDsJSON), // Store device IDs as JSON array
-		clientTimestamp,
-		serverTimestamp,
-		adjustedTimestamp, // Use adjusted timestamp for created_at
+		action,            // operation_type (create, update, delete)
+		tableName,         // entity_type (incomes, expenses, etc.)
+		recordID,          // entity_id
+		string(dataJSON),  // operation_data
+		string(deviceIDsJSON), // device_ids as JSON array or null
+		clientTimestampValue,  // client_timestamp (original from client or null)
+		serverTimestamp,   // server_timestamp (when processed)
+		operationTimestamp, // created_at (extracted from operation_id for ordering)
 	)
 	
 	if err != nil {
@@ -251,8 +273,8 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
-		syncOpID, deviceIDs, adjustedTimestamp)
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+		syncOpID, operationID, operationTimestamp)
 	
 	return nil
 }

@@ -36,12 +36,20 @@ type UpdateIncomeRequest struct {
 	Category      string  `json:"category,omitempty"`
 	PaymentMethod string  `json:"payment_method,omitempty"`
 	Description   string  `json:"description,omitempty"`
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // DeleteIncomeRequest estructura para eliminar ingresos
 type DeleteIncomeRequest struct {
 	UserID   string `json:"user_id"`
 	IncomeID int    `json:"income_id"`
+	// Sync operation parameters for incremental synchronization tracking
+	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
+	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
+	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
 }
 
 // SyncOperation estructura para registrar operaciones de sincronización
