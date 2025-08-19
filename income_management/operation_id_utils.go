@@ -51,7 +51,27 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	return timestamp
 }
 
+// getLastOperationIdGlobal retrieves the globally last operation ID across all users
+// This ensures proper chronological ordering across the entire system
+func getLastOperationIdGlobal() (string, error) {
+	var lastOperationId string
+	err := db.QueryRow("SELECT operation_id FROM sync_operations ORDER BY operation_id DESC LIMIT 1").Scan(&lastOperationId)
+	
+	if err != nil {
+		if err == sql.ErrNoRows {
+			log.Printf("No previous operations found globally")
+			return "", nil
+		}
+		log.Printf("Error retrieving global last operation ID: %v", err)
+		return "", err
+	}
+	
+	log.Printf("Retrieved global last operation ID: %s", lastOperationId)
+	return lastOperationId, nil
+}
+
 // getLastOperationIdForUser retrieves the last operation ID for a specific user
+// DEPRECATED: Use getLastOperationIdGlobal() for proper chronological ordering
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
@@ -69,15 +89,15 @@ func getLastOperationIdForUser(userID string) (string, error) {
 	return lastOperationId, nil
 }
 
-// generateNextOperationId generates the next operation ID for a user
-// Gets the last operation ID and adds +1 millisecond time unit
+// generateNextOperationId generates the next operation ID globally
+// Gets the global last operation ID and adds +1 millisecond time unit for proper chronological ordering
 func generateNextOperationId(userID string) (string, error) {
-	log.Printf("Generating next operation ID for user: %s", userID)
+	log.Printf("Generating next operation ID for user: %s (using global ordering)", userID)
 	
-	// Get the last operation ID for this user
-	lastOperationId, err := getLastOperationIdForUser(userID)
+	// Get the globally last operation ID across all users and services
+	lastOperationId, err := getLastOperationIdGlobal()
 	if err != nil {
-		return "", fmt.Errorf("failed to get last operation ID: %v", err)
+		return "", fmt.Errorf("failed to get global last operation ID: %v", err)
 	}
 	
 	var nextTimestamp int64
@@ -88,12 +108,29 @@ func generateNextOperationId(userID string) (string, error) {
 		nextTimestamp = time.Now().UnixMilli()
 		log.Printf("No previous operations, starting with timestamp: %d", nextTimestamp)
 	} else {
-		// Extract timestamp from last operation ID
+		// Extract timestamp from last operation ID if it follows the standard format
 		lastTimestamp := extractTimestampFromOperationId(lastOperationId)
 		if lastTimestamp == 0 {
-			// Invalid last operation ID format, use current timestamp
-			nextTimestamp = time.Now().UnixMilli()
-			log.Printf("Invalid last operation ID format, using current timestamp: %d", nextTimestamp)
+			// Last operation ID doesn't follow standard format, use current timestamp
+			// This handles legacy operation IDs or mixed formats
+			currentTime := time.Now().UnixMilli()
+			log.Printf("Last operation ID (%s) doesn't follow standard format, using current timestamp: %d", lastOperationId, currentTime)
+			
+			// Ensure we're ahead of any existing timestamp-based operations
+			// Check if there are any recent timestamp-based operations
+			var lastTimestampBasedId string
+			err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE operation_id REGEXP '^[0-9]{13}_[0-9]{3}$' ORDER BY operation_id DESC LIMIT 1").Scan(&lastTimestampBasedId)
+			if err == nil && lastTimestampBasedId != "" {
+				lastValidTimestamp := extractTimestampFromOperationId(lastTimestampBasedId)
+				if lastValidTimestamp > 0 && currentTime <= lastValidTimestamp {
+					nextTimestamp = lastValidTimestamp + 1
+					log.Printf("Found recent timestamp-based operation %s, incrementing to: %d", lastTimestampBasedId, nextTimestamp)
+				} else {
+					nextTimestamp = currentTime
+				}
+			} else {
+				nextTimestamp = currentTime
+			}
 		} else {
 			// Add 1 millisecond to ensure chronological ordering
 			nextTimestamp = lastTimestamp + 1
