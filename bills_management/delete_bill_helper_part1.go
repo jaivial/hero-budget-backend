@@ -122,43 +122,38 @@ func deleteBill(request DeleteBillRequest) error {
 		return err
 	}
 
-	// Record sync operation if sync parameters are provided
-	if request.OperationID != "" && request.DeviceID != "" && request.Timestamp > 0 {
-		log.Printf("Recording sync operation for bill deletion: operation_id=%s, device_id=%s, timestamp=%d", 
-			request.OperationID, request.DeviceID, request.Timestamp)
-		
-		// Create sync operation data with deleted bill structure
-		syncData := map[string]interface{}{
-			"id":              request.BillID,
-			"user_id":         request.UserID,
-			"name":            "", // Not available after deletion, but not needed for delete operations
-			"amount":          billData.Amount,
-			"payment_method":  billData.PaymentMethod,
-			"start_date":      billData.StartDate,
-			"duration_months": billData.Duration,
-			"deleted_at":      time.Now().Format("2006-01-02 15:04:05"),
-		}
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			request.UserID,
-			request.OperationID,
-			"delete",
-			"bills",
-			strconv.Itoa(request.BillID),
-			syncData,
-			request.DeviceID,
-			request.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the bill deletion for sync errors, just log warning
-		} else {
-			log.Printf("Successfully recorded sync operation for bill deletion ID: %d", request.BillID)
-		}
+	// Always record sync operation with auto-generated operation_id (like add/update handlers)
+	log.Printf("Recording sync operation for bill deletion with auto-generated operation_id")
+	
+	// Create sync operation data with deleted bill structure
+	syncData := map[string]interface{}{
+		"id":              request.BillID,
+		"user_id":         request.UserID,
+		"name":            "", // Not available after deletion, but not needed for delete operations
+		"amount":          billData.Amount,
+		"payment_method":  billData.PaymentMethod,
+		"start_date":      billData.StartDate,
+		"duration_months": billData.Duration,
+		"deleted_at":      time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	// Add sync operation record to database with device_id from request
+	err = addSyncOperation(
+		request.UserID,
+		"", // Empty operation_id will trigger auto-generation
+		"delete",
+		"bills",
+		strconv.Itoa(request.BillID),
+		syncData,
+		request.DeviceID, // Use device_id from request
+		0, // Timestamp will be auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("Warning: Failed to record sync operation: %v", err)
+		// Don't fail the bill deletion for sync errors, just log warning
 	} else {
-		log.Printf("Sync parameters not provided or incomplete, skipping sync operation recording")
+		log.Printf("Successfully recorded sync operation for bill deletion ID: %d", request.BillID)
 	}
 
 	return nil

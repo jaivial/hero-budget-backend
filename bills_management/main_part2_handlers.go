@@ -243,54 +243,42 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Record sync operation if sync parameters are provided
-	log.Printf("DEBUG: Checking sync parameters - OperationID='%s', DeviceID='%s', Timestamp=%d", 
-		req.OperationID, req.DeviceID, req.Timestamp)
-	log.Printf("DEBUG: Sync parameter checks - OperationID_empty=%v, DeviceID_empty=%v, Timestamp_zero=%v", 
-		req.OperationID == "", req.DeviceID == "", req.Timestamp <= 0)
-		
-	if req.OperationID != "" && req.DeviceID != "" && req.Timestamp > 0 {
-		log.Printf("✅ All sync parameters provided - Recording sync operation for bill payment: operation_id=%s, device_id=%s, timestamp=%d", 
-			req.OperationID, req.DeviceID, req.Timestamp)
-		
-		// Create sync operation data for bill payment
-		syncData := map[string]interface{}{
-			"user_id":        req.UserID,
-			"bill_id":        req.BillID,
-			"year_month":     req.YearMonth,
-			"payment_date":   req.PaymentDate,
-			"payment_method": req.PaymentMethod,
-			"payment_status": "paid",
-			"processed_at":   time.Now().Format("2006-01-02 15:04:05"),
-		}
-		
-		log.Printf("🔄 Calling addSyncOperation with parameters: user=%s, operation=%s, action=pay, table=bills, record=%d", 
-			req.UserID, req.OperationID, req.BillID)
-		
-		// Add sync operation record to database
-		err = addSyncOperation(
-			req.UserID,
-			req.OperationID,
-			"pay",
-			"bills",
-			strconv.Itoa(req.BillID),
-			syncData,
-			req.DeviceID,
-			req.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("❌ ERROR: Failed to record sync operation for bill payment: %v", err)
-			log.Printf("❌ ERROR: Sync operation details - user_id=%s, bill_id=%d, operation_id=%s, device_id=%s", 
-				req.UserID, req.BillID, req.OperationID, req.DeviceID)
-			// Don't fail the bill payment for sync errors, just log warning
-		} else {
-			log.Printf("✅ SUCCESS: Successfully recorded sync operation for bill payment: bill_id=%d, year_month=%s", req.BillID, req.YearMonth)
-		}
+	// Always record sync operation with auto-generated operation_id (like add/update handlers)
+	log.Printf("Recording sync operation for bill payment with auto-generated operation_id")
+	
+	// Create sync operation data for bill payment
+	syncData := map[string]interface{}{
+		"user_id":        req.UserID,
+		"bill_id":        req.BillID,
+		"year_month":     req.YearMonth,
+		"payment_date":   req.PaymentDate,
+		"payment_method": req.PaymentMethod,
+		"payment_status": "paid",
+		"processed_at":   time.Now().Format("2006-01-02 15:04:05"),
+	}
+	
+	log.Printf("🔄 Calling addSyncOperation with auto-generation: user=%s, action=pay, table=bills, record=%d", 
+		req.UserID, req.BillID)
+	
+	// Add sync operation record to database with device_id from request
+	err = addSyncOperation(
+		req.UserID,
+		"", // Empty operation_id will trigger auto-generation
+		"pay",
+		"bills",
+		strconv.Itoa(req.BillID),
+		syncData,
+		req.DeviceID, // Use device_id from request
+		0, // Timestamp will be auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for bill payment: %v", err)
+		log.Printf("❌ ERROR: Sync operation details - user_id=%s, bill_id=%d, device_id=%s", 
+			req.UserID, req.BillID, req.DeviceID)
+		// Don't fail the bill payment for sync errors, just log warning
 	} else {
-		log.Printf("⚠️ WARNING: Sync parameters not provided or incomplete, skipping sync operation recording")
-		log.Printf("⚠️ WARNING: Missing parameters - OperationID='%s' (empty=%v), DeviceID='%s' (empty=%v), Timestamp=%d (zero=%v)", 
-			req.OperationID, req.OperationID == "", req.DeviceID, req.DeviceID == "", req.Timestamp, req.Timestamp <= 0)
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for bill payment: bill_id=%d, year_month=%s", req.BillID, req.YearMonth)
 	}
 
 	// Invalidate bills cache for this user since bill payment status changed
