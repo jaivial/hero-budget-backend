@@ -159,13 +159,13 @@ func main() {
 	// Endpoint para obtener distribución actual de efectivo/banco
 	http.HandleFunc("/cash-bank/distribution", corsMiddleware(handleFetchDistribution))
 	
-	// Endpoints para actualizar cantidades directamente
-	http.HandleFunc("/cash-bank/cash/update", corsMiddleware(handleUpdateCash))
-	http.HandleFunc("/cash-bank/bank/update", corsMiddleware(handleUpdateBank))
+	// Endpoints para actualizar cantidades directamente - CON SOPORTE DE SYNC CONSISTENTE
+	http.HandleFunc("/cash-bank/cash/update", corsMiddleware(handleUpdateCashWithSync))
+	http.HandleFunc("/cash-bank/bank/update", corsMiddleware(handleUpdateBankWithSync))
 	
-	// Endpoints para transferencias entre efectivo y banco
-	http.HandleFunc("/transfer/cash-to-bank", corsMiddleware(handleCashToBankTransfer))
-	http.HandleFunc("/transfer/bank-to-cash", corsMiddleware(handleBankToCashTransfer))
+	// Endpoints para transferencias entre efectivo y banco - CON SOPORTE DE SYNC CONSISTENTE
+	http.HandleFunc("/transfer/cash-to-bank", corsMiddleware(handleCashToBankTransferWithSync))
+	http.HandleFunc("/transfer/bank-to-cash", corsMiddleware(handleBankToCashTransferWithSync))
 
 	// Rutas de sincronización offline - Integración del sistema de sync
 	// Endpoints para sincronización bidireccional con clientes offline
