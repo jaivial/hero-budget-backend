@@ -664,7 +664,9 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation with auto-generated operation_id if needed
 	// Following the consistent sync recording pattern from implementation guide
-	log.Printf("Recording sync operation for profile picture update with auto-generated operation_id")
+	log.Printf("🔄 DEBUG: Starting sync operation recording for profile picture update")
+	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d", 
+		req.OperationID, req.DeviceID, req.Timestamp)
 	
 	// Prepare sync operation data for recording
 	syncOperationData := map[string]interface{}{
@@ -675,6 +677,9 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		"processed_at":     time.Now().Format("2006-01-02 15:04:05"),
 		"has_profile_image": true,
 	}
+	
+	log.Printf("🔄 DEBUG: Calling addSyncOperation with params: userID=%d, operationID='%s', deviceID='%s'",
+		req.UserID, req.OperationID, req.DeviceID)
 	
 	// Record the sync operation with auto-generation if operation_id not provided
 	err = addSyncOperation(
@@ -902,7 +907,9 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation with auto-generated operation_id if needed
 	// Following the consistent sync recording pattern from implementation guide
-	log.Printf("Recording sync operation for profile info update with auto-generated operation_id")
+	log.Printf("🔄 DEBUG: Starting sync operation recording for profile info update")
+	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d", 
+		req.OperationID, req.DeviceID, req.Timestamp)
 	
 	// Prepare sync operation data for recording
 	syncOperationData := map[string]interface{}{
@@ -919,6 +926,9 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		syncOperationData["has_profile_image"] = true
 		syncOperationData["image_size"] = len(req.ProfileImageB64)
 	}
+	
+	log.Printf("🔄 DEBUG: Calling addSyncOperation with params: userID=%d, operationID='%s', deviceID='%s'",
+		req.UserID, req.OperationID, req.DeviceID)
 	
 	// Record the sync operation with auto-generation if operation_id not provided
 	err = addSyncOperation(
