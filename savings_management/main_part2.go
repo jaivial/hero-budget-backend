@@ -100,7 +100,7 @@ func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
 		"goal":      newSavings.Goal,
 		"period":    newSavings.Period,
 		"percent":   newSavings.Percent,
-		"action":    "create_savings",
+		"action":    "create",
 	}
 	
 	// Add sync operation record to database with auto-generated operation_id
@@ -218,7 +218,7 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		"goal":      currentSavings.Goal,
 		"period":    currentSavings.Period,
 		"percent":   currentSavings.Percent,
-		"action":    "update_savings",
+		"action":    "update",
 	}
 	
 	// Add sync operation record to database with auto-generated operation_id
@@ -298,7 +298,7 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 	// Create sync operation data for savings delete
 	syncData := map[string]interface{}{
 		"user_id": deleteRequest.UserID,
-		"action":  "delete_savings",
+		"action":  "delete",
 	}
 	
 	// Add sync operation record to database with auto-generated operation_id
