@@ -75,6 +75,13 @@ func init() {
 	}
 
 	log.Println("Database connection established successfully")
+
+	// Update sync_operations schema to support transaction-specific operation types
+	if err := updateSyncOperationsSchema(); err != nil {
+		log.Printf("Warning: Failed to update sync_operations schema: %v", err)
+	}
+
+	log.Println("Transaction Delete service initialized successfully")
 }
 
 // addSyncOperation registra una operación de sincronización en la tabla sync_operations
@@ -291,35 +298,34 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	// Record sync operation if sync parameters are provided
-	// Add operation to sync_operations table for multi-device synchronization
-	if deleteRequest.OperationID != "" && deleteRequest.DeviceID != "" && deleteRequest.Timestamp > 0 {
-		// Prepare sync operation data for recording
-		syncOperationData := map[string]interface{}{
-			"user_id":          deleteRequest.UserID,
-			"transaction_id":   deleteRequest.TransactionID,
-			"transaction_type": deleteRequest.TransactionType,
-			"action":           "delete",
-		}
-		
-		// Record the sync operation in sync_operations table
-		err = addSyncOperation(
-			deleteRequest.UserID,
-			deleteRequest.OperationID,
-			"delete",
-			"transactions",
-			fmt.Sprintf("%d", deleteRequest.TransactionID),
-			syncOperationData,
-			deleteRequest.DeviceID,
-			deleteRequest.Timestamp,
-		)
-		
-		if err != nil {
-			log.Printf("Warning: Failed to record sync operation: %v", err)
-			// Don't fail the response - sync operation recording is optional
-		} else {
-			log.Printf("✅ Sync operation recorded successfully for transaction deletion: %s", deleteRequest.OperationID)
-		}
+	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
+	log.Printf("Recording sync operation for transaction delete with auto-generated operation_id")
+	
+	// Create sync operation data for transaction delete
+	syncData := map[string]interface{}{
+		"user_id":          deleteRequest.UserID,
+		"transaction_id":   deleteRequest.TransactionID,
+		"transaction_type": deleteRequest.TransactionType,
+		"action":           "delete",
+	}
+	
+	// Add sync operation record to database with auto-generated operation_id
+	err = addSyncOperationEnhanced(
+		deleteRequest.UserID,
+		"", // Empty operation_id triggers auto-generation
+		"delete",
+		"transactions",
+		fmt.Sprintf("%d", deleteRequest.TransactionID),
+		syncData,
+		deleteRequest.DeviceID, // Use device_id from request
+		0, // Timestamp auto-generated
+	)
+	
+	if err != nil {
+		log.Printf("❌ ERROR: Failed to record sync operation for transaction delete: %v", err)
+		// Don't fail the main operation for sync errors, just log warning
+	} else {
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for transaction delete: user=%s", deleteRequest.UserID)
 	}
 
 	response := ApiResponse{
