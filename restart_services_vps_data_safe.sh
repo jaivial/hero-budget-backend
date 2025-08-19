@@ -25,7 +25,7 @@ ALL_SERVICES=(
     "signup:8082"
     "signin:8084"
     "reset_password:8086"
-    "budget_management:8088"
+    # "budget_management:8088" # REMOVED - service not used
     "savings_management:8089"
     "cash_bank_management:8090"
     "bills_management:8091"
@@ -525,7 +525,7 @@ update_all_dependencies() {
     echo -e "\n${CYAN}🔧 Actualizando dependencias de todos los servicios...${NC}"
     
     local services=(
-        "apple-auth" "bills_management" "budget_management"
+        "apple-auth" "bills_management"
         "cash_bank_management" "categories_management" "expense_management"
         "google_auth" "income_management"
         "profile_management" "reset_password" "signin" "signup" "user_locale"
