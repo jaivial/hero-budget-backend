@@ -576,10 +576,12 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.ProfileImageB64 == "" {
-		log.Printf("EDIT PROFILE PICTURE: No image data provided for user %d", req.UserID)
-		http.Error(w, "Profile image data is required", http.StatusBadRequest)
-		return
+	// Handle both profile picture updates and removals
+	isRemoval := req.ProfileImageB64 == ""
+	if isRemoval {
+		log.Printf("🗑️ EDIT PROFILE PICTURE: Processing profile picture REMOVAL for user %d", req.UserID)
+	} else {
+		log.Printf("🖼️ EDIT PROFILE PICTURE: Processing profile picture UPDATE for user %d", req.UserID)
 	}
 
 	log.Printf("🖼️🔍 EDIT PROFILE PICTURE: DETAILED REQUEST PROCESSING:")
@@ -608,36 +610,49 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Use the image data directly from frontend (already processed and optimized)
-	log.Printf("🖼️✅ EDIT PROFILE PICTURE: USING PRE-PROCESSED IMAGE FROM FRONTEND:")
-	log.Printf("  📥 Frontend processed image data: %d bytes (%.2f KB)", len(req.ProfileImageB64), float64(len(req.ProfileImageB64))/1024)
-	log.Printf("  🎯 Skipping backend processing - frontend already optimized the image")
-	log.Printf("  📸 Image data preview: %s...", req.ProfileImageB64[:min(50, len(req.ProfileImageB64))])
+	var processedImage *string // Use pointer to handle NULL for removal
 	
-	// Basic validation of image data
-	if len(req.ProfileImageB64) == 0 {
-		log.Printf("❌📸 EDIT PROFILE PICTURE: IMAGE DATA IS EMPTY")
-		http.Error(w, "Image data is empty", http.StatusBadRequest)
-		return
-	}
+	if isRemoval {
+		// Profile picture removal - set to NULL
+		log.Printf("🗑️✅ EDIT PROFILE PICTURE: PROCESSING REMOVAL:")
+		log.Printf("  🎯 Setting profile_image_blob to NULL for user %d", req.UserID)
+		processedImage = nil
+	} else {
+		// Profile picture update - validate and use provided image
+		log.Printf("🖼️✅ EDIT PROFILE PICTURE: USING PRE-PROCESSED IMAGE FROM FRONTEND:")
+		log.Printf("  📥 Frontend processed image data: %d bytes (%.2f KB)", len(req.ProfileImageB64), float64(len(req.ProfileImageB64))/1024)
+		log.Printf("  🎯 Skipping backend processing - frontend already optimized the image")
+		log.Printf("  📸 Image data preview: %s...", req.ProfileImageB64[:min(50, len(req.ProfileImageB64))])
+		
+		// Basic validation of image data
+		if len(req.ProfileImageB64) == 0 {
+			log.Printf("❌📸 EDIT PROFILE PICTURE: IMAGE DATA IS EMPTY")
+			http.Error(w, "Image data is empty", http.StatusBadRequest)
+			return
+		}
 
-	// Validate that it looks like base64 image data
-	if !strings.Contains(req.ProfileImageB64, "/9j/") && !strings.Contains(req.ProfileImageB64, "iVBORw0") {
-		log.Printf("❌📸 EDIT PROFILE PICTURE: INVALID IMAGE DATA FORMAT")
-		log.Printf("  🔍 Image data preview: %s...", req.ProfileImageB64[:min(100, len(req.ProfileImageB64))])
-		http.Error(w, "Invalid image data format", http.StatusBadRequest)
-		return
-	}
+		// Validate that it looks like base64 image data
+		if !strings.Contains(req.ProfileImageB64, "/9j/") && !strings.Contains(req.ProfileImageB64, "iVBORw0") {
+			log.Printf("❌📸 EDIT PROFILE PICTURE: INVALID IMAGE DATA FORMAT")
+			log.Printf("  🔍 Image data preview: %s...", req.ProfileImageB64[:min(100, len(req.ProfileImageB64))])
+			http.Error(w, "Invalid image data format", http.StatusBadRequest)
+			return
+		}
 
-	// Use the frontend-processed image directly
-	processedImage := req.ProfileImageB64
-	log.Printf("✅📸 EDIT PROFILE PICTURE: VALIDATED FRONTEND-PROCESSED IMAGE")
-	log.Printf("  📊 Final image size: %d bytes (%.2f KB)", len(processedImage), float64(len(processedImage))/1024)
+		// Use the frontend-processed image directly
+		processedImage = &req.ProfileImageB64
+		log.Printf("✅📸 EDIT PROFILE PICTURE: VALIDATED FRONTEND-PROCESSED IMAGE")
+		log.Printf("  📊 Final image size: %d bytes (%.2f KB)", len(*processedImage), float64(len(*processedImage))/1024)
+	}
 
 	// Update profile_image_blob in database
 	log.Printf("💾🔄 EDIT PROFILE PICTURE: STARTING DATABASE UPDATE...")
 	log.Printf("  🎯 Updating user ID: %d", req.UserID)
-	log.Printf("  📊 Image data to store: %d bytes", len(processedImage))
+	if processedImage != nil {
+		log.Printf("  📊 Image data to store: %d bytes", len(*processedImage))
+	} else {
+		log.Printf("  🗑️ Setting profile image to NULL (removal)")
+	}
 	
 	result, err := db.Exec(
 		"UPDATE users SET profile_image_blob = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
@@ -647,7 +662,11 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		log.Printf("❌💾 EDIT PROFILE PICTURE: DATABASE UPDATE FAILED:")
 		log.Printf("  💥 Error: %v", err)
 		log.Printf("  🆔 User ID: %d", req.UserID)
-		log.Printf("  📊 Data size: %d bytes", len(processedImage))
+		if processedImage != nil {
+			log.Printf("  📊 Data size: %d bytes", len(*processedImage))
+		} else {
+			log.Printf("  🗑️ Data: NULL (removal)")
+		}
 		log.Printf("  🕐 Failed at: %s", time.Now().Format("2006-01-02 15:04:05.000 MST"))
 		http.Error(w, "Failed to update profile picture in database", http.StatusInternalServerError)
 		return
@@ -657,7 +676,11 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	log.Printf("✅💾 EDIT PROFILE PICTURE: DATABASE UPDATE SUCCESSFUL:")
 	log.Printf("  📊 Rows affected: %d", rowsAffected)
 	log.Printf("  🆔 User ID: %d", req.UserID)
-	log.Printf("  📸 Image size stored: %d bytes", len(processedImage))
+	if processedImage != nil {
+		log.Printf("  📸 Image size stored: %d bytes", len(*processedImage))
+	} else {
+		log.Printf("  🗑️ Profile image set to NULL (removed)")
+	}
 	log.Printf("  🕐 Updated at: %s", time.Now().Format("2006-01-02 15:04:05.000 MST"))
 
 	// Retrieve updated user data
@@ -699,13 +722,33 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		req.OperationID, req.DeviceID, req.Timestamp)
 	
 	// Prepare sync operation data for recording
-	syncOperationData := map[string]interface{}{
-		"user_id":          req.UserID,
-		"action":           "update",
-		"type":             "profile_picture",
-		"image_size":       len(processedImage),
-		"processed_at":     time.Now().Format("2006-01-02 15:04:05"),
-		"has_profile_image": true,
+	// IMPORTANT: Include the actual image data so other devices can sync the complete profile picture
+	var syncOperationData map[string]interface{}
+	
+	if isRemoval {
+		// Profile picture removal
+		syncOperationData = map[string]interface{}{
+			"user_id":              req.UserID,
+			"action":               "update",
+			"type":                 "profile_picture",
+			"profile_image_base64": "", // Empty string indicates removal
+			"image_size":           0,
+			"processed_at":         time.Now().Format("2006-01-02 15:04:05"),
+			"has_profile_image":    false,
+		}
+		log.Printf("🗑️ SYNC: Recording profile picture REMOVAL operation")
+	} else {
+		// Profile picture update  
+		syncOperationData = map[string]interface{}{
+			"user_id":              req.UserID,
+			"action":               "update",
+			"type":                 "profile_picture", 
+			"profile_image_base64": *processedImage,  // Include the actual image data for sync
+			"image_size":           len(*processedImage),
+			"processed_at":         time.Now().Format("2006-01-02 15:04:05"),
+			"has_profile_image":    true,
+		}
+		log.Printf("🖼️ SYNC: Recording profile picture UPDATE operation (image size: %d bytes)", len(*processedImage))
 	}
 	
 	log.Printf("🔄 DEBUG: Calling addSyncOperation with params: userID=%d, operationID='%s', deviceID='%s'",
@@ -733,15 +776,23 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	// Return success response with updated user data
 	log.Printf("📤🎉 EDIT PROFILE PICTURE: SENDING SUCCESS RESPONSE...")
 	w.Header().Set("Content-Type", "application/json")
+	
+	var message string
+	if isRemoval {
+		message = "Profile picture removed successfully"
+	} else {
+		message = fmt.Sprintf("Profile picture updated successfully. Image size: %d bytes", len(*processedImage))
+	}
+	
 	response := ApiResponse{
 		Success: true,
-		Message: fmt.Sprintf("Profile picture updated successfully. Image size: %d bytes", len(processedImage)),
+		Message: message,
 		Data:    updatedUser,
 	}
 	
 	log.Printf("📋📤 EDIT PROFILE PICTURE: RESPONSE DETAILS:")
 	log.Printf("  ✅ Success: true")
-	log.Printf("  📝 Message: Profile picture updated successfully. Image size: %d bytes", len(processedImage))
+	log.Printf("  📝 Message: %s", message)
 	log.Printf("  👤 User ID: %d", updatedUser.ID)
 	log.Printf("  📧 Email: %s", updatedUser.Email)
 	log.Printf("  👨 Name: %s", updatedUser.Name)
