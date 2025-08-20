@@ -9,7 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
-	"image/gif"
+	_ "image/gif"
 	"image/jpeg"
 	"image/png"
 	"log"
