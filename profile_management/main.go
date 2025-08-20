@@ -9,6 +9,7 @@ import (
 	"flag"
 	"fmt"
 	"image"
+	"image/gif"
 	"image/jpeg"
 	"image/png"
 	"log"
@@ -23,6 +24,9 @@ import (
 	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/nfnt/resize"
+	_ "golang.org/x/image/bmp"
+	_ "golang.org/x/image/tiff"
+	_ "golang.org/x/image/webp"
 )
 
 // Definición de estructuras de datos
@@ -631,9 +635,9 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		// Validate that it looks like base64 image data
-		if !strings.Contains(req.ProfileImageB64, "/9j/") && !strings.Contains(req.ProfileImageB64, "iVBORw0") {
-			log.Printf("❌📸 EDIT PROFILE PICTURE: INVALID IMAGE DATA FORMAT")
+		// Basic validation that it's base64 data (removed format-specific restrictions)
+		if len(strings.TrimSpace(req.ProfileImageB64)) < 10 {
+			log.Printf("❌📸 EDIT PROFILE PICTURE: INVALID IMAGE DATA - TOO SHORT")
 			log.Printf("  🔍 Image data preview: %s...", req.ProfileImageB64[:min(100, len(req.ProfileImageB64))])
 			http.Error(w, "Invalid image data format", http.StatusBadRequest)
 			return
