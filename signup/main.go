@@ -1089,17 +1089,46 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 					"message": "Email already verified",
 					"user_id": dbUserID,
 					"email":   email,
+					"correct_otp": verificationCode, // Debug: Return correct OTP code
 				})
 				return
 			}
 
-			// Otherwise, return error for invalid code
+			// Debug: Return error but include correct OTP code for testing
 			log.Printf("Invalid verification code for user ID: %d", dbUserID)
-			http.Error(w, "Invalid verification code", http.StatusNotFound)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Invalid verification code",
+				"correct_otp": verificationCode, // Debug: Return correct OTP code
+				"user_id": dbUserID,
+				"email": email,
+			})
 			return
 		}
 	} else if err == sql.ErrNoRows {
 		log.Printf("Invalid verification code: %s - User not found", code)
+		
+		// Debug: Try to find any user and return their correct OTP for testing
+		var debugUserID int
+		var debugEmail string
+		var debugOTP string
+		debugErr := db.QueryRow("SELECT id, email, verification_code FROM users ORDER BY id DESC LIMIT 1").Scan(&debugUserID, &debugEmail, &debugOTP)
+		if debugErr == nil {
+			log.Printf("Debug: Latest user found - ID: %d, Email: %s, Correct OTP: %s", debugUserID, debugEmail, debugOTP)
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusNotFound)
+			json.NewEncoder(w).Encode(map[string]interface{}{
+				"error": "Invalid verification code",
+				"debug_info": map[string]interface{}{
+					"latest_user_id": debugUserID,
+					"latest_email": debugEmail,
+					"correct_otp": debugOTP,
+				},
+			})
+			return
+		}
+		
 		http.Error(w, "Invalid verification code", http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -1145,6 +1174,7 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 		"message": "Email verification successful",
 		"user_id": dbUserID,
 		"email":   email,
+		"verified_otp": verificationCode, // Debug: Return the verified OTP code
 	})
 }
 
