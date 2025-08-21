@@ -1043,7 +1043,7 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	var verified bool
 
 	err := db.QueryRow(
-		"SELECT id, email, verification_code, verified_email FROM users WHERE verification_code = ?",
+		"SELECT id, email, verification_code, verified_email FROM users WHERE verification_code = ? AND type = 'email'",
 		code,
 	).Scan(&dbUserID, &email, &verificationCode, &verified)
 
@@ -1056,10 +1056,10 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 		var queryParams []interface{}
 
 		if userID != "" {
-			query = "SELECT id, email, verification_code, verified_email FROM users WHERE id = ?"
+			query = "SELECT id, email, verification_code, verified_email FROM users WHERE id = ? AND type = 'email'"
 			queryParams = []interface{}{userID}
 		} else {
-			query = "SELECT id, email, verification_code, verified_email FROM users WHERE email = ?"
+			query = "SELECT id, email, verification_code, verified_email FROM users WHERE email = ? AND type = 'email'"
 			queryParams = []interface{}{emailParam}
 		}
 
@@ -1215,12 +1215,12 @@ func handleResendVerification(w http.ResponseWriter, r *http.Request) {
 	var queryParams []interface{}
 
 	if req.UserID != "" {
-		// If we have a user ID, use that for lookup
-		query = "SELECT id, email, name, verification_code, locale FROM users WHERE id = ?"
+		// If we have a user ID, use that for lookup - filter by type='email' only
+		query = "SELECT id, email, name, verification_code, locale FROM users WHERE id = ? AND type = 'email'"
 		queryParams = []interface{}{req.UserID}
 	} else {
-		// Otherwise use email
-		query = "SELECT id, email, name, verification_code, locale FROM users WHERE email = ?"
+		// Otherwise use email - filter by type='email' only
+		query = "SELECT id, email, name, verification_code, locale FROM users WHERE email = ? AND type = 'email'"
 		queryParams = []interface{}{req.Email}
 	}
 
@@ -1322,12 +1322,12 @@ func handleCheckVerification(w http.ResponseWriter, r *http.Request) {
 	var queryParams []interface{}
 
 	if req.UserID != "" {
-		// If we have a user ID, use that for lookup
-		query = "SELECT verified_email FROM users WHERE id = ?"
+		// If we have a user ID, use that for lookup - filter by type='email' only
+		query = "SELECT verified_email FROM users WHERE id = ? AND type = 'email'"
 		queryParams = []interface{}{req.UserID}
 	} else {
-		// Otherwise use email
-		query = "SELECT verified_email FROM users WHERE email = ?"
+		// Otherwise use email - filter by type='email' only
+		query = "SELECT verified_email FROM users WHERE email = ? AND type = 'email'"
 		queryParams = []interface{}{req.Email}
 	}
 
