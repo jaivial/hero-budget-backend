@@ -27,15 +27,15 @@ type User struct {
 	GivenName         string    `json:"given_name"`
 	FamilyName        string    `json:"family_name"`
 	Picture           string    `json:"picture"`
-	ProfileImageBlob  string    `json:"profile_image_blob,omitempty"`
+	ProfileImageBlob  string    `json:"profile_image_blob"`
 	Locale            string    `json:"locale"`
 	VerifiedEmail     bool      `json:"verified_email"`
 	VerificationCode  string    `json:"verification_code,omitempty"`
 	Type              string    `json:"type"`
 	CreatedAt         time.Time `json:"created_at"`
 	UpdatedAt         time.Time `json:"updated_at"`
-	ResetToken        string    `json:"reset_token,omitempty"`
-	ResetExpires      string    `json:"reset_expires,omitempty"`
+	ResetToken        string    `json:"reset_token"`
+	ResetExpires      string    `json:"reset_expires"`
 	DisplayImage      string    `json:"display_image"`
 }
 
