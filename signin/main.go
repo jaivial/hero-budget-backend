@@ -18,20 +18,25 @@ var (
 )
 
 type User struct {
-	ID               int       `json:"id"`
-	GoogleID         string    `json:"google_id"`
-	Email            string    `json:"email"`
-	Password         string    `json:"-"` // Never send password to client
-	Name             string    `json:"name"`
-	GivenName        string    `json:"given_name"`
-	FamilyName       string    `json:"family_name"`
-	Picture          string    `json:"picture"`
-	ProfileImageBlob string    `json:"profile_image_blob,omitempty"`
-	Locale           string    `json:"locale"`
-	VerifiedEmail    bool      `json:"verified_email"`
-	CreatedAt        time.Time `json:"created_at"`
-	UpdatedAt        time.Time `json:"updated_at"`
-	DisplayImage     string    `json:"display_image"`
+	ID                int       `json:"id"`
+	GoogleID          string    `json:"google_id"`
+	AppleID           string    `json:"apple_id"`
+	Email             string    `json:"email"`
+	Password          string    `json:"-"` // Never send password to client
+	Name              string    `json:"name"`
+	GivenName         string    `json:"given_name"`
+	FamilyName        string    `json:"family_name"`
+	Picture           string    `json:"picture"`
+	ProfileImageBlob  string    `json:"profile_image_blob,omitempty"`
+	Locale            string    `json:"locale"`
+	VerifiedEmail     bool      `json:"verified_email"`
+	VerificationCode  string    `json:"verification_code,omitempty"`
+	Type              string    `json:"type"`
+	CreatedAt         time.Time `json:"created_at"`
+	UpdatedAt         time.Time `json:"updated_at"`
+	ResetToken        string    `json:"reset_token,omitempty"`
+	ResetExpires      string    `json:"reset_expires,omitempty"`
+	DisplayImage      string    `json:"display_image"`
 }
 
 type SignInRequest struct {
@@ -43,6 +48,16 @@ type SignInResponse struct {
 	Success bool        `json:"success"`
 	Message string      `json:"message,omitempty"`
 	User    interface{} `json:"user,omitempty"`
+}
+
+type FetchUserDataRequest struct {
+	UserID int `json:"user_id"`
+}
+
+type FetchUserDataResponse struct {
+	Success bool   `json:"success"`
+	Message string `json:"message,omitempty"`
+	Data    *User  `json:"data,omitempty"`
 }
 
 func init() {
@@ -92,6 +107,7 @@ func main() {
 	// Set up CORS middleware
 	http.HandleFunc("/signin", corsMiddleware(handleSignIn))
 	http.HandleFunc("/signin/check-email", corsMiddleware(handleCheckEmail))
+	http.HandleFunc("/signin/fetch-user-data", corsMiddleware(handleFetchUserData))
 
 	log.Println("SignIn service started on :8084")
 	log.Fatal(http.ListenAndServe(":8084", nil))
@@ -296,6 +312,178 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 	})
 
 	log.Printf("User %s logged in successfully", user.Email)
+}
+
+/**
+ * handleFetchUserData - Fetches complete user data by user ID
+ * 
+ * Purpose: Provides complete user record from database for loginService synchronization
+ * Used by mobile app to sync server user data with local database after successful authentication
+ * 
+ * Endpoint: POST /signin/fetch-user-data
+ * Request: { "user_id": <integer> }
+ * Response: { "success": <boolean>, "data": <User>, "message": <string> }
+ * 
+ * Security: No authentication required as this is called immediately after successful login
+ * Database: Queries users table with all available columns
+ * 
+ * Algorithm:
+ * 1. Validate POST method and parse JSON request body
+ * 2. Validate user_id parameter is provided and valid
+ * 3. Query database for complete user record by ID
+ * 4. Handle nullable database fields safely using sql.NullString
+ * 5. Convert database types to Go struct with proper field mapping
+ * 6. Set display_image based on user type and available profile data
+ * 7. Return complete user data as JSON response
+ */
+func handleFetchUserData(w http.ResponseWriter, r *http.Request) {
+	// Step 1: Validate HTTP method
+	if r.Method != "POST" {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusMethodNotAllowed)
+		json.NewEncoder(w).Encode(FetchUserDataResponse{
+			Success: false,
+			Message: "Method not allowed - use POST",
+		})
+		return
+	}
+
+	// Step 2: Parse and validate request body
+	var req FetchUserDataRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		log.Printf("Error parsing request body: %v", err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(FetchUserDataResponse{
+			Success: false,
+			Message: "Invalid request body - expected JSON with user_id",
+		})
+		return
+	}
+
+	// Step 3: Validate user_id parameter
+	if req.UserID <= 0 {
+		log.Printf("Invalid user_id provided: %d", req.UserID)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(FetchUserDataResponse{
+			Success: false,
+			Message: "Invalid user_id - must be a positive integer",
+		})
+		return
+	}
+
+	log.Printf("Fetching complete user data for user ID: %d", req.UserID)
+
+	// Step 4: Query database for complete user record
+	// Use sql.NullString for nullable fields to handle NULL values safely
+	var user User
+	var googleID sql.NullString
+	var appleID sql.NullString
+	var password sql.NullString
+	var name sql.NullString
+	var givenName sql.NullString
+	var familyName sql.NullString
+	var picture sql.NullString
+	var profileImageBlob sql.NullString
+	var locale sql.NullString
+	var verificationCode sql.NullString
+	var userType sql.NullString
+	var resetToken sql.NullString
+	var resetExpires sql.NullString
+
+	// Step 5: Execute comprehensive database query with all user table columns
+	err := db.QueryRow(`
+		SELECT 
+			id, google_id, apple_id, email, password, name, given_name, family_name,
+			picture, profile_image_blob, locale, verified_email, verification_code,
+			type, created_at, updated_at, reset_token, reset_expires
+		FROM users 
+		WHERE id = ?
+	`, req.UserID).Scan(
+		&user.ID,
+		&googleID,
+		&appleID,
+		&user.Email,
+		&password, // Password is scanned but never returned to client (json:"-" tag)
+		&name,
+		&givenName,
+		&familyName,
+		&picture,
+		&profileImageBlob,
+		&locale,
+		&user.VerifiedEmail,
+		&verificationCode,
+		&userType,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+		&resetToken,
+		&resetExpires,
+	)
+
+	// Step 6: Handle query results and errors
+	if err == sql.ErrNoRows {
+		log.Printf("User not found with ID: %d", req.UserID)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusNotFound)
+		json.NewEncoder(w).Encode(FetchUserDataResponse{
+			Success: false,
+			Message: "User not found",
+		})
+		return
+	} else if err != nil {
+		log.Printf("Database error fetching user %d: %v", req.UserID, err)
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusInternalServerError)
+		json.NewEncoder(w).Encode(FetchUserDataResponse{
+			Success: false,
+			Message: "Database error occurred",
+		})
+		return
+	}
+
+	// Step 7: Convert sql.NullString values to regular strings for User struct
+	// This ensures safe handling of NULL database values
+	user.GoogleID = googleID.String
+	user.AppleID = appleID.String
+	user.Name = name.String
+	user.GivenName = givenName.String
+	user.FamilyName = familyName.String
+	user.Picture = picture.String
+	user.ProfileImageBlob = profileImageBlob.String
+	user.Locale = locale.String
+	user.VerificationCode = verificationCode.String
+	user.Type = userType.String
+	user.ResetToken = resetToken.String
+	user.ResetExpires = resetExpires.String
+
+	// Step 8: Set display_image based on user type and available profile data
+	// Priority: profile_image_blob > picture > empty string
+	if user.ProfileImageBlob != "" {
+		user.DisplayImage = user.ProfileImageBlob
+		log.Printf("Set display_image from profile_image_blob for user %d (size: %d bytes)", 
+			user.ID, len(user.ProfileImageBlob))
+	} else if user.Picture != "" {
+		user.DisplayImage = user.Picture
+		log.Printf("Set display_image from picture URL for user %d", user.ID)
+	} else {
+		log.Printf("No profile image available for user %d", user.ID)
+	}
+
+	// Step 9: Log successful data retrieval for debugging
+	log.Printf("Successfully fetched complete user data for user %d: email=%s, type=%s, verified=%t", 
+		user.ID, user.Email, user.Type, user.VerifiedEmail)
+
+	// Step 10: Return complete user data as JSON response
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(FetchUserDataResponse{
+		Success: true,
+		Data:    &user,
+		Message: "User data retrieved successfully",
+	})
+
+	log.Printf("Complete user data response sent for user %d", user.ID)
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value
