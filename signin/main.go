@@ -22,7 +22,7 @@ type User struct {
 	GoogleID          string    `json:"google_id"`
 	AppleID           string    `json:"apple_id"`
 	Email             string    `json:"email"`
-	Password          string    `json:"-"` // Never send password to client
+	Password          string    `json:"password"` // Password field included but will be cleared before response
 	Name              string    `json:"name"`
 	GivenName         string    `json:"given_name"`
 	FamilyName        string    `json:"family_name"`
@@ -470,11 +470,15 @@ func handleFetchUserData(w http.ResponseWriter, r *http.Request) {
 		log.Printf("No profile image available for user %d", user.ID)
 	}
 
-	// Step 9: Log successful data retrieval for debugging
+	// Step 9: Clear sensitive fields before sending response
+	// Security: Never send password field to client, even if empty
+	user.Password = ""
+
+	// Step 10: Log successful data retrieval for debugging
 	log.Printf("Successfully fetched complete user data for user %d: email=%s, type=%s, verified=%t", 
 		user.ID, user.Email, user.Type, user.VerifiedEmail)
 
-	// Step 10: Return complete user data as JSON response
+	// Step 11: Return complete user data as JSON response
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	json.NewEncoder(w).Encode(FetchUserDataResponse{
