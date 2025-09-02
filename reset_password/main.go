@@ -394,6 +394,10 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	// The format should be: herobudget://reset-password?token=RESET_TOKEN&user_id=USER_ID
 	resetLink := fmt.Sprintf("herobudget://reset-password?token=%s&user_id=%d", resetToken, userID)
 	log.Printf("Generated reset link: %s", resetLink)
+	
+	// Also create URL encoded version for better email client compatibility
+	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
+	log.Printf("URL encoded reset link: %s", encodedResetLink)
 
 	// Read the herobudgeticon.png image for embedding
 	imgPath := filepath.Join("..", "..", "assets", "images", "herobudgeticon.png")
