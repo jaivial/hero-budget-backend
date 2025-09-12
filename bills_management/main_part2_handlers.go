@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -134,14 +135,26 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 	}
 	
 	// Insertar factura en la base de datos
-	result, err := db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+	var result sql.Result
+	var err error
+	var billID int64
+	
+	if addRequest.BillID > 0 {
+		// Use client-provided bill ID for sync consistency
+		result, err = db.Exec("INSERT INTO bills (id, user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.BillID, addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		billID = int64(addRequest.BillID)
+	} else {
+		// Auto-generate bill ID (legacy behavior)
+		result, err = db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		if err == nil {
+			billID, _ = result.LastInsertId()
+		}
+	}
+	
 	if err != nil {
 		sendErrorResponse(w, "Error adding bill", http.StatusInternalServerError)
 		return
 	}
-	
-	// Obtener ID de la factura creada
-	billID, _ := result.LastInsertId()
 
 	// Always record sync operation with auto-generated operation_id
 	log.Printf("Recording sync operation for bill creation with auto-generated operation_id")

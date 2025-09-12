@@ -55,6 +55,7 @@ type Bill struct {
 // Incluye parámetros de sincronización para seguimiento de operaciones incrementales
 type AddBillRequest struct {
 	UserID         string  `json:"user_id"`
+	BillID         int     `json:"bill_id,omitempty"`        // Client-provided bill ID for sync consistency
 	Name           string  `json:"name"`
 	Amount         float64 `json:"amount"`
 	DueDate        string  `json:"due_date"`
