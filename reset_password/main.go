@@ -520,10 +520,26 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
             -webkit-font-smoothing: antialiased !important;
             -moz-osx-font-smoothing: grayscale !important;
         }
+        .btn {
+            background: rgba(255, 255, 255, 0.15) !important;
+            border: 2px solid rgba(255, 255, 255, 0.3) !important;
+            border-radius: 16px !important;
+            padding: 18px 36px !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-weight: 800 !important;
+            font-size: 18px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 2px !important;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+            display: inline-block !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;
+        }
         @media only screen and (max-width: 480px) {
             .main-container { margin: 10px !important; padding: 20px !important; }
             .hero-title { font-size: 28px !important; }
-            .code-container { font-size: 32px !important; padding: 20px !important; }
+            .btn { font-size: 16px !important; padding: 16px 24px !important; }
         }
     </style>
 </head>
@@ -545,13 +561,9 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
 
                         <!-- Reset button -->
-                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 25px auto;">
-                            <tr>
-                                <td style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 16px; padding: 18px 36px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);">
-                                    <a href="%s" style="color: #ffffff !important; text-decoration: none !important; font-weight: 800 !important; font-size: 18px !important; text-transform: uppercase !important; letter-spacing: 2px !important; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; display: inline-block !important;">%s</a>
-                                </td>
-                            </tr>
-                        </table>
+                        <div style="text-align: center; margin: 25px 0;">
+                            <a href="%s" class="btn">%s</a>
+                        </div>
                     </div>
 
                     <!-- Footer -->
