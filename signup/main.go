@@ -47,6 +47,7 @@ var (
 // Email template structure for verification
 type VerificationEmailTemplate struct {
 	Subject      string `json:"subject"`
+	Subtitle     string `json:"subtitle"`
 	Greeting     string `json:"greeting"`
 	Message      string `json:"message"`
 	CodeLabel    string `json:"code_label"`
@@ -852,7 +853,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
                     <div style="text-align: center; margin-bottom: 30px;">
                         %s
                         <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
-                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">Email Verification</p>
+                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">%s</p>
                     </div>
 
                     <!-- Main content -->
@@ -890,6 +891,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 `,
 		emailTemplate.Subject,
 		imageTag,
+		emailTemplate.Subtitle,
 		greetingBuf.String(),
 		emailTemplate.Message,
 		emailTemplate.CodeLabel,
