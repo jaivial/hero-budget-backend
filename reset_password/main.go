@@ -365,7 +365,6 @@ func init() {
 	log.Println("Reset Password service initialized successfully")
 }
 
-
 func main() {
 	// Setup HTTP handlers
 	http.HandleFunc("/reset-password/request", corsMiddleware(handleResetRequest))
@@ -461,7 +460,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	// The format should be: herobudget://reset-password?token=RESET_TOKEN&user_id=USER_ID
 	resetLink := fmt.Sprintf("herobudget://reset-password?token=%s&user_id=%d", resetToken, userID)
 	log.Printf("Generated reset link: %s", resetLink)
-	
+
 	// Also create URL encoded version for better email client compatibility
 	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
 	log.Printf("URL encoded reset link: %s", encodedResetLink)
@@ -474,23 +473,11 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", "Reset Password")
 
-
 	// Simple email template - no complex processing needed
 
 	// Create simple email template with just a button
-	emailBody := fmt.Sprintf(`<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <title>Reset Password</title>
-</head>
-<body style="font-family: Arial, sans-serif; padding: 20px;">
-    <div style="text-align: center;">
-        <a href="%s" style="display: inline-block; background-color: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Reset Password</a>
-    </div>
-</body>
-</html>
-`, resetLink
+	emailBody := fmt.Sprintf(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reset Password</title></head><body style="font-family: Arial, sans-serif; padding: 20px;"><div style="text-align: center;"><a href="%s" style="display: inline-block; background-color: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Reset Password</a></div></body></html>`,
+		resetLink,
 	)
 
 	// Set HTML as primary content with proper headers for better client compatibility
@@ -728,7 +715,7 @@ func handleUpdatePassword(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 		}
-		
+
 		if time.Now().After(expires) {
 			log.Printf("Token expired: %s", req.Token)
 			w.Header().Set("Content-Type", "application/json")
