@@ -525,21 +525,23 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
             .hero-title { font-size: 28px !important; }
         }
         .reset-button {
-            background-color: #667eea !important;
-            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important;
-            color: #ffffff !important;
+            background-color: #ffffff !important;
+            background: rgba(255, 255, 255, 0.95) !important;
+            border: 2px solid #ffffff !important;
+            border-radius: 12px !important;
+            display: inline-block !important;
             text-decoration: none !important;
+            color: #667eea !important;
             font-weight: bold !important;
             font-size: 16px !important;
             text-transform: uppercase !important;
             letter-spacing: 1px !important;
             font-family: Arial, sans-serif !important;
-            display: inline-block !important;
             padding: 16px 32px !important;
             line-height: 1.2 !important;
-            border-radius: 12px !important;
-            border: 2px solid #ffffff !important;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+            text-align: center !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+            transition: all 0.3s ease !important;
         }
     </style>
 </head>
@@ -560,10 +562,16 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                         <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
 
-                        <!-- Reset button with enhanced styling -->
-                        <div style="margin: 25px auto; text-align: center;">
-                            <a href="%s" class="reset-button" style="background-color: #667eea !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; color: #ffffff !important; text-decoration: none !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; display: inline-block !important; padding: 16px 32px !important; line-height: 1.2 !important; border-radius: 12px !important; border: 2px solid #ffffff !important; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important;">%s</a>
+                        <!-- Reset button - IMPROVED VERSION -->
+                        <div style="text-align: center; margin: 25px 0;">
+                            <a href="%s" class="reset-button" style="background-color: #ffffff !important; background: rgba(255, 255, 255, 0.95) !important; border: 2px solid #ffffff !important; border-radius: 12px !important; display: inline-block !important; text-decoration: none !important; color: #667eea !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; padding: 16px 32px !important; line-height: 1.2 !important; text-align: center !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;">%s</a>
                         </div>
+
+                        <!-- Alternative plain text link for email clients that don't support buttons -->
+                        <p style="margin: 15px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">
+                            Si el botó no funciona, copia i enganxa aquest enllaç al teu navegador:<br/>
+                            <a href="%s" style="color: rgba(255,255,255,0.9) !important; text-decoration: underline !important; word-break: break-all;">%s</a>
+                        </p>
                     </div>
 
                     <!-- Footer -->
@@ -579,18 +587,48 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 </body>
 </html>
 `,
-		emailTemplate.Subject,
+		emailTemplate.Subject,      // %s in <title>
+		emailTemplate.Subtitle,     // %s for subtitle
+		greetingBuf.String(),      // %s for greeting
+		emailTemplate.Message,     // %s for main message
+		resetLink,                 // %s for button href
+		emailTemplate.ButtonText,  // %s for button text
+		resetLink,                 // %s for alternative link href
+		resetLink,                 // %s for alternative link text
+		emailTemplate.ExpiryNotice, // %s for expiry notice
+		emailTemplate.Footer,      // %s for footer
+	)
+
+	// Set both HTML and plain text versions for better compatibility
+	m.SetBody("text/html", emailBody)
+
+	// Create a plain text version as fallback
+	plainTextBody := fmt.Sprintf(`
+HERO BUDGET
+%s
+
+%s
+
+%s
+
+%s: %s
+
+%s
+
+%s
+
+© 2025 Hero Budget. All rights reserved.
+`,
 		emailTemplate.Subtitle,
 		greetingBuf.String(),
 		emailTemplate.Message,
-		resetLink,
 		emailTemplate.ButtonText,
+		resetLink,
 		emailTemplate.ExpiryNotice,
 		emailTemplate.Footer,
 	)
 
-	// Set the email body
-	m.SetBody("text/html", emailBody)
+	m.AddAlternative("text/plain", plainTextBody)
 
 	// Set up email sending
 	d := gomail.NewDialer(smtpHost, smtpPort, smtpUsername, smtpPassword)
