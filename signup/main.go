@@ -832,18 +832,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
             -moz-osx-font-smoothing: grayscale !important;
         }
 
-        /* Override dark mode styles */
-        @media (prefers-color-scheme: dark) {
-            body, html, * { background-color: #ffffff !important; color: #333333 !important; }
-            .main-container { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; }
-            .code-container { background-color: #ffffff !important; color: #6366f1 !important; }
-            .text-primary { color: #1e293b !important; }
-        }
-
-        /* Dark mode overrides for specific email clients */
-        [data-ogsc] body, [data-ogsc] * { background-color: #ffffff !important; color: #333333 !important; }
-        [data-ogsc] .main-container { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; }
-        [data-ogsc] .code-container { background-color: #ffffff !important; color: #6366f1 !important; }
+        /* Remove all white background overrides to prevent white divs */
 
         /* Mobile responsiveness */
         @media only screen and (max-width: 480px) {
@@ -853,11 +842,11 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
         }
     </style>
 </head>
-<body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background-color: #f1f5f9 !important; line-height: 1.6 !important;">
-    <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background-color: #f1f5f9;">
+<body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; line-height: 1.6 !important; min-height: 100vh !important;">
+    <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background: transparent;">
         <tr>
             <td style="padding: 20px 15px;">
-                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden; padding: 30px 20px;">
+                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: transparent; border-radius: 16px; overflow: hidden; padding: 30px 20px;">
 
                     <!-- Header with logo -->
                     <div style="text-align: center; margin-bottom: 30px;">
@@ -876,8 +865,8 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
                         <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
 
                         <!-- Verification code container -->
-                        <div class="code-container" style="background: linear-gradient(135deg, #ffffff 0%%, #f8fafc 100%%); border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 20px auto; max-width: 280px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
-                            <div style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace; font-size: 38px; font-weight: 700; letter-spacing: 6px; color: #6366f1; text-align: center; text-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);">
+                        <div class="code-container" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border: 2px solid rgba(255, 255, 255, 0.3) !important; border-radius: 16px !important; padding: 28px !important; margin: 25px auto !important; max-width: 300px !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;">
+                            <div style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace !important; font-size: 42px !important; font-weight: 800 !important; letter-spacing: 8px !important; color: #ffffff !important; text-align: center !important; text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important;">
                                 %s
                             </div>
                         </div>
