@@ -524,6 +524,23 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
             .main-container { margin: 10px !important; padding: 20px !important; }
             .hero-title { font-size: 28px !important; }
         }
+        .reset-button {
+            background-color: #667eea !important;
+            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            font-family: Arial, sans-serif !important;
+            display: inline-block !important;
+            padding: 16px 32px !important;
+            line-height: 1.2 !important;
+            border-radius: 12px !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+        }
     </style>
 </head>
 <body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; line-height: 1.6 !important; min-height: 100vh !important;">
@@ -543,14 +560,10 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                         <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
 
-                        <!-- Reset button -->
-                        <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin: 25px auto;">
-                            <tr>
-                                <td style="background-color: #ffffff; background: rgba(255, 255, 255, 0.9); border: 2px solid #ffffff; border-radius: 12px; text-align: center;">
-                                    <a href="%s" style="color: #667eea !important; text-decoration: none !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; display: block !important; padding: 16px 32px !important; line-height: 1.2 !important;">%s</a>
-                                </td>
-                            </tr>
-                        </table>
+                        <!-- Reset button with enhanced styling -->
+                        <div style="margin: 25px auto; text-align: center;">
+                            <a href="%s" class="reset-button" style="background-color: #667eea !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; color: #ffffff !important; text-decoration: none !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; display: inline-block !important; padding: 16px 32px !important; line-height: 1.2 !important; border-radius: 12px !important; border: 2px solid #ffffff !important; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important; -webkit-font-smoothing: antialiased !important; -moz-osx-font-smoothing: grayscale !important;">%s</a>
+                        </div>
                     </div>
 
                     <!-- Footer -->
