@@ -686,7 +686,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 	log.Printf("Sending verification email with OTP - Email: %s, Code: %s, Name: %s, Language: %s", toEmail, verificationCode, userName, language)
 
 	// Read the herobudgeticon.png image for embedding
-	imgPath := filepath.Join("..", "..", "assets", "images", "herobudgeticon.png")
+	imgPath := filepath.Join("..", "..", "HerobudgetReact", "assets", "images", "herobudgeticon.png")
 	imgData, err := os.ReadFile(imgPath)
 	if err != nil {
 		log.Printf("Warning: Could not read icon file: %v", err)
