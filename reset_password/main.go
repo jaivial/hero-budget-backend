@@ -472,8 +472,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
 	log.Printf("URL encoded reset link: %s", encodedResetLink)
 
-	// Use URL-based image with proper styling (same as signup service)
-	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%;" />`
+	// Image is now hardcoded directly in the template for better reliability
 
 	// Create email message
 	m := gomail.NewMessage()
