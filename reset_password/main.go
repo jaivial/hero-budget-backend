@@ -501,99 +501,20 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		return fmt.Errorf("failed to execute greeting template: %v", err)
 	}
 
-	// Create Outlook-compatible email template
-	emailBody := fmt.Sprintf(`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+	// Create simple email template with just a button
+	emailBody := fmt.Sprintf(`<!DOCTYPE html>
+<html>
 <head>
-    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <title>%s</title>
-    <style>
-        :root { color-scheme: light only !important; }
-        * {
-            box-sizing: border-box !important;
-            -webkit-text-size-adjust: 100%% !important;
-            -ms-text-size-adjust: 100%% !important;
-            -webkit-font-smoothing: antialiased !important;
-            -moz-osx-font-smoothing: grayscale !important;
-        }
-        @media only screen and (max-width: 480px) {
-            .main-container { margin: 10px !important; padding: 20px !important; }
-            .hero-title { font-size: 28px !important; }
-        }
-        .reset-button {
-            background-color: #ffffff !important;
-            background: rgba(255, 255, 255, 0.95) !important;
-            border: 2px solid #ffffff !important;
-            border-radius: 12px !important;
-            display: inline-block !important;
-            text-decoration: none !important;
-            color: #667eea !important;
-            font-weight: bold !important;
-            font-size: 16px !important;
-            text-transform: uppercase !important;
-            letter-spacing: 1px !important;
-            font-family: Arial, sans-serif !important;
-            padding: 16px 32px !important;
-            line-height: 1.2 !important;
-            text-align: center !important;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-            transition: all 0.3s ease !important;
-        }
-    </style>
+    <meta charset="UTF-8">
+    <title>Reset Password</title>
 </head>
-<body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; line-height: 1.6 !important; min-height: 100vh !important;">
-    <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background: transparent;">
-        <tr>
-            <td style="padding: 20px 15px;">
-                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: transparent; border-radius: 16px; overflow: hidden; padding: 30px 20px;">
-                    <!-- Header with logo -->
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%;" />
-                        <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
-                        <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255,255,255,0.95); font-weight: 400;">%s</p>
-                    </div>
-
-                    <!-- Main content -->
-                    <div style="text-align: center; margin-bottom: 30px;">
-                        <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
-                        <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
-
-                        <!-- Reset button - IMPROVED VERSION -->
-                        <div style="text-align: center; margin: 25px 0;">
-                            <a href="%s" class="reset-button" style="background-color: #ffffff !important; background: rgba(255, 255, 255, 0.95) !important; border: 2px solid #ffffff !important; border-radius: 12px !important; display: inline-block !important; text-decoration: none !important; color: #667eea !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; padding: 16px 32px !important; line-height: 1.2 !important; text-align: center !important; box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;">%s</a>
-                        </div>
-
-                        <!-- Alternative plain text link for email clients that don't support buttons -->
-                        <p style="margin: 15px 0 0 0; font-size: 14px; color: rgba(255,255,255,0.8);">
-                            Si el botó no funciona, copia i enganxa aquest enllaç al teu navegador:<br/>
-                            <a href="%s" style="color: rgba(255,255,255,0.9) !important; text-decoration: underline !important; word-break: break-all;">%s</a>
-                        </p>
-                    </div>
-
-                    <!-- Footer -->
-                    <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
-                        <p style="margin: 0 0 8px 0; font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4;">%s</p>
-                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">%s</p>
-                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">© 2025 Hero Budget. All rights reserved.</p>
-                    </div>
-                </div>
-            </td>
-        </tr>
-    </table>
+<body style="font-family: Arial, sans-serif; padding: 20px;">
+    <div style="text-align: center;">
+        <a href="%s" style="display: inline-block; background-color: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Reset Password</a>
+    </div>
 </body>
 </html>
-`,
-		emailTemplate.Subject,      // %s in <title>
-		emailTemplate.Subtitle,     // %s for subtitle
-		greetingBuf.String(),      // %s for greeting
-		emailTemplate.Message,     // %s for main message
-		resetLink,                 // %s for button href
-		emailTemplate.ButtonText,  // %s for button text
-		resetLink,                 // %s for alternative link href
-		resetLink,                 // %s for alternative link text
-		emailTemplate.ExpiryNotice, // %s for expiry notice
-		emailTemplate.Footer,      // %s for footer
+`, resetLink
 	)
 
 	// Set HTML as primary content with proper headers for better client compatibility
