@@ -472,7 +472,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
 	log.Printf("URL encoded reset link: %s", encodedResetLink)
 
-	// Image is now hardcoded directly in the template for better reliability
+	// Image hardcoded in template - updated version
 
 	// Create email message
 	m := gomail.NewMessage()
@@ -544,12 +544,14 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                         <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
 
-                        <!-- Reset button container -->
-                        <div class="code-container" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border: 2px solid rgba(255, 255, 255, 0.3) !important; border-radius: 16px !important; padding: 20px !important; margin: 25px auto !important; max-width: 300px !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;">
-                            <a href="%s" style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: 2px !important; color: #ffffff !important; text-align: center !important; text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important; text-decoration: none !important; text-transform: uppercase !important; display: block !important;">
-                                %s
-                            </a>
-                        </div>
+                        <!-- Reset button -->
+                        <table role="presentation" cellpadding="0" cellspacing="0" style="margin: 25px auto;">
+                            <tr>
+                                <td style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 16px; padding: 18px 36px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);">
+                                    <a href="%s" style="color: #ffffff !important; text-decoration: none !important; font-weight: 800 !important; font-size: 18px !important; text-transform: uppercase !important; letter-spacing: 2px !important; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important; display: inline-block !important;">%s</a>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
 
                     <!-- Footer -->
