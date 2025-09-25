@@ -452,13 +452,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		userName = "there" // Default fallback if name is empty
 	}
 
-	// Default to English if no language specified
-	if language == "" {
-		language = "en"
-	}
-
-	// Get the email template for the specified language
-	emailTemplate := getEmailTemplate(language)
+	// Simple email - no language templates needed
 
 	// Log the values for debugging
 	log.Printf("Sending reset email - Email: %s, Token: %s, Name: %s, UserID: %d, Language: %s", toEmail, resetToken, userName, userID, language)
@@ -478,7 +472,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	m := gomail.NewMessage()
 	m.SetHeader("From", fromEmail)
 	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", emailTemplate.Subject)
+	m.SetHeader("Subject", "Reset Password")
 
 
 	// Simple email template - no complex processing needed
