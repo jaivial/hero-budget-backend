@@ -501,15 +501,12 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		return fmt.Errorf("failed to execute greeting template: %v", err)
 	}
 
-	// Create a working email template (copy from signup service structure)
-	emailBody := fmt.Sprintf(`
-<!DOCTYPE html>
-<html>
+	// Create Outlook-compatible email template
+	emailBody := fmt.Sprintf(`<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light only">
-    <meta name="supported-color-schemes" content="light only">
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>%s</title>
     <style>
         :root { color-scheme: light only !important; }
@@ -599,36 +596,10 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		emailTemplate.Footer,      // %s for footer
 	)
 
-	// Set both HTML and plain text versions for better compatibility
+	// Set HTML as primary content with proper headers for better client compatibility
+	m.SetHeader("MIME-Version", "1.0")
+	m.SetHeader("Content-Type", "text/html; charset=UTF-8")
 	m.SetBody("text/html", emailBody)
-
-	// Create a plain text version as fallback
-	plainTextBody := fmt.Sprintf(`
-HERO BUDGET
-%s
-
-%s
-
-%s
-
-%s: %s
-
-%s
-
-%s
-
-© 2025 Hero Budget. All rights reserved.
-`,
-		emailTemplate.Subtitle,
-		greetingBuf.String(),
-		emailTemplate.Message,
-		emailTemplate.ButtonText,
-		resetLink,
-		emailTemplate.ExpiryNotice,
-		emailTemplate.Footer,
-	)
-
-	m.AddAlternative("text/plain", plainTextBody)
 
 	// Set up email sending
 	d := gomail.NewDialer(smtpHost, smtpPort, smtpUsername, smtpPassword)
