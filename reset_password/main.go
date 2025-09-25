@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -450,7 +451,13 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		userName = "there" // Default fallback if name is empty
 	}
 
-	// Simple email - no language templates needed
+	// Default to English if no language specified
+	if language == "" {
+		language = "en"
+	}
+
+	// Get the email template for the specified language
+	emailTemplate := getEmailTemplate(language)
 
 	// Log the values for debugging
 	log.Printf("Sending reset email - Email: %s, Token: %s, Name: %s, UserID: %d, Language: %s", toEmail, resetToken, userName, userID, language)
@@ -470,13 +477,124 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	m := gomail.NewMessage()
 	m.SetHeader("From", fromEmail)
 	m.SetHeader("To", toEmail)
-	m.SetHeader("Subject", "Reset Password")
+	m.SetHeader("Subject", emailTemplate.Subject)
 
-	// Simple email template - no complex processing needed
+	// Parse and execute the greeting template
+	greetingTmpl, err := template.New("greeting").Parse(emailTemplate.Greeting)
+	if err != nil {
+		log.Printf("Error parsing greeting template: %v", err)
+		return fmt.Errorf("failed to parse greeting template: %v", err)
+	}
 
-	// Create simple email template with just a button
-	emailBody := fmt.Sprintf(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reset Password</title></head><body style="font-family: Arial, sans-serif; padding: 20px;"><div style="text-align: center;"><a href="%s" style="display: inline-block; background-color: #667eea; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Reset Password</a></div></body></html>`,
-		resetLink,
+	var greetingBuf bytes.Buffer
+	if err := greetingTmpl.Execute(&greetingBuf, EmailTemplateData{
+		UserName:  userName,
+		ResetLink: resetLink,
+		Template:  emailTemplate,
+	}); err != nil {
+		log.Printf("Error executing greeting template: %v", err)
+		return fmt.Errorf("failed to execute greeting template: %v", err)
+	}
+
+	// Create beautiful email template with signup service styling
+	emailBody := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
+    <title>%s</title>
+    <style>
+        /* Force light theme for all email clients */
+        :root { color-scheme: light only !important; }
+
+        /* Reset and base styles */
+        * {
+            box-sizing: border-box !important;
+            -webkit-text-size-adjust: 100%% !important;
+            -ms-text-size-adjust: 100%% !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+
+        /* Mobile responsiveness */
+        @media only screen and (max-width: 480px) {
+            .main-container { margin: 10px !important; padding: 20px !important; }
+            .hero-title { font-size: 28px !important; }
+            .reset-button { font-size: 14px !important; padding: 14px 24px !important; }
+        }
+
+        /* Button styling that works in all email clients */
+        .reset-button {
+            background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important;
+            color: #ffffff !important;
+            text-decoration: none !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+            text-transform: uppercase !important;
+            letter-spacing: 1px !important;
+            font-family: Arial, sans-serif !important;
+            display: inline-block !important;
+            padding: 16px 32px !important;
+            line-height: 1.2 !important;
+            border-radius: 12px !important;
+            border: 2px solid #ffffff !important;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important;
+            text-align: center !important;
+        }
+    </style>
+</head>
+<body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; line-height: 1.6 !important; min-height: 100vh !important;">
+    <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background: transparent;">
+        <tr>
+            <td style="padding: 20px 15px;">
+                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: transparent; border-radius: 16px; overflow: hidden; padding: 30px 20px;">
+
+                    <!-- Header with logo -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%%;" />
+                        <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
+                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">%s</p>
+                    </div>
+
+                    <!-- Main content -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <div style="margin-bottom: 25px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1.3; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">%s</h2>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; color: rgba(255,255,255,0.9); line-height: 1.5;">%s</p>
+                        </div>
+
+                        <!-- Reset button container -->
+                        <div style="margin: 25px auto; text-align: center;">
+                            <a href="%s" class="reset-button" style="background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; color: #ffffff !important; text-decoration: none !important; font-weight: bold !important; font-size: 16px !important; text-transform: uppercase !important; letter-spacing: 1px !important; font-family: Arial, sans-serif !important; display: inline-block !important; padding: 16px 32px !important; line-height: 1.2 !important; border-radius: 12px !important; border: 2px solid #ffffff !important; box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3) !important; text-align: center !important;">%s</a>
+                        </div>
+                    </div>
+
+                    <!-- Footer -->
+                    <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">
+                            %s
+                        </p>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">
+                            © 2025 Hero Budget. All rights reserved.
+                        </p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
+`,
+		emailTemplate.Subject,      // %s in <title>
+		emailTemplate.Subtitle,     // %s for subtitle below logo
+		greetingBuf.String(),       // %s for greeting
+		emailTemplate.Message,      // %s for main message
+		resetLink,                  // %s for button href
+		emailTemplate.ButtonText,   // %s for button text
+		emailTemplate.ExpiryNotice, // %s for expiry notice
 	)
 
 	// Set HTML as primary content with proper headers for better client compatibility
