@@ -58,6 +58,7 @@ type Config struct {
 // Email template structure
 type EmailTemplate struct {
 	Subject      string `json:"subject"`
+	Subtitle     string `json:"subtitle"`
 	Greeting     string `json:"greeting"`
 	Message      string `json:"message"`
 	ButtonText   string `json:"button_text"`
@@ -190,7 +191,7 @@ func loadEmailTemplates() {
 	}
 
 	// Construct path to the email templates file
-	templatesPath := filepath.Join(cwd, "email_templates.json")
+	templatesPath := filepath.Join(cwd, "password_reset_email_templates.json")
 
 	// Check if templates file exists
 	if _, err := os.Stat(templatesPath); os.IsNotExist(err) {
@@ -212,23 +213,95 @@ func loadEmailTemplates() {
 
 // Get template for language, fallback to English if not found
 func getEmailTemplate(language string) EmailTemplate {
-	// Normalize language code (e.g., "en-US" -> "en")
-	lang := strings.Split(language, "-")[0]
+	log.Printf("🌍 Starting language resolution for: '%s'", language)
 
-	if template, exists := emailTemplates.Templates[lang]; exists {
+	// Step 1: Try exact match (e.g., "ca_ES")
+	if template, exists := emailTemplates.Templates[language]; exists {
+		log.Printf("✅ Step 1 - Exact match found: %s", language)
 		return template
 	}
+	log.Printf("❌ Step 1 - No exact match for: %s", language)
 
-	// Fallback to English
-	if template, exists := emailTemplates.Templates["en"]; exists {
-		log.Printf("Language '%s' not found, using English fallback", language)
-		return template
+	// Step 2: Try with underscore replacement (e.g., "ca-ES" -> "ca_ES")
+	normalizedLang := strings.ReplaceAll(language, "-", "_")
+	if normalizedLang != language {
+		if template, exists := emailTemplates.Templates[normalizedLang]; exists {
+			log.Printf("✅ Step 2 - Found with underscore: %s", normalizedLang)
+			return template
+		}
+		log.Printf("❌ Step 2 - No match with underscore: %s", normalizedLang)
 	}
 
-	// If even English is not found, use hardcoded fallback
-	log.Printf("No templates found, using hardcoded English fallback")
+	// Step 3: Try with dash replacement (e.g., "ca_ES" -> "ca-ES")
+	dashLang := strings.ReplaceAll(language, "_", "-")
+	if dashLang != language {
+		if template, exists := emailTemplates.Templates[dashLang]; exists {
+			log.Printf("✅ Step 3 - Found with dash: %s", dashLang)
+			return template
+		}
+		log.Printf("❌ Step 3 - No match with dash: %s", dashLang)
+	}
+
+	// Step 4: Try language code only (e.g., "ca_ES" -> "ca")
+	baseLang := strings.Split(strings.Split(language, "_")[0], "-")[0]
+	if baseLang != language && baseLang != normalizedLang {
+		if template, exists := emailTemplates.Templates[baseLang]; exists {
+			log.Printf("✅ Step 4 - Found base language: %s", baseLang)
+			return template
+		}
+		log.Printf("❌ Step 4 - No match for base language: %s", baseLang)
+	}
+
+	// Step 5: Try lowercase version
+	lowerLang := strings.ToLower(language)
+	if lowerLang != language {
+		if template, exists := emailTemplates.Templates[lowerLang]; exists {
+			log.Printf("✅ Step 5 - Found lowercase: %s", lowerLang)
+			return template
+		}
+		log.Printf("❌ Step 5 - No match for lowercase: %s", lowerLang)
+	}
+
+	// Step 6: Try common language mappings
+	commonMappings := map[string]string{
+		"en": "en_US", "english": "en_US",
+		"es": "es_ES", "spanish": "es_ES", "esp": "es_ES",
+		"fr": "fr_FR", "french": "fr_FR", "fra": "fr_FR",
+		"de": "de_DE", "german": "de_DE", "deu": "de_DE",
+		"it": "it_IT", "italian": "it_IT", "ita": "it_IT",
+		"pt": "pt_PT", "portuguese": "pt_PT", "por": "pt_PT",
+		"ca": "ca_ES", "catalan": "ca_ES", "cat": "ca_ES",
+		"zh": "zh_CN", "chinese": "zh_CN",
+		"ja": "ja_JP", "japanese": "ja_JP",
+		"ko": "ko_KR", "korean": "ko_KR",
+		"ar": "ar_SA", "arabic": "ar_SA",
+		"ru": "ru_RU", "russian": "ru_RU",
+		"hi": "hi_IN", "hindi": "hi_IN",
+	}
+
+	if mappedLang, exists := commonMappings[strings.ToLower(baseLang)]; exists {
+		if template, exists := emailTemplates.Templates[mappedLang]; exists {
+			log.Printf("✅ Step 6 - Found via mapping %s -> %s", baseLang, mappedLang)
+			return template
+		}
+		log.Printf("❌ Step 6 - Mapped language not available: %s", mappedLang)
+	}
+
+	// Step 7: Try English variants as fallback
+	englishVariants := []string{"en_US", "en_GB", "en_CA"}
+	for _, variant := range englishVariants {
+		if template, exists := emailTemplates.Templates[variant]; exists {
+			log.Printf("✅ Step 7 - Found English variant: %s", variant)
+			return template
+		}
+	}
+	log.Printf("❌ Step 7 - No English variants found")
+
+	// Step 8: Hardcoded fallback with new subtitle field
+	log.Printf("⚠️ Step 8 - Using hardcoded English fallback")
 	return EmailTemplate{
 		Subject:      "Hero Budget - Reset Your Password",
+		Subtitle:     "Password Reset",
 		Greeting:     "Hello {{.UserName}},",
 		Message:      "We received a request to reset your password for Hero Budget. Click the button below to create a new password:",
 		ButtonText:   "Reset Password",
@@ -399,13 +472,8 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
 	log.Printf("URL encoded reset link: %s", encodedResetLink)
 
-	// Read the herobudgeticon.png image for embedding
-	imgPath := filepath.Join("..", "..", "assets", "images", "herobudgeticon.png")
-	imgData, err := os.ReadFile(imgPath)
-	if err != nil {
-		log.Printf("Warning: Could not read icon file: %v", err)
-		// Continue without the image if it can't be loaded
-	}
+	// Use URL-based image instead of embedding (same as signup service)
+	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="width: 75px; height: 75px; margin: 20px 0; border-radius: 12px;" />`
 
 	// Create email message
 	m := gomail.NewMessage()
@@ -413,16 +481,6 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", emailTemplate.Subject)
 
-	// Create HTML with or without image
-	var imageTag string
-	if imgData != nil {
-		// Embed the image and create HTML with the CID
-		imgFilename := filepath.Base(imgPath)
-		m.Embed(imgPath)
-		imageTag = fmt.Sprintf(`<img src="cid:%s" alt="Hero Budget" style="max-width: 150px; margin: 20px 0;">`, imgFilename)
-	} else {
-		imageTag = ""
-	}
 
 	// Parse and execute the email template
 	templateData := EmailTemplateData{
@@ -451,31 +509,77 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>%s</title>
+    <style>
+        /* Force light theme for all email clients */
+        :root { color-scheme: light only !important; }
+        /* Reset and base styles */
+        * {
+            box-sizing: border-box !important;
+            -webkit-text-size-adjust: 100%% !important;
+            -ms-text-size-adjust: 100%% !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+        /* Remove all white background overrides to prevent white divs */
+        /* Mobile responsiveness */
+        @media only screen and (max-width: 480px) {
+            .main-container { margin: 10px !important; padding: 20px !important; }
+            .hero-title { font-size: 28px !important; letter-spacing: 1px !important; }
+            .reset-button { font-size: 16px !important; padding: 16px 28px !important; }
+            table { width: 100% !important; }
+            td { padding: 10px !important; }
+        }
+        @media only screen and (max-width: 320px) {
+            .hero-title { font-size: 24px !important; }
+            .reset-button { font-size: 15px !important; padding: 14px 24px !important; }
+        }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333333;">
-    <div style="background-color: #F8E7FA; background: linear-gradient(135deg, #F8E7FA 0%%, #E6D0F0 100%%); border-radius: 12px; padding: 35px; text-align: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
-        %s
-        <p style="margin-bottom: 20px; font-size: 18px; color: #4A154B; font-weight: 500;">%s</p>
-        <p style="margin-bottom: 30px; color: #4A154B;">%s</p>
-        <p style="text-align: center; margin: 30px 0;">
-            <a href="%s" style="background-color: #6A1B9A; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 3px 5px rgba(106, 27, 154, 0.3);">%s</a>
-        </p>
-        <p style="color: #4A154B; font-size: 14px;">%s</p>
-    </div>
-    <p style="color: #777777; font-size: 12px; text-align: center; margin-top: 20px;">
-        %s
-    </p>
+<body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; line-height: 1.6 !important; min-height: 100vh !important;">
+    <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background: transparent;">
+        <tr>
+            <td style="padding: 20px 15px;">
+                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: transparent; border-radius: 16px; overflow: hidden; padding: 30px 20px;">
+                    <!-- Header with logo -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        %s
+                        <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
+                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">%s</p>
+                    </div>
+                    <!-- Main content -->
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
+                        <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
+                        <!-- Reset button with glass effect -->
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="%s" class="reset-button" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border: 2px solid rgba(255, 255, 255, 0.3) !important; border-radius: 16px !important; padding: 18px 36px !important; color: #ffffff !important; text-decoration: none !important; font-weight: 800 !important; font-size: 18px !important; display: inline-block !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important; letter-spacing: 1px !important; transition: all 0.3s ease !important; text-transform: uppercase !important;">%s</a>
+                        </div>
+                    </div>
+                    <!-- Footer -->
+                    <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4;">
+                            %s
+                        </p>
+                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">
+                            %s
+                        </p>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">
+                            © 2025 Hero Budget. All rights reserved.
+                        </p>
+                    </div>
+                </div>
+            </td>
+        </tr>
+    </table>
 </body>
 </html>
 `,
 		emailTemplate.Subject,
-		func() string {
-			if imageTag != "" {
-				return `<div style="filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));">` + imageTag + `</div>`
-			}
-			return ""
-		}(),
+		imageTag,
+		emailTemplate.Subtitle,
 		greetingBuf.String(),
 		emailTemplate.Message,
 		resetLink,
