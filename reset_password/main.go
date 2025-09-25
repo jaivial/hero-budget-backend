@@ -481,25 +481,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	m.SetHeader("Subject", emailTemplate.Subject)
 
 
-	// Parse and execute the email template
-	templateData := EmailTemplateData{
-		UserName:  userName,
-		ResetLink: resetLink,
-		Template:  emailTemplate,
-	}
-
-	// Parse the greeting template
-	greetingTmpl, err := template.New("greeting").Parse(emailTemplate.Greeting)
-	if err != nil {
-		log.Printf("Error parsing greeting template: %v", err)
-		return fmt.Errorf("failed to parse greeting template: %v", err)
-	}
-
-	var greetingBuf bytes.Buffer
-	if err := greetingTmpl.Execute(&greetingBuf, templateData); err != nil {
-		log.Printf("Error executing greeting template: %v", err)
-		return fmt.Errorf("failed to execute greeting template: %v", err)
-	}
+	// Simple email template - no complex processing needed
 
 	// Create simple email template with just a button
 	emailBody := fmt.Sprintf(`<!DOCTYPE html>
