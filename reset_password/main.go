@@ -502,7 +502,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 		return fmt.Errorf("failed to execute greeting template: %v", err)
 	}
 
-	// Build the email HTML body with the template data
+	// Create a working email template (copy from signup service structure)
 	emailBody := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -513,9 +513,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
     <meta name="supported-color-schemes" content="light only">
     <title>%s</title>
     <style>
-        /* Force light theme for all email clients */
         :root { color-scheme: light only !important; }
-        /* Reset and base styles */
         * {
             box-sizing: border-box !important;
             -webkit-text-size-adjust: 100%% !important;
@@ -523,18 +521,10 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
             -webkit-font-smoothing: antialiased !important;
             -moz-osx-font-smoothing: grayscale !important;
         }
-        /* Remove all white background overrides to prevent white divs */
-        /* Mobile responsiveness */
         @media only screen and (max-width: 480px) {
             .main-container { margin: 10px !important; padding: 20px !important; }
-            .hero-title { font-size: 28px !important; letter-spacing: 1px !important; }
-            .reset-button { font-size: 16px !important; padding: 16px 28px !important; }
-            table { width: 100% !important; }
-            td { padding: 10px !important; }
-        }
-        @media only screen and (max-width: 320px) {
-            .hero-title { font-size: 24px !important; }
-            .reset-button { font-size: 15px !important; padding: 14px 24px !important; }
+            .hero-title { font-size: 28px !important; }
+            .code-container { font-size: 32px !important; padding: 20px !important; }
         }
     </style>
 </head>
@@ -545,36 +535,29 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                 <div class="main-container" style="max-width: 600px; margin: 0 auto; background: transparent; border-radius: 16px; overflow: hidden; padding: 30px 20px;">
                     <!-- Header with logo -->
                     <div style="text-align: center; margin-bottom: 30px;">
-                        %s
+                        <img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%;" />
                         <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
-                        <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255,255,255,0.95); font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">%s</p>
+                        <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255,255,255,0.95); font-weight: 400;">%s</p>
                     </div>
+
                     <!-- Main content -->
                     <div style="text-align: center; margin-bottom: 30px;">
                         <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
-                        <!-- Reset button with glass effect -->
-                        <div style="text-align: center; margin: 30px 0;">
-                            <table role="presentation" style="margin: 0 auto;">
-                                <tr>
-                                    <td style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 16px; padding: 0;">
-                                        <a href="%s" style="display: block; padding: 18px 36px; color: #ffffff; text-decoration: none; font-weight: 800; font-size: 18px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); letter-spacing: 1px; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">%s</a>
-                                    </td>
-                                </tr>
-                            </table>
+
+                        <!-- Reset button container -->
+                        <div class="code-container" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border: 2px solid rgba(255, 255, 255, 0.3) !important; border-radius: 16px !important; padding: 20px !important; margin: 25px auto !important; max-width: 300px !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1) !important;">
+                            <a href="%s" style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace !important; font-size: 18px !important; font-weight: 800 !important; letter-spacing: 2px !important; color: #ffffff !important; text-align: center !important; text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3) !important; text-decoration: none !important; text-transform: uppercase !important; display: block !important;">
+                                %s
+                            </a>
                         </div>
                     </div>
+
                     <!-- Footer -->
                     <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
-                        <p style="margin: 0 0 8px 0; font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4;">
-                            %s
-                        </p>
-                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">
-                            %s
-                        </p>
-                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">
-                            © 2025 Hero Budget. All rights reserved.
-                        </p>
+                        <p style="margin: 0 0 8px 0; font-size: 13px; color: rgba(255,255,255,0.8); line-height: 1.4;">%s</p>
+                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">%s</p>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">© 2025 Hero Budget. All rights reserved.</p>
                     </div>
                 </div>
             </td>
@@ -584,7 +567,6 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 </html>
 `,
 		emailTemplate.Subject,
-		imageTag,
 		emailTemplate.Subtitle,
 		greetingBuf.String(),
 		emailTemplate.Message,
