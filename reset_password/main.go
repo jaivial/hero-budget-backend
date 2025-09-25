@@ -472,8 +472,8 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
 	encodedResetLink := fmt.Sprintf("herobudget%%3A//reset-password%%3Ftoken%%3D%s%%26user_id%%3D%d", resetToken, userID)
 	log.Printf("URL encoded reset link: %s", encodedResetLink)
 
-	// Use URL-based image instead of embedding (same as signup service)
-	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="width: 75px; height: 75px; margin: 20px 0; border-radius: 12px;" />`
+	// Use URL-based image with proper styling (same as signup service)
+	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%;" />`
 
 	// Create email message
 	m := gomail.NewMessage()
@@ -547,7 +547,7 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                     <div style="text-align: center; margin-bottom: 30px;">
                         %s
                         <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
-                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">%s</p>
+                        <p style="margin: 10px 0 0 0; font-size: 16px; color: rgba(255,255,255,0.95); font-weight: 400; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">%s</p>
                     </div>
                     <!-- Main content -->
                     <div style="text-align: center; margin-bottom: 30px;">
@@ -555,7 +555,13 @@ func sendResetEmail(toEmail, resetToken, userName string, userID int, language s
                         <p style="margin: 0 0 25px 0; font-size: 16px; color: rgba(255,255,255,0.95); line-height: 1.5;">%s</p>
                         <!-- Reset button with glass effect -->
                         <div style="text-align: center; margin: 30px 0;">
-                            <a href="%s" class="reset-button" style="background: rgba(255, 255, 255, 0.15) !important; backdrop-filter: blur(10px) !important; -webkit-backdrop-filter: blur(10px) !important; border: 2px solid rgba(255, 255, 255, 0.3) !important; border-radius: 16px !important; padding: 18px 36px !important; color: #ffffff !important; text-decoration: none !important; font-weight: 800 !important; font-size: 18px !important; display: inline-block !important; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15) !important; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important; letter-spacing: 1px !important; transition: all 0.3s ease !important; text-transform: uppercase !important;">%s</a>
+                            <table role="presentation" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 16px; padding: 0;">
+                                        <a href="%s" style="display: block; padding: 18px 36px; color: #ffffff; text-decoration: none; font-weight: 800; font-size: 18px; text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3); letter-spacing: 1px; text-transform: uppercase; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;">%s</a>
+                                    </td>
+                                </tr>
+                            </table>
                         </div>
                     </div>
                     <!-- Footer -->
