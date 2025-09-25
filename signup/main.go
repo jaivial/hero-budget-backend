@@ -211,21 +211,116 @@ func loadVerificationEmailTemplates() {
 
 // Get verification email template for language, fallback to English if not found
 func getVerificationEmailTemplate(language string) VerificationEmailTemplate {
-	// Normalize language code (e.g., "en-US" -> "en")
-	lang := strings.Split(language, "-")[0]
+	// Language code mapping and fallback system for comprehensive locale support
+	log.Printf("Resolving email template for language: '%s'", language)
 
-	if template, exists := verificationEmailTemplates.Templates[lang]; exists {
+	// Step 1: Try exact match first (e.g., "en_US", "es_ES")
+	if template, exists := verificationEmailTemplates.Templates[language]; exists {
+		log.Printf("Found exact language match for: '%s'", language)
 		return template
 	}
 
-	// Fallback to English
-	if template, exists := verificationEmailTemplates.Templates["en"]; exists {
-		log.Printf("Language '%s' not found, using English fallback", language)
+	// Step 2: Normalize language codes - handle both dash and underscore formats
+	normalizedLang := language
+	if strings.Contains(language, "-") {
+		// Convert "en-US" to "en_US" format
+		normalizedLang = strings.Replace(language, "-", "_", -1)
+		if template, exists := verificationEmailTemplates.Templates[normalizedLang]; exists {
+			log.Printf("Found normalized language match for: '%s' -> '%s'", language, normalizedLang)
+			return template
+		}
+	}
+
+	// Step 3: Language-only fallbacks - extract base language code
+	var baseLang string
+	if strings.Contains(normalizedLang, "_") {
+		baseLang = strings.Split(normalizedLang, "_")[0]
+	} else if strings.Contains(normalizedLang, "-") {
+		baseLang = strings.Split(normalizedLang, "-")[0]
+	} else {
+		baseLang = normalizedLang
+	}
+
+	// Step 4: Regional fallback mapping for common language variants
+	languageFallbacks := map[string][]string{
+		"en": {"en_US", "en_GB", "en_CA"},
+		"es": {"es_ES", "es_MX"},
+		"de": {"de_DE", "de_CH"},
+		"fr": {"fr_FR", "fr_CA"},
+		"pt": {"pt_PT", "pt_BR"},
+		"zh": {"zh_CN"},
+		"ar": {"ar_SA"},
+		"hi": {"hi_IN"},
+		"he": {"he_IL"},
+		"ko": {"ko_KR"},
+		"ja": {"ja_JP"},
+		"it": {"it_IT"},
+		"ru": {"ru_RU"},
+		"nl": {"nl_NL"},
+		"sv": {"sv_SE"},
+		"no": {"no_NO"},
+		"da": {"da_DK"},
+		"fi": {"fi_FI"},
+		"pl": {"pl_PL"},
+		"cs": {"cs_CZ"},
+		"tr": {"tr_TR"},
+		"uk": {"uk_UA"},
+		"vi": {"vi_VN"},
+		"th": {"th_TH"},
+		"id": {"id_ID"},
+		"ca": {"ca_ES"},
+	}
+
+	// Try language fallbacks
+	if fallbacks, exists := languageFallbacks[baseLang]; exists {
+		for _, fallback := range fallbacks {
+			if template, exists := verificationEmailTemplates.Templates[fallback]; exists {
+				log.Printf("Found language fallback for: '%s' -> '%s'", language, fallback)
+				return template
+			}
+		}
+	}
+
+	// Step 5: Try legacy format fallbacks (for backward compatibility)
+	legacyMappings := map[string]string{
+		"en": "en_US",
+		"es": "es_ES",
+		"de": "de_DE",
+		"fr": "fr_FR",
+		"pt": "pt_PT",
+		"it": "it_IT",
+		"ru": "ru_RU",
+		"ja": "ja_JP",
+		"zh": "zh_CN",
+		"nl": "nl_NL",
+		"da": "da_DK",
+		"hi": "hi_IN",
+	}
+
+	if mappedLang, exists := legacyMappings[baseLang]; exists {
+		if template, exists := verificationEmailTemplates.Templates[mappedLang]; exists {
+			log.Printf("Found legacy mapping for: '%s' -> '%s'", language, mappedLang)
+			return template
+		}
+	}
+
+	// Step 6: Final fallback to English (en_US)
+	if template, exists := verificationEmailTemplates.Templates["en_US"]; exists {
+		log.Printf("Language '%s' not found, using English (en_US) fallback", language)
 		return template
 	}
 
-	// If even English is not found, use hardcoded fallback
-	log.Printf("No verification templates found, using hardcoded English fallback")
+	// Step 7: If even en_US is not found, try en_GB or en_CA
+	englishFallbacks := []string{"en_GB", "en_CA"}
+	for _, englishLang := range englishFallbacks {
+		if template, exists := verificationEmailTemplates.Templates[englishLang]; exists {
+			log.Printf("Using English fallback: %s for language '%s'", englishLang, language)
+			return template
+		}
+	}
+
+	// Step 8: Absolute fallback - hardcoded English template
+	log.Printf("No verification templates found at all, using hardcoded English fallback for: '%s'", language)
 	return VerificationEmailTemplate{
 		Subject:      "Hero Budget - Verify Your Email",
 		Greeting:     "Hello {{.UserName}},",
@@ -686,7 +781,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 	log.Printf("Sending verification email with OTP - Email: %s, Code: %s, Name: %s, Language: %s", toEmail, verificationCode, userName, language)
 
 	// Read the herobudgeticon.png image for embedding
-	imgPath := filepath.Join("..", "..", "HerobudgetReact", "assets", "images", "herobudgeticon.png")
+	imgPath := filepath.Join("..", "..", "assets", "images", "herobudgeticon.png")
 	imgData, err := os.ReadFile(imgPath)
 	if err != nil {
 		log.Printf("Warning: Could not read icon file: %v", err)
@@ -730,27 +825,85 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 		return fmt.Errorf("failed to execute greeting template: %v", err)
 	}
 
-	// Build the email HTML body with the template data
+	// Build the email HTML body with enhanced light theme styling that overrides device dark mode
 	emailBody := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light only">
+    <meta name="supported-color-schemes" content="light only">
     <title>%s</title>
+    <style>
+        /* Force light theme for all email clients */
+        :root {
+            color-scheme: light only !important;
+        }
+
+        /* Override dark mode styles */
+        @media (prefers-color-scheme: dark) {
+            body, html, * {
+                background-color: #ffffff !important;
+                color: #333333 !important;
+            }
+
+            .email-container {
+                background-color: #F8E7FA !important;
+                background: linear-gradient(135deg, #F8E7FA 0%%, #E6D0F0 100%%) !important;
+            }
+
+            .code-container {
+                background-color: #ffffff !important;
+                color: #6A1B9A !important;
+            }
+
+            .text-primary {
+                color: #4A154B !important;
+            }
+
+            .text-secondary {
+                color: #777777 !important;
+            }
+        }
+
+        /* Ensure consistent styling across email clients */
+        * {
+            -webkit-text-size-adjust: 100% !important;
+            -ms-text-size-adjust: 100% !important;
+            -webkit-font-smoothing: antialiased !important;
+            -moz-osx-font-smoothing: grayscale !important;
+        }
+
+        /* Dark mode overrides for specific email clients */
+        [data-ogsc] body, [data-ogsc] * {
+            background-color: #ffffff !important;
+            color: #333333 !important;
+        }
+
+        [data-ogsc] .email-container {
+            background-color: #F8E7FA !important;
+            background: linear-gradient(135deg, #F8E7FA 0%%, #E6D0F0 100%%) !important;
+        }
+
+        [data-ogsc] .code-container {
+            background-color: #ffffff !important;
+            color: #6A1B9A !important;
+        }
+    </style>
 </head>
-<body style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333333;">
-    <div style="background-color: #F8E7FA; background: linear-gradient(135deg, #F8E7FA 0%%, #E6D0F0 100%%); border-radius: 12px; padding: 35px; text-align: center; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+<body style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, Arial, sans-serif !important; max-width: 600px !important; margin: 0 auto !important; padding: 20px !important; color: #333333 !important; background-color: #ffffff !important; -webkit-text-size-adjust: 100%% !important; -ms-text-size-adjust: 100%% !important;">
+    <div class="email-container" style="background-color: #F8E7FA !important; background: linear-gradient(135deg, #F8E7FA 0%%, #E6D0F0 100%%) !important; border-radius: 12px !important; padding: 35px !important; text-align: center !important; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1) !important; mso-line-height-rule: exactly !important;">
         %s
-        <p style="margin-bottom: 20px; font-size: 18px; color: #4A154B; font-weight: 500;">%s</p>
-        <p style="margin-bottom: 30px; color: #4A154B;">%s</p>
-        <p style="color: #4A154B; font-size: 16px; margin-bottom: 10px;">%s</p>
-        <div style="background-color: #ffffff; padding: 20px; border-radius: 8px; font-size: 32px; letter-spacing: 5px; font-weight: bold; color: #6A1B9A; margin: 30px auto; max-width: 250px; box-shadow: 0 3px 5px rgba(106, 27, 154, 0.2);">
+        <p class="text-primary" style="margin-bottom: 20px !important; font-size: 18px !important; color: #4A154B !important; font-weight: 500 !important; line-height: 1.4 !important; mso-line-height-rule: exactly !important;">%s</p>
+        <p class="text-primary" style="margin-bottom: 30px !important; color: #4A154B !important; line-height: 1.5 !important; mso-line-height-rule: exactly !important;">%s</p>
+        <p class="text-primary" style="color: #4A154B !important; font-size: 16px !important; margin-bottom: 10px !important; line-height: 1.4 !important; mso-line-height-rule: exactly !important;">%s</p>
+        <div class="code-container" style="background-color: #ffffff !important; padding: 20px !important; border-radius: 8px !important; font-size: 32px !important; letter-spacing: 5px !important; font-weight: bold !important; color: #6A1B9A !important; margin: 30px auto !important; max-width: 250px !important; box-shadow: 0 3px 5px rgba(106, 27, 154, 0.2) !important; mso-line-height-rule: exactly !important; font-family: 'Courier New', Courier, monospace !important;">
             %s
         </div>
-        <p style="color: #4A154B; font-size: 14px;">%s</p>
+        <p class="text-primary" style="color: #4A154B !important; font-size: 14px !important; line-height: 1.4 !important; mso-line-height-rule: exactly !important;">%s</p>
     </div>
-    <p style="color: #777777; font-size: 12px; text-align: center; margin-top: 20px;">
+    <p class="text-secondary" style="color: #777777 !important; font-size: 12px !important; text-align: center !important; margin-top: 20px !important; line-height: 1.3 !important; mso-line-height-rule: exactly !important;">
         %s
     </p>
 </body>
