@@ -786,8 +786,8 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 	m.SetHeader("To", toEmail)
 	m.SetHeader("Subject", emailTemplate.Subject)
 
-	// Use the web URL for the Hero Budget icon (no longer embedding local file)
-	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 30px auto; width: 180px; height: auto; max-width: 100%; border-radius: 12px; box-shadow: 0 4px 12px rgba(106, 27, 154, 0.15);">`
+	// Use the web URL for the Hero Budget icon - smaller size, no background container
+	imageTag := `<img src="https://herobudgetapp.jaimedigitalstudio.com/herobudgeticon.png" alt="Hero Budget" style="display: block; margin: 0 auto 20px auto; width: 90px; height: auto; max-width: 100%;">`
 
 	// Parse and execute the email template
 	templateData := VerificationEmailTemplateData{
@@ -809,7 +809,7 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 		return fmt.Errorf("failed to execute greeting template: %v", err)
 	}
 
-	// Build the email HTML body with enhanced styling and branding
+	// Build the email HTML body with improved styling per requirements
 	emailBody := fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -835,69 +835,62 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
         /* Override dark mode styles */
         @media (prefers-color-scheme: dark) {
             body, html, * { background-color: #ffffff !important; color: #333333 !important; }
-            .email-container { background: linear-gradient(135deg, #f8f9ff 0%%, #e8f0fe 100%%) !important; }
+            .main-container { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; }
             .code-container { background-color: #ffffff !important; color: #6366f1 !important; }
             .text-primary { color: #1e293b !important; }
-            .text-secondary { color: #64748b !important; }
         }
 
         /* Dark mode overrides for specific email clients */
         [data-ogsc] body, [data-ogsc] * { background-color: #ffffff !important; color: #333333 !important; }
-        [data-ogsc] .email-container { background: linear-gradient(135deg, #f8f9ff 0%%, #e8f0fe 100%%) !important; }
+        [data-ogsc] .main-container { background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%) !important; }
         [data-ogsc] .code-container { background-color: #ffffff !important; color: #6366f1 !important; }
 
         /* Mobile responsiveness */
         @media only screen and (max-width: 480px) {
-            .email-container { padding: 25px 20px !important; }
-            .hero-title { font-size: 20px !important; }
-            .code-container { font-size: 28px !important; padding: 18px !important; }
+            .main-container { margin: 10px !important; padding: 20px !important; }
+            .hero-title { font-size: 28px !important; }
+            .code-container { font-size: 32px !important; padding: 20px !important; }
         }
     </style>
 </head>
 <body style="margin: 0 !important; padding: 0 !important; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif !important; background-color: #f1f5f9 !important; line-height: 1.6 !important;">
     <table role="presentation" style="width: 100%%; margin: 0; padding: 0; background-color: #f1f5f9;">
         <tr>
-            <td style="padding: 40px 20px;">
-                <div style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #f8f9ff 0%%, #e8f0fe 100%%); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); overflow: hidden;">
+            <td style="padding: 20px 15px;">
+                <div class="main-container" style="max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #667eea 0%%, #764ba2 100%%); border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); overflow: hidden; padding: 30px 20px;">
 
                     <!-- Header with logo -->
-                    <div style="padding: 40px 40px 20px 40px; text-align: center; background: linear-gradient(135deg, #6366f1 0%%, #8b5cf6 100%%);">
+                    <div style="text-align: center; margin-bottom: 30px;">
                         %s
-                        <h1 style="margin: 20px 0 10px 0; font-size: 24px; font-weight: 700; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Hero Budget</h1>
-                        <p style="margin: 0; font-size: 16px; color: rgba(255,255,255,0.9); font-weight: 500;">Email Verification</p>
+                        <h1 class="hero-title" style="margin: 15px 0 5px 0; font-size: 36px; font-weight: 900; text-transform: uppercase; letter-spacing: 2px; background: linear-gradient(135deg, #fff 0%%, #e0e7ff 100%%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: 0 4px 8px rgba(0,0,0,0.1); color: #ffffff;">HERO BUDGET</h1>
+                        <p style="margin: 0; font-size: 18px; color: rgba(255,255,255,0.9); font-weight: 600;">Email Verification</p>
                     </div>
 
                     <!-- Main content -->
-                    <div style="padding: 40px; text-align: center;">
-                        <div style="margin-bottom: 30px;">
-                            <h2 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 600; color: #1e293b; line-height: 1.3;">%s</h2>
-                            <p style="margin: 0 0 24px 0; font-size: 16px; color: #475569; line-height: 1.5;">%s</p>
+                    <div style="text-align: center; margin-bottom: 30px;">
+                        <div style="margin-bottom: 25px;">
+                            <h2 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #ffffff; line-height: 1.3; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">%s</h2>
+                            <p style="margin: 0 0 20px 0; font-size: 16px; color: rgba(255,255,255,0.9); line-height: 1.5;">%s</p>
                         </div>
 
-                        <p style="margin: 0 0 20px 0; font-size: 16px; font-weight: 600; color: #374151;">%s</p>
+                        <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 600; color: #ffffff;">%s</p>
 
                         <!-- Verification code container -->
-                        <div style="background: linear-gradient(135deg, #ffffff 0%%, #f8fafc 100%%); border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 24px auto; max-width: 280px; box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);">
-                            <div style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace; font-size: 36px; font-weight: 700; letter-spacing: 6px; color: #6366f1; text-align: center; text-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);">
+                        <div class="code-container" style="background: linear-gradient(135deg, #ffffff 0%%, #f8fafc 100%%); border: 2px solid #e2e8f0; border-radius: 12px; padding: 24px; margin: 20px auto; max-width: 280px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+                            <div style="font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Courier New', monospace; font-size: 38px; font-weight: 700; letter-spacing: 6px; color: #6366f1; text-align: center; text-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);">
                                 %s
                             </div>
                         </div>
-
-                        <p style="margin: 24px 0 0 0; font-size: 14px; color: #f59e0b; font-weight: 500; background-color: #fffbeb; padding: 12px; border-radius: 8px; border-left: 4px solid #f59e0b;">
-                            ⏰ %s
-                        </p>
                     </div>
 
                     <!-- Footer -->
-                    <div style="background-color: #f8fafc; padding: 30px 40px; text-align: center; border-top: 1px solid #e2e8f0;">
-                        <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.4;">
+                    <div style="text-align: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.2);">
+                        <p style="margin: 0 0 15px 0; font-size: 14px; color: rgba(255,255,255,0.9); line-height: 1.4;">
                             %s
                         </p>
-                        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
-                            <p style="margin: 0; font-size: 12px; color: #94a3b8;">
-                                © 2024 Hero Budget. All rights reserved.
-                            </p>
-                        </div>
+                        <p style="margin: 0; font-size: 12px; color: rgba(255,255,255,0.7);">
+                            © 2025 Hero Budget. All rights reserved.
+                        </p>
                     </div>
                 </div>
             </td>
@@ -912,7 +905,6 @@ func sendVerificationEmail(toEmail, verificationCode, userName, language string)
 		emailTemplate.Message,
 		emailTemplate.CodeLabel,
 		verificationCode,
-		emailTemplate.ExpiryNotice,
 		emailTemplate.Footer,
 	)
 
