@@ -120,8 +120,8 @@ func main() {
 func runDatabaseMigration() error {
 	log.Printf("🔄 Income Management - Running database migration...")
 
-	// Get database path using the same approach as other services
-	dbPath := "../budget_data.db"
+	// Get database path - use production database path
+	dbPath := "../database/hero_budget.db"
 
 	log.Printf("📂 Using database path: %s", dbPath)
 

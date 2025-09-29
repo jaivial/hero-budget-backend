@@ -356,8 +356,8 @@ func updateTransactionsCategoryName(categoryId int, oldCategoryName, newCategory
 		}
 	}
 
-	// Get database connection
-	dbPath := "../budget_data.db"
+	// Get database connection - use production database path
+	dbPath := "../database/hero_budget.db"
 
 	db, err := sql.Open("sqlite3", dbPath)
 	if err != nil {
