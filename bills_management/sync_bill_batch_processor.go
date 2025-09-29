@@ -113,6 +113,7 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		Amount         float64 `json:"amount"`
 		DueDate        string  `json:"due_date"`
 		Category       string  `json:"category"`
+		CategoryID     *int    `json:"category_id,omitempty"`
 		Icon           string  `json:"icon"`
 		StartDate      string  `json:"start_date"`
 		PaymentDay     int     `json:"payment_day"`
@@ -125,6 +126,7 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		Amount:         offlineBill.Amount,
 		DueDate:        offlineBill.DueDate,
 		Category:       offlineBill.Category,
+		CategoryID:     offlineBill.CategoryID,
 		Icon:           offlineBill.Icon,
 		StartDate:      offlineBill.StartDate,
 		PaymentDay:     offlineBill.PaymentDay,

@@ -38,11 +38,12 @@ type OfflineBill struct {
 	Paid             bool    `json:"paid"`              // Estado de pago
 	Overdue          bool    `json:"overdue"`           // Estado de atraso
 	OverdueDays      int     `json:"overdue_days"`      // Días de atraso
-	Recurring        bool    `json:"recurring"`         // Factura recurrente
-	Category         string  `json:"category"`          // Categoría de la factura
-	Icon             string  `json:"icon"`              // Icono asociado
-	PaymentMethod    string  `json:"payment_method"`    // "cash" o "bank"
-	OfflineTimestamp string  `json:"offline_timestamp"` // Timestamp cuando se realizó offline
+	Recurring        bool    `json:"recurring"`             // Factura recurrente
+	Category         string  `json:"category"`              // Categoría de la factura
+	CategoryID       *int    `json:"category_id,omitempty"` // ID de la categoría
+	Icon             string  `json:"icon"`                  // Icono asociado
+	PaymentMethod    string  `json:"payment_method"`        // "cash" o "bank"
+	OfflineTimestamp string  `json:"offline_timestamp"`     // Timestamp cuando se realizó offline
 	SyncTimestamp    string  `json:"sync_timestamp"`    // Timestamp para sincronización
 	Status           string  `json:"status"`            // "pending", "synced", "conflict"
 	Version          int     `json:"version"`           // Versión para control de concurrencia
