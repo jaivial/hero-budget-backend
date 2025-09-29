@@ -106,6 +106,25 @@ func processSingleBillOperation(offlineBill OfflineBill) (SyncBillResult, *Bill,
 // processAddBillOperation procesa la adición de una nueva factura
 // Crea la factura y actualiza todas las tablas relacionadas
 func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
+	// Look up server category_id based on category name and user_id
+	// This ensures we use the server's category ID, not the frontend's local ID
+	var serverCategoryID *int
+	if offlineBill.Category != "" {
+		var categoryID int
+		err := db.QueryRow(`
+			SELECT id FROM categories
+			WHERE user_id = ? AND name = ? AND type = 'expense'
+			LIMIT 1
+		`, offlineBill.UserID, offlineBill.Category).Scan(&categoryID)
+
+		if err == nil {
+			serverCategoryID = &categoryID
+			log.Printf("✅ [Sync] Resolved category '%s' to server category_id: %d", offlineBill.Category, categoryID)
+		} else {
+			log.Printf("⚠️ [Sync] Category '%s' not found for user %s, bill will be created without category_id", offlineBill.Category, offlineBill.UserID)
+		}
+	}
+
 	// Crear estructura para agregar factura usando handlers existentes
 	addRequest := struct {
 		UserID         string  `json:"user_id"`
@@ -126,7 +145,7 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		Amount:         offlineBill.Amount,
 		DueDate:        offlineBill.DueDate,
 		Category:       offlineBill.Category,
-		CategoryID:     offlineBill.CategoryID,
+		CategoryID:     serverCategoryID, // Use resolved server category_id
 		Icon:           offlineBill.Icon,
 		StartDate:      offlineBill.StartDate,
 		PaymentDay:     offlineBill.PaymentDay,

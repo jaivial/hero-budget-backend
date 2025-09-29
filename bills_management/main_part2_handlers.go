@@ -134,6 +134,27 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Look up server category_id based on category name and user_id
+	// This ensures we use the server's category ID, not the frontend's local ID
+	var serverCategoryID *int
+	if addRequest.Category != "" {
+		var categoryID int
+		err := db.QueryRow(`
+			SELECT id FROM categories
+			WHERE user_id = ? AND name = ? AND type = 'expense'
+			LIMIT 1
+		`, addRequest.UserID, addRequest.Category).Scan(&categoryID)
+
+		if err == nil {
+			serverCategoryID = &categoryID
+			log.Printf("✅ Resolved category '%s' to server category_id: %d", addRequest.Category, categoryID)
+		} else if err == sql.ErrNoRows {
+			log.Printf("⚠️ Category '%s' not found for user %s, bill will be created without category_id", addRequest.Category, addRequest.UserID)
+		} else {
+			log.Printf("❌ Error looking up category: %v", err)
+		}
+	}
+
 	// Insertar factura en la base de datos
 	var result sql.Result
 	var err error
@@ -141,11 +162,13 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 
 	if addRequest.BillID > 0 {
 		// Use client-provided bill ID for sync consistency
-		result, err = db.Exec("INSERT INTO bills (id, user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.BillID, addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.CategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		// Use serverCategoryID (resolved from category name) instead of client's category_id
+		result, err = db.Exec("INSERT INTO bills (id, user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.BillID, addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, serverCategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 		billID = int64(addRequest.BillID)
 	} else {
 		// Auto-generate bill ID (legacy behavior)
-		result, err = db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.CategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		// Use serverCategoryID (resolved from category name) instead of client's category_id
+		result, err = db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, serverCategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 		if err == nil {
 			billID, _ = result.LastInsertId()
 		}
