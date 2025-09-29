@@ -11,17 +11,18 @@ import (
 func fetchBills(userID string) ([]Bill, error) {
 
 	// Consulta SQL con COALESCE para manejar valores nulos
-	query := `SELECT 
-		id, user_id, name, amount, 
-		COALESCE(due_date, start_date), start_date, 
-		payment_day, duration_months, regularity, 
-		paid, overdue, overdue_days, recurring, 
-		category, icon, 
-		COALESCE(payment_method, 'cash'), 
-		COALESCE(created_at, ''), 
-		COALESCE(updated_at, '') 
-	FROM bills 
-	WHERE user_id = ? 
+	// Includes category_id to support category relationships
+	query := `SELECT
+		id, user_id, name, amount,
+		COALESCE(due_date, start_date), start_date,
+		payment_day, duration_months, regularity,
+		paid, overdue, overdue_days, recurring,
+		category, category_id, icon,
+		COALESCE(payment_method, 'cash'),
+		COALESCE(created_at, ''),
+		COALESCE(updated_at, '')
+	FROM bills
+	WHERE user_id = ?
 	ORDER BY id ASC`
 
 	rows, err := db.Query(query, userID)
@@ -38,7 +39,7 @@ func fetchBills(userID string) ([]Bill, error) {
 			&bill.ID, &bill.UserID, &bill.Name, &bill.Amount,
 			&bill.DueDate, &bill.StartDate, &bill.PaymentDay, &bill.DurationMonths,
 			&bill.Regularity, &bill.Paid, &bill.Overdue, &bill.OverdueDays,
-			&bill.Recurring, &bill.Category, &bill.Icon, &bill.PaymentMethod,
+			&bill.Recurring, &bill.Category, &bill.CategoryID, &bill.Icon, &bill.PaymentMethod,
 			&bill.CreatedAt, &bill.UpdatedAt,
 		); err == nil {
 			bills = append(bills, bill)
@@ -52,16 +53,17 @@ func fetchBills(userID string) ([]Bill, error) {
 // Necesario para el algoritmo de actualización que compara estado anterior con nuevo
 func getBillOldData(db *sql.DB, billID int, userID string) (*Bill, error) {
 	// Consulta SQL idéntica a fetchBills pero para una factura específica
-	query := `SELECT 
-		id, user_id, name, amount, 
-		COALESCE(due_date, start_date), start_date, 
-		payment_day, duration_months, regularity, 
-		paid, overdue, overdue_days, recurring, 
-		category, icon, 
-		COALESCE(payment_method, 'cash'), 
-		COALESCE(created_at, ''), 
-		COALESCE(updated_at, '') 
-	FROM bills 
+	// Includes category_id to support category relationships
+	query := `SELECT
+		id, user_id, name, amount,
+		COALESCE(due_date, start_date), start_date,
+		payment_day, duration_months, regularity,
+		paid, overdue, overdue_days, recurring,
+		category, category_id, icon,
+		COALESCE(payment_method, 'cash'),
+		COALESCE(created_at, ''),
+		COALESCE(updated_at, '')
+	FROM bills
 	WHERE id = ? AND user_id = ?`
 
 	var bill Bill
@@ -69,7 +71,7 @@ func getBillOldData(db *sql.DB, billID int, userID string) (*Bill, error) {
 		&bill.ID, &bill.UserID, &bill.Name, &bill.Amount,
 		&bill.DueDate, &bill.StartDate, &bill.PaymentDay, &bill.DurationMonths,
 		&bill.Regularity, &bill.Paid, &bill.Overdue, &bill.OverdueDays,
-		&bill.Recurring, &bill.Category, &bill.Icon, &bill.PaymentMethod,
+		&bill.Recurring, &bill.Category, &bill.CategoryID, &bill.Icon, &bill.PaymentMethod,
 		&bill.CreatedAt, &bill.UpdatedAt,
 	)
 	if err != nil {
