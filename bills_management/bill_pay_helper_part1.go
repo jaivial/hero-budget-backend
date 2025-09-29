@@ -47,7 +47,8 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 	// Obtener información de la factura
 	var amount float64
 	var paymentMethod, category string
-	err = tx.QueryRow("SELECT amount, payment_method, category FROM bills WHERE id = ? AND user_id = ?", billID, userID).Scan(&amount, &paymentMethod, &category)
+	var categoryID *int
+	err = tx.QueryRow("SELECT amount, payment_method, category, category_id FROM bills WHERE id = ? AND user_id = ?", billID, userID).Scan(&amount, &paymentMethod, &category, &categoryID)
 	if err != nil {
 		return nil, fmt.Errorf("bill not found: %v", err)
 	}
@@ -111,8 +112,8 @@ func markBillPaid(db *sql.DB, billID int, userID, yearMonth, paymentDate string)
 		return nil, fmt.Errorf("error removing bill amount: %v", err)
 	}
 
-	// Crear registro de gasto correspondiente
-	if err = createExpenseRecord(tx, userID, category, paymentDate, paymentMethod, billID, amount); err != nil {
+	// Crear registro de gasto correspondiente con category_id
+	if err = createExpenseRecord(tx, userID, category, paymentDate, paymentMethod, billID, amount, categoryID); err != nil {
 		return nil, fmt.Errorf("error creating expense record: %v", err)
 	}
 
@@ -190,14 +191,15 @@ func removeBillAmountFromMonth(tx *sql.Tx, userID, yearMonth string, amount floa
 
 // createExpenseRecord crea un registro de gasto cuando se paga una factura
 // Mantiene consistencia entre bill_payments y expenses
-func createExpenseRecord(tx *sql.Tx, userID, category, paymentDate, paymentMethod string, billID int, amount float64) error {
-	// Crear registro en la tabla expenses
+// Incluye category_id para mantener relación con la tabla de categorías
+func createExpenseRecord(tx *sql.Tx, userID, category, paymentDate, paymentMethod string, billID int, amount float64, categoryID *int) error {
+	// Crear registro en la tabla expenses con category_id
 	_, err := tx.Exec(`
 		INSERT INTO expenses (
-			user_id, category, description, amount, date, 
+			user_id, category, category_id, description, amount, date,
 			payment_method, bill_id, created_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
-	`, userID, category, fmt.Sprintf("Bill Payment - %s", category), amount, paymentDate, paymentMethod, billID)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+	`, userID, category, categoryID, fmt.Sprintf("Bill Payment - %s", category), amount, paymentDate, paymentMethod, billID)
 
 	if err != nil {
 		return fmt.Errorf("error creating expense record: %v", err)

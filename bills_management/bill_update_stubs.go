@@ -22,22 +22,22 @@ func parseFlexibleDate(dateStr string) (time.Time, error) {
 // Simula la eliminación completa del bill anterior para revertir todos sus efectos
 func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 	fmt.Printf("🔄 Revirtiendo efectos del bill anterior (ID: %d)\n", updateData.BillID)
-	
+
 	// Calcular meses del periodo anterior
 	oldMonths, err := calculateMonthsFromDuration(updateData.OldStartDate, updateData.OldDurationMonths)
 	if err != nil {
 		return fmt.Errorf("error calculating old months: %v", err)
 	}
-	
+
 	// Identificar meses con expenses (pagos realizados)
 	oldBillMonthsWithExpense := make(map[string]bool)
 	oldBillMonthsWithoutExpense := make(map[string]bool)
-	
+
 	// Inicializar todos los meses como sin expense
 	for _, month := range oldMonths {
 		oldBillMonthsWithoutExpense[month] = true
 	}
-	
+
 	// Identificar meses con expenses
 	rows, err := db.Query("SELECT DISTINCT strftime('%Y-%m', date) as year_month FROM expenses WHERE bill_id = ? AND user_id = ?", updateData.BillID, updateData.UserID)
 	if err == nil {
@@ -51,7 +51,7 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 			}
 		}
 	}
-	
+
 	// Revertir efectos para meses CON expense
 	for month := range oldBillMonthsWithExpense {
 		if updateData.OldPaymentMethod == "cash" {
@@ -64,7 +64,7 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 		// Sumar a total_balance
 		db.Exec("UPDATE monthly_balance SET total_balance = total_balance + ? WHERE user_id = ? AND year_month = ?", updateData.OldAmount, updateData.UserID, month)
 	}
-	
+
 	// Revertir efectos para meses SIN expense
 	for month := range oldBillMonthsWithoutExpense {
 		if updateData.OldPaymentMethod == "cash" {
@@ -75,7 +75,7 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 			db.Exec("UPDATE monthly_balance SET bills_amount = bills_amount - ?, bank_amount = bank_amount + ?, balance_bank_amount = balance_bank_amount + ? WHERE user_id = ? AND year_month = ?", updateData.OldAmount, updateData.OldAmount, updateData.OldAmount, updateData.UserID, month)
 		}
 	}
-	
+
 	// Recalcular previous_amounts en cascada desde el mes POSTERIOR al inicio anterior
 	// CORREGIDO: Usar función parseFlexibleDate centralizada
 	startDate, err := parseFlexibleDate(updateData.OldStartDate)
@@ -83,14 +83,14 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 		return fmt.Errorf("invalid old start date %s: %v", updateData.OldStartDate, err)
 	}
 	startMonth := startDate.Format("2006-01")
-	
+
 	// Obtener meses posteriores al mes de inicio anterior
 	rows, err = db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", updateData.UserID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching subsequent months: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var subsequentMonths []string
 	for rows.Next() {
 		var month string
@@ -98,7 +98,7 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 			subsequentMonths = append(subsequentMonths, month)
 		}
 	}
-	
+
 	// Sumar en cascada en previous_cash_amount o previous_bank_amount (revertir la resta anterior)
 	for _, month := range subsequentMonths {
 		if updateData.OldPaymentMethod == "cash" {
@@ -107,14 +107,14 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 			db.Exec("UPDATE monthly_balance SET previous_bank_amount = previous_bank_amount + ?, total_previous_balance = total_previous_balance + ? WHERE user_id = ? AND year_month = ?", updateData.OldAmount, updateData.OldAmount, updateData.UserID, month)
 		}
 	}
-	
+
 	// Recalcular total_balance desde el mes de inicio anterior hasta el más reciente
 	rows, err = db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month >= ? ORDER BY year_month", updateData.UserID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching months for balance recalculation: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var allAffectedMonths []string
 	for rows.Next() {
 		var month string
@@ -122,12 +122,12 @@ func revertOldBillEffects(db *sql.DB, updateData BillUpdateData) error {
 			allAffectedMonths = append(allAffectedMonths, month)
 		}
 	}
-	
+
 	// Recalcular total_balance para todos los meses afectados
 	for _, month := range allAffectedMonths {
 		db.Exec("UPDATE monthly_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", updateData.UserID, month)
 	}
-	
+
 	fmt.Printf("✅ Reversión de efectos del bill anterior completada\n")
 	return nil
 }

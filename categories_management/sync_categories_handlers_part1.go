@@ -40,7 +40,7 @@ func handleSyncCategoriesBatch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log de información sobre la sincronización para seguimiento
-	log.Printf("Processing categories sync batch for user %s: %d categories", 
+	log.Printf("Processing categories sync batch for user %s: %d categories",
 		syncRequest.UserID, len(syncRequest.Categories))
 
 	// Procesar la solicitud de sincronización usando función especializada
@@ -56,7 +56,7 @@ func handleSyncCategoriesBatch(w http.ResponseWriter, r *http.Request) {
 	if cacheManager != nil && response.Success {
 		err := cacheManager.InvalidateUserCache(syncRequest.UserID)
 		if err != nil {
-			log.Printf("Warning: Failed to invalidate categories cache for user %s: %v", 
+			log.Printf("Warning: Failed to invalidate categories cache for user %s: %v",
 				syncRequest.UserID, err)
 		}
 		log.Printf("✅ Categories cache invalidated after sync for user: %s", syncRequest.UserID)
@@ -87,11 +87,11 @@ func handleSyncCategoriesChanges(w http.ResponseWriter, r *http.Request) {
 	lastSync := r.URL.Query().Get("last_sync")
 	limitStr := r.URL.Query().Get("limit")
 	offsetStr := r.URL.Query().Get("offset")
-	
+
 	// Configurar valores predeterminados para paginación
 	limit := 100 // Límite predeterminado de registros por consulta
 	offset := 0  // Inicio predeterminado para paginación
-	
+
 	// Parsear límite si se proporciona
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
@@ -102,7 +102,7 @@ func handleSyncCategoriesChanges(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
-	
+
 	// Parsear offset si se proporciona
 	if offsetStr != "" {
 		if parsedOffset, err := strconv.Atoi(offsetStr); err == nil && parsedOffset >= 0 {
@@ -111,7 +111,7 @@ func handleSyncCategoriesChanges(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log de la consulta para seguimiento
-	log.Printf("Fetching categories changes for user %s, lastSync: %s, limit: %d, offset: %d", 
+	log.Printf("Fetching categories changes for user %s, lastSync: %s, limit: %d, offset: %d",
 		userID, lastSync, limit, offset)
 
 	// Obtener cambios del servidor usando función especializada
@@ -123,7 +123,7 @@ func handleSyncCategoriesChanges(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log del resultado para seguimiento
-	log.Printf("✅ Categories changes fetched for user %s: %d categories, %d deletions", 
+	log.Printf("✅ Categories changes fetched for user %s: %d categories, %d deletions",
 		userID, len(changesResponse.Categories), len(changesResponse.Deletions))
 
 	// Enviar respuesta con los cambios encontrados
@@ -159,7 +159,7 @@ func handleSyncCategoriesStats(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Log del resultado
-	log.Printf("✅ Categories sync stats fetched for user %s: %d total syncs, %d conflicts resolved", 
+	log.Printf("✅ Categories sync stats fetched for user %s: %d total syncs, %d conflicts resolved",
 		userID, stats.TotalSyncs, stats.ConflictsResolved)
 
 	// Enviar estadísticas como respuesta
@@ -190,12 +190,12 @@ func handleSyncCategoriesConflictResolution(w http.ResponseWriter, r *http.Reque
 		sendErrorResponse(w, "user_id is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	if conflictRequest.LocalID == "" && conflictRequest.ServerID == "" {
 		sendErrorResponse(w, "either local_id or server_id is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Validar estrategia de resolución
 	validResolutions := map[string]bool{
 		"server_wins": true,
@@ -208,7 +208,7 @@ func handleSyncCategoriesConflictResolution(w http.ResponseWriter, r *http.Reque
 	}
 
 	// Log de resolución de conflicto
-	log.Printf("Processing conflict resolution for user %s, resolution: %s", 
+	log.Printf("Processing conflict resolution for user %s, resolution: %s",
 		conflictRequest.UserID, conflictRequest.Resolution)
 
 	// Procesar resolución usando función especializada

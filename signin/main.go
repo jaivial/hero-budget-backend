@@ -18,25 +18,25 @@ var (
 )
 
 type User struct {
-	ID                int       `json:"id"`
-	GoogleID          string    `json:"google_id"`
-	AppleID           string    `json:"apple_id"`
-	Email             string    `json:"email"`
-	Password          string    `json:"password"` // Password field included but will be cleared before response
-	Name              string    `json:"name"`
-	GivenName         string    `json:"given_name"`
-	FamilyName        string    `json:"family_name"`
-	Picture           string    `json:"picture"`
-	ProfileImageBlob  string    `json:"profile_image_blob"`
-	Locale            string    `json:"locale"`
-	VerifiedEmail     bool      `json:"verified_email"`
-	VerificationCode  string    `json:"verification_code,omitempty"`
-	Type              string    `json:"type"`
-	CreatedAt         time.Time `json:"created_at"`
-	UpdatedAt         time.Time `json:"updated_at"`
-	ResetToken        string    `json:"reset_token"`
-	ResetExpires      string    `json:"reset_expires"`
-	DisplayImage      string    `json:"display_image"`
+	ID               int       `json:"id"`
+	GoogleID         string    `json:"google_id"`
+	AppleID          string    `json:"apple_id"`
+	Email            string    `json:"email"`
+	Password         string    `json:"password"` // Password field included but will be cleared before response
+	Name             string    `json:"name"`
+	GivenName        string    `json:"given_name"`
+	FamilyName       string    `json:"family_name"`
+	Picture          string    `json:"picture"`
+	ProfileImageBlob string    `json:"profile_image_blob"`
+	Locale           string    `json:"locale"`
+	VerifiedEmail    bool      `json:"verified_email"`
+	VerificationCode string    `json:"verification_code,omitempty"`
+	Type             string    `json:"type"`
+	CreatedAt        time.Time `json:"created_at"`
+	UpdatedAt        time.Time `json:"updated_at"`
+	ResetToken       string    `json:"reset_token"`
+	ResetExpires     string    `json:"reset_expires"`
+	DisplayImage     string    `json:"display_image"`
 }
 
 type SignInRequest struct {
@@ -316,17 +316,17 @@ func handleSignIn(w http.ResponseWriter, r *http.Request) {
 
 /**
  * handleFetchUserData - Fetches complete user data by user ID
- * 
+ *
  * Purpose: Provides complete user record from database for loginService synchronization
  * Used by mobile app to sync server user data with local database after successful authentication
- * 
+ *
  * Endpoint: POST /signin/fetch-user-data
  * Request: { "user_id": <integer> }
  * Response: { "success": <boolean>, "data": <User>, "message": <string> }
- * 
+ *
  * Security: No authentication required as this is called immediately after successful login
  * Database: Queries users table with all available columns
- * 
+ *
  * Algorithm:
  * 1. Validate POST method and parse JSON request body
  * 2. Validate user_id parameter is provided and valid
@@ -461,7 +461,7 @@ func handleFetchUserData(w http.ResponseWriter, r *http.Request) {
 	// Priority: profile_image_blob > picture > empty string
 	if user.ProfileImageBlob != "" {
 		user.DisplayImage = user.ProfileImageBlob
-		log.Printf("Set display_image from profile_image_blob for user %d (size: %d bytes)", 
+		log.Printf("Set display_image from profile_image_blob for user %d (size: %d bytes)",
 			user.ID, len(user.ProfileImageBlob))
 	} else if user.Picture != "" {
 		user.DisplayImage = user.Picture
@@ -475,7 +475,7 @@ func handleFetchUserData(w http.ResponseWriter, r *http.Request) {
 	user.Password = ""
 
 	// Step 10: Log successful data retrieval for debugging
-	log.Printf("Successfully fetched complete user data for user %d: email=%s, type=%s, verified=%t", 
+	log.Printf("Successfully fetched complete user data for user %d: email=%s, type=%s, verified=%t",
 		user.ID, user.Email, user.Type, user.VerifiedEmail)
 
 	// Step 11: Return complete user data as JSON response

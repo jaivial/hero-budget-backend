@@ -13,7 +13,7 @@ import (
 // Retorna respuesta detallada con resultados y conflictos detectados
 func processBillBatch(request SyncBillBatchRequest) (*SyncBillBatchResponse, error) {
 	log.Printf("Procesando lote de sincronización: %d facturas para usuario %s", len(request.Bills), request.UserID)
-	
+
 	// Inicializar respuesta del lote
 	response := &SyncBillBatchResponse{
 		Success:       true,
@@ -27,37 +27,37 @@ func processBillBatch(request SyncBillBatchRequest) (*SyncBillBatchResponse, err
 		LastSync:      time.Now().UTC().Format(time.RFC3339),
 		NextSyncTime:  time.Now().Add(15 * time.Minute).UTC().Format(time.RFC3339),
 	}
-	
+
 	// Procesar cada factura en el lote
 	for _, offlineBill := range request.Bills {
 		response.ProcessedOps++
-		
+
 		// Procesar operación individual
 		result, serverBill, err := processSingleBillOperation(offlineBill)
-		
+
 		// Agregar resultado a la respuesta
 		response.Results = append(response.Results, result)
-		
+
 		if err != nil {
 			response.FailedOps++
 			log.Printf("Error procesando factura %s: %v", offlineBill.LocalID, err)
 			continue
 		}
-		
+
 		response.SuccessfulOps++
-		
+
 		// Agregar datos del servidor si la operación fue exitosa
 		if serverBill != nil {
 			response.ServerData = append(response.ServerData, *serverBill)
 		}
 	}
-	
+
 	// Actualizar estado general de la respuesta
 	if response.FailedOps > 0 {
 		response.Success = false
 		response.Message = fmt.Sprintf("Lote procesado con %d errores de %d operaciones", response.FailedOps, response.ProcessedOps)
 	}
-	
+
 	log.Printf("Lote completado: %d exitosas, %d fallidas de %d total", response.SuccessfulOps, response.FailedOps, response.ProcessedOps)
 	return response, nil
 }
@@ -72,10 +72,10 @@ func processSingleBillOperation(offlineBill OfflineBill) (SyncBillResult, *Bill,
 		Status:        "success",
 		SyncTimestamp: time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	var serverBill *Bill
 	var err error
-	
+
 	// Procesar según el tipo de acción
 	switch offlineBill.Action {
 	case "add":
@@ -87,19 +87,19 @@ func processSingleBillOperation(offlineBill OfflineBill) (SyncBillResult, *Bill,
 	default:
 		err = fmt.Errorf("acción no soportada: %s", offlineBill.Action)
 	}
-	
+
 	// Manejar errores
 	if err != nil {
 		result.Status = "error"
 		result.Error = err.Error()
 		return result, nil, err
 	}
-	
+
 	// Asignar ServerID si es aplicable
 	if serverBill != nil {
 		result.ServerID = fmt.Sprintf("%d", serverBill.ID)
 	}
-	
+
 	return result, serverBill, nil
 }
 
@@ -132,28 +132,28 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		Regularity:     offlineBill.Regularity,
 		PaymentMethod:  offlineBill.PaymentMethod,
 	}
-	
-	// Insertar factura en la base de datos
-	result, err := db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", 
-		addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, 
+
+	// Insertar factura en la base de datos con category_id
+	result, err := db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)",
+		addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.CategoryID, addRequest.Icon,
 		addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 	if err != nil {
 		return nil, fmt.Errorf("error insertando factura: %v", err)
 	}
-	
+
 	// Obtener ID de la factura creada
 	billID, _ := result.LastInsertId()
-	
+
 	// Aplicar efectos en tablas de balance usando lógica acumulativa existente
 	err = addBillToCashBankBalanceCumulative(db, addRequest.UserID, addRequest.Amount, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
 	if err != nil {
 		log.Printf("Error aplicando efectos de balance: %v", err)
 		// No fallar la operación por errores de balance
 	}
-	
+
 	// Crear registros de pago
 	createBillPaymentRecords(db, int(billID), addRequest.UserID, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
-	
+
 	// Crear estructura Bill para retornar
 	createdBill := &Bill{
 		ID:             int(billID),
@@ -175,7 +175,7 @@ func processAddBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		CreatedAt:      time.Now().UTC().Format(time.RFC3339),
 		UpdatedAt:      time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	return createdBill, nil
 }
 
@@ -187,7 +187,7 @@ func processUpdateBillOperation(offlineBill OfflineBill) (*Bill, error) {
 	if err != nil {
 		return nil, fmt.Errorf("factura no encontrada: %v", err)
 	}
-	
+
 	// Crear estructura de actualización
 	updateRequest := UpdateBillRequest{
 		UserID:         offlineBill.UserID,
@@ -202,21 +202,21 @@ func processUpdateBillOperation(offlineBill OfflineBill) (*Bill, error) {
 		Icon:           offlineBill.Icon,
 		PaymentMethod:  offlineBill.PaymentMethod,
 	}
-	
+
 	// Actualizar usando lógica existente
 	if err = updateBillInDatabase(db, updateRequest); err != nil {
 		return nil, fmt.Errorf("error actualizando factura: %v", err)
 	}
-	
+
 	// Aplicar algoritmo acumulativo de actualización
 	// (Esta lógica ya está implementada en los handlers existentes)
-	
+
 	// Obtener factura actualizada
 	updatedBill, err := getBillOldData(db, offlineBill.ServerID, offlineBill.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("error obteniendo factura actualizada: %v", err)
 	}
-	
+
 	return updatedBill, nil
 }
 
@@ -228,13 +228,13 @@ func processDeleteBillOperation(offlineBill OfflineBill) error {
 	if err != nil {
 		return fmt.Errorf("factura no encontrada para eliminar: %v", err)
 	}
-	
+
 	// Eliminar factura y revertir efectos usando lógica existente
 	err = deleteBillAndRevertEffects(db, billData)
 	if err != nil {
 		return fmt.Errorf("error eliminando factura: %v", err)
 	}
-	
+
 	return nil
 }
 
@@ -246,7 +246,7 @@ func getBillChanges(request SyncBillChangesRequest) (*SyncBillChangesResponse, e
 	if err != nil {
 		return nil, fmt.Errorf("error obteniendo facturas: %v", err)
 	}
-	
+
 	response := &SyncBillChangesResponse{
 		Success:      true,
 		Message:      "Cambios obtenidos exitosamente",
@@ -257,20 +257,20 @@ func getBillChanges(request SyncBillChangesRequest) (*SyncBillChangesResponse, e
 		LastSync:     time.Now().UTC().Format(time.RFC3339),
 		ServerTime:   time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	return response, nil
 }
 
 // getBillOperationChanges obtiene operaciones de facturas desde último operation_id
 // Compatible con el nuevo sistema operation_id-based para sincronización incremental
 func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBillOperationChangesResponse, error) {
-	log.Printf("Fetching bill operations for user %s since operation_id: %s", 
+	log.Printf("Fetching bill operations for user %s since operation_id: %s",
 		request.UserID, request.LastOperationId)
-	
+
 	// Build query to get operations since last operation_id
 	var query string
 	var args []interface{}
-	
+
 	if request.LastOperationId == "" {
 		// First sync - get all operations for this user
 		query = `
@@ -294,21 +294,21 @@ func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBill
 			LIMIT ?
 		`
 		args = []interface{}{request.UserID, request.LastOperationId, request.Limit}
-		log.Printf("Incremental sync for user %s since operation_id %s (limit: %d)", 
+		log.Printf("Incremental sync for user %s since operation_id %s (limit: %d)",
 			request.UserID, request.LastOperationId, request.Limit)
 	}
-	
+
 	// Execute query
 	rows, err := db.Query(query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("error querying sync operations: %v", err)
 	}
 	defer rows.Close()
-	
+
 	// Process results
 	var operations []BillSyncOperation
 	var lastOperationId string
-	
+
 	for rows.Next() {
 		var op BillSyncOperation
 		err := rows.Scan(
@@ -328,15 +328,15 @@ func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBill
 			log.Printf("Error scanning operation row: %v", err)
 			continue
 		}
-		
+
 		operations = append(operations, op)
 		lastOperationId = op.OperationID
 	}
-	
+
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating operation rows: %v", err)
 	}
-	
+
 	// Check if there are more operations available
 	hasMore := false
 	if len(operations) == request.Limit {
@@ -348,7 +348,7 @@ func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBill
 			hasMore = true
 		}
 	}
-	
+
 	// Get total count for this user
 	var totalCount int
 	totalQuery := `SELECT COUNT(*) FROM sync_operations WHERE user_id = ?`
@@ -362,10 +362,10 @@ func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBill
 		log.Printf("Warning: Could not get total count: %v", err)
 		totalCount = len(operations)
 	}
-	
-	log.Printf("Found %d operations for user %s, hasMore: %t, totalCount: %d", 
+
+	log.Printf("Found %d operations for user %s, hasMore: %t, totalCount: %d",
 		len(operations), request.UserID, hasMore, totalCount)
-	
+
 	response := &SyncBillOperationChangesResponse{
 		Success:       true,
 		Message:       "Operaciones obtenidas exitosamente",
@@ -375,6 +375,6 @@ func getBillOperationChanges(request SyncBillOperationChangesRequest) (*SyncBill
 		LastOperation: lastOperationId,
 		ServerTime:    time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	return response, nil
 }

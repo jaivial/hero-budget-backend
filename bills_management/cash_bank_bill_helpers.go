@@ -9,26 +9,26 @@ import (
 // addBillToCashBankBalance añade una nueva factura a monthly_cash_bank_balance
 // NUEVO: Función específica para trabajar con monthly_cash_bank_balance
 func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDate string, durationMonths int, paymentMethod string) error {
-	log.Printf("🔄 Añadiendo bill a monthly_cash_bank_balance: user=%s, amount=%.2f, start=%s, duration=%d, method=%s", 
+	log.Printf("🔄 Añadiendo bill a monthly_cash_bank_balance: user=%s, amount=%.2f, start=%s, duration=%d, method=%s",
 		userID, amount, startDate, durationMonths, paymentMethod)
-	
+
 	// Parsear fecha de inicio
 	startTime, err := parseFlexibleDateCashBank(startDate)
 	if err != nil {
 		return fmt.Errorf("invalid start date: %v", err)
 	}
-	
+
 	// Aplicar la factura a cada mes del periodo
 	for i := 0; i < durationMonths; i++ {
 		monthDate := startTime.AddDate(0, i, 0)
 		yearMonth := monthDate.Format("2006-01")
-		
+
 		// Asegurar que existe fila para el mes
 		_, err := db.Exec("INSERT OR IGNORE INTO monthly_cash_bank_balance (user_id, year_month) VALUES (?, ?)", userID, yearMonth)
 		if err != nil {
 			return fmt.Errorf("error creating monthly record for %s: %v", yearMonth, err)
 		}
-		
+
 		// Sumar amount a bill_cash_amount o bill_bank_amount
 		if paymentMethod == "cash" {
 			_, err = db.Exec("UPDATE monthly_cash_bank_balance SET bill_cash_amount = bill_cash_amount + ? WHERE user_id = ? AND year_month = ?", amount, userID, yearMonth)
@@ -38,7 +38,7 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 		if err != nil {
 			return fmt.Errorf("error updating bill amount for %s: %v", yearMonth, err)
 		}
-		
+
 		// Restar amount de cash_amount o bank_amount (comprometer dinero)
 		if paymentMethod == "cash" {
 			_, err = db.Exec("UPDATE monthly_cash_bank_balance SET cash_amount = cash_amount - ? WHERE user_id = ? AND year_month = ?", amount, userID, yearMonth)
@@ -48,7 +48,7 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 		if err != nil {
 			return fmt.Errorf("error updating available amount for %s: %v", yearMonth, err)
 		}
-		
+
 		// Restar amount de balance_cash_amount o balance_bank_amount
 		if paymentMethod == "cash" {
 			_, err = db.Exec("UPDATE monthly_cash_bank_balance SET balance_cash_amount = balance_cash_amount - ? WHERE user_id = ? AND year_month = ?", amount, userID, yearMonth)
@@ -59,7 +59,7 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 			return fmt.Errorf("error updating balance amount for %s: %v", yearMonth, err)
 		}
 	}
-	
+
 	// Actualizar previous_amounts en cascada para meses posteriores
 	startMonth := startTime.Format("2006-01")
 	rows, err := db.Query("SELECT year_month FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month > ? ORDER BY year_month", userID, startMonth)
@@ -67,7 +67,7 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 		return fmt.Errorf("error fetching subsequent months: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var subsequentMonths []string
 	for rows.Next() {
 		var month string
@@ -75,7 +75,7 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 			subsequentMonths = append(subsequentMonths, month)
 		}
 	}
-	
+
 	// Restar en cascada en previous_cash_amount o previous_bank_amount
 	for _, month := range subsequentMonths {
 		if paymentMethod == "cash" {
@@ -84,14 +84,14 @@ func addBillToCashBankBalance(db *sql.DB, userID string, amount float64, startDa
 			db.Exec("UPDATE monthly_cash_bank_balance SET previous_bank_amount = previous_bank_amount - ?, total_previous_balance = total_previous_balance - ? WHERE user_id = ? AND year_month = ?", amount, amount, userID, month)
 		}
 	}
-	
+
 	// CORREGIDO: Recalcular total_balance para todos los meses afectados y posteriores
 	// Usar la nueva función que considera previous_amounts correctamente
 	if recalculateErr := recalculateAllSubsequentMonthsBalance(db, userID, startMonth); recalculateErr != nil {
 		log.Printf("Error recalculando balances: %v", recalculateErr)
 		return recalculateErr
 	}
-	
+
 	log.Printf("✅ Bill añadido a monthly_cash_bank_balance correctamente")
 	return nil
 }
@@ -122,7 +122,7 @@ func getBillDataForCashBank(db *sql.DB, billID int, userID string) (*Bill, error
 func updateBillInDatabaseCashBank(db *sql.DB, updateRequest UpdateBillRequest) error {
 	query := "UPDATE bills SET updated_at = CURRENT_TIMESTAMP"
 	args := []interface{}{}
-	
+
 	if updateRequest.Name != "" {
 		query += ", name = ?"
 		args = append(args, updateRequest.Name)
@@ -159,10 +159,10 @@ func updateBillInDatabaseCashBank(db *sql.DB, updateRequest UpdateBillRequest) e
 		query += ", payment_method = ?"
 		args = append(args, updateRequest.PaymentMethod)
 	}
-	
+
 	query += " WHERE id = ? AND user_id = ?"
 	args = append(args, updateRequest.BillID, updateRequest.UserID)
-	
+
 	_, err := db.Exec(query, args...)
 	return err
 }
@@ -171,7 +171,7 @@ func updateBillInDatabaseCashBank(db *sql.DB, updateRequest UpdateBillRequest) e
 // Función auxiliar para verificar el estado de los balances
 func getCashBankBalanceForMonth(db *sql.DB, userID, yearMonth string) (map[string]interface{}, error) {
 	var result map[string]interface{}
-	
+
 	row := db.QueryRow(`
 		SELECT income_bank_amount, income_cash_amount, expense_bank_amount, expense_cash_amount,
 		       bill_bank_amount, bill_cash_amount, bank_amount, cash_amount,
@@ -180,23 +180,23 @@ func getCashBankBalanceForMonth(db *sql.DB, userID, yearMonth string) (map[strin
 		FROM monthly_cash_bank_balance
 		WHERE user_id = ? AND year_month = ?
 	`, userID, yearMonth)
-	
+
 	var incomeBank, incomeCash, expenseBank, expenseCash, billBank, billCash float64
 	var bankAmount, cashAmount, prevBank, prevCash, balanceBank, balanceCash float64
 	var totalPrev, totalBalance float64
-	
+
 	err := row.Scan(&incomeBank, &incomeCash, &expenseBank, &expenseCash,
 		&billBank, &billCash, &bankAmount, &cashAmount,
 		&prevBank, &prevCash, &balanceBank, &balanceCash,
 		&totalPrev, &totalBalance)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no balance found for %s in %s", userID, yearMonth)
 		}
 		return nil, fmt.Errorf("error fetching balance: %v", err)
 	}
-	
+
 	result = map[string]interface{}{
 		"user_id":                userID,
 		"year_month":             yearMonth,
@@ -215,6 +215,6 @@ func getCashBankBalanceForMonth(db *sql.DB, userID, yearMonth string) (map[strin
 		"total_previous_balance": totalPrev,
 		"total_balance":          totalBalance,
 	}
-	
+
 	return result, nil
 }

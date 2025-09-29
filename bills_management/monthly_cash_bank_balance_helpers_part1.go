@@ -69,14 +69,14 @@ func calculateMonthsFromDurationCashBank(startDateStr string, durationMonths int
 // NUEVO: Función corregida que recalcula balance total considerando previous_amounts actualizados
 func recalculateAllSubsequentMonthsBalance(db *sql.DB, userID, startMonth string) error {
 	log.Printf("🔄 Recalculando total_balance para todos los meses >= %s", startMonth)
-	
+
 	// Obtener todos los meses desde startMonth en adelante
 	rows, err := db.Query("SELECT year_month FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month >= ? ORDER BY year_month", userID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching months for balance recalculation: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var months []string
 	for rows.Next() {
 		var month string
@@ -84,7 +84,7 @@ func recalculateAllSubsequentMonthsBalance(db *sql.DB, userID, startMonth string
 			months = append(months, month)
 		}
 	}
-	
+
 	// Recalcular total_balance para cada mes considerando previous_amounts
 	for _, month := range months {
 		// Obtener valores actuales del mes
@@ -95,30 +95,30 @@ func recalculateAllSubsequentMonthsBalance(db *sql.DB, userID, startMonth string
 			FROM monthly_cash_bank_balance 
 			WHERE user_id = ? AND year_month = ?
 		`, userID, month).Scan(&cashAmount, &bankAmount, &prevCash, &prevBank)
-		
+
 		if err != nil {
 			log.Printf("Error obteniendo datos para mes %s: %v", month, err)
 			continue
 		}
-		
+
 		// CORREGIDO: total_balance = (previous_amounts + current_amounts)
 		newTotalBalance := (prevCash + prevBank) + (cashAmount + bankAmount)
 		newTotalPrevious := prevCash + prevBank
-		
+
 		// Actualizar total_balance y total_previous_balance
 		_, err = db.Exec(`
 			UPDATE monthly_cash_bank_balance 
 			SET total_balance = ?, total_previous_balance = ?
 			WHERE user_id = ? AND year_month = ?
 		`, newTotalBalance, newTotalPrevious, userID, month)
-		
+
 		if err != nil {
 			log.Printf("Error actualizando total_balance para mes %s: %v", month, err)
 		} else {
 			log.Printf("✅ Mes %s: total_balance=%.2f, total_previous_balance=%.2f", month, newTotalBalance, newTotalPrevious)
 		}
 	}
-	
+
 	return nil
 }
 

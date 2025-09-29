@@ -63,7 +63,7 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation with auto-generated operation_id (consistent pattern from implementation guide)
 	log.Printf("Recording sync operation for category deletion with auto-generated operation_id")
-	
+
 	// Create sync operation data with deleted category structure
 	syncData := map[string]interface{}{
 		"id":         categoryToDelete.ID,
@@ -75,7 +75,7 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		"updated_at": categoryToDelete.UpdatedAt,
 		"deleted_at": "now", // Placeholder since category is already deleted
 	}
-	
+
 	// Always add sync operation record to database - auto-generate operation_id if not provided
 	err = addSyncOperation(
 		deleteRequest.UserID,
@@ -84,10 +84,10 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 		"categories",
 		strconv.Itoa(deleteRequest.CategoryID),
 		syncData,
-		deleteRequest.DeviceID, // Use device_id from request (can be empty)
+		deleteRequest.DeviceID,  // Use device_id from request (can be empty)
 		deleteRequest.Timestamp, // Use timestamp from request (can be 0)
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for category deletion: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -108,7 +108,7 @@ func handleDeleteCategory(w http.ResponseWriter, r *http.Request) {
 func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}) {
 	// Configurar header de contenido JSON
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Codificar y enviar respuesta con formato estándar
 	json.NewEncoder(w).Encode(ApiResponse{
 		Success: true,
@@ -124,7 +124,7 @@ func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 	// Configurar headers para respuesta de error
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	// Codificar y enviar respuesta de error con formato estándar
 	json.NewEncoder(w).Encode(ApiResponse{
 		Success: false,

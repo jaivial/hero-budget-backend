@@ -20,7 +20,7 @@ import (
 )
 
 var (
-	db *sql.DB
+	db  *sql.DB
 	ctx = context.Background()
 	// Cache manager for Redis operations to improve performance
 	cacheManager *common.CacheManager
@@ -105,12 +105,11 @@ func init() {
 	log.Println("User Locale service initialized successfully")
 }
 
-
 // updateSyncOperationsSchema ensures sync_operations table has correct schema with proper constraints
 // This function detects and fixes constraint violations by updating the CHECK constraint
 func updateSyncOperationsSchema() error {
 	log.Printf("Updating sync_operations schema to include user_locale operation types...")
-	
+
 	// Check if sync_operations table exists
 	var tableExists bool
 	err := db.QueryRow(`
@@ -118,11 +117,11 @@ func updateSyncOperationsSchema() error {
 		FROM sqlite_master 
 		WHERE type='table' AND name='sync_operations'
 	`).Scan(&tableExists)
-	
+
 	if err != nil {
 		return fmt.Errorf("failed to check if sync_operations table exists: %v", err)
 	}
-	
+
 	if !tableExists {
 		log.Printf("Creating sync_operations table with proper schema...")
 		_, err = db.Exec(`
@@ -153,7 +152,7 @@ func updateSyncOperationsSchema() error {
 		`)
 		return err
 	}
-	
+
 	// Test if current schema accepts user_locale operations by attempting an INSERT
 	testOperationID := fmt.Sprintf("test_%d", time.Now().UnixMilli())
 	testInsert := `
@@ -161,12 +160,12 @@ func updateSyncOperationsSchema() error {
 			operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data
 		) VALUES (?, 'test_user', ?, 'update', 'user_locale', 'test_id', '{}')
 	`
-	
+
 	_, err = db.Exec(testInsert, testOperationID, time.Now().UnixMilli())
 	if err != nil {
 		if strings.Contains(err.Error(), "CHECK constraint failed") {
 			log.Printf("⚠️ Detected CHECK constraint violation - updating schema...")
-			
+
 			// Update schema to include user_locale operation types
 			_, err = db.Exec(`
 				-- Create new table with updated schema
@@ -195,11 +194,11 @@ func updateSyncOperationsSchema() error {
 				ALTER TABLE sync_operations_new RENAME TO sync_operations;
 				DROP TABLE sync_operations_old;
 			`)
-			
+
 			if err != nil {
 				return fmt.Errorf("failed to update sync_operations schema: %v", err)
 			}
-			
+
 			// Recreate indexes
 			_, err = db.Exec(`
 				CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id 
@@ -214,7 +213,7 @@ func updateSyncOperationsSchema() error {
 				CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity 
 					ON sync_operations(user_id, entity_type, entity_id);
 			`)
-			
+
 			log.Printf("✅ Successfully updated sync_operations schema")
 		} else {
 			return fmt.Errorf("failed to test sync_operations schema: %v", err)
@@ -224,7 +223,7 @@ func updateSyncOperationsSchema() error {
 		db.Exec("DELETE FROM sync_operations WHERE operation_id = ?", testOperationID)
 		log.Printf("✅ sync_operations schema is already compatible")
 	}
-	
+
 	return nil
 }
 
@@ -234,7 +233,7 @@ func isValidOperationId(operationId string) bool {
 	if operationId == "" {
 		return false
 	}
-	
+
 	// Expected format: 1755209423000_001
 	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
@@ -242,7 +241,7 @@ func isValidOperationId(operationId string) bool {
 		log.Printf("Error validating operation ID pattern: %v", err)
 		return false
 	}
-	
+
 	return matched
 }
 
@@ -251,18 +250,18 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	if !isValidOperationId(operationId) {
 		return 0
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	if len(parts) != 2 {
 		return 0
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		log.Printf("Error parsing timestamp from operation ID: %v", err)
 		return 0
 	}
-	
+
 	return timestamp
 }
 
@@ -270,7 +269,7 @@ func extractTimestampFromOperationId(operationId string) int64 {
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No previous operations found for user: %s", userID)
@@ -279,7 +278,7 @@ func getLastOperationIdForUser(userID string) (string, error) {
 		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
 		return "", err
 	}
-	
+
 	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
 	return lastOperationId, nil
 }
@@ -288,16 +287,16 @@ func getLastOperationIdForUser(userID string) (string, error) {
 // Gets the last operation ID and adds +1 millisecond time unit
 func generateNextOperationId(userID string) (string, error) {
 	log.Printf("Generating next operation ID for user: %s", userID)
-	
+
 	// Get the last operation ID for this user
 	lastOperationId, err := getLastOperationIdForUser(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get last operation ID: %v", err)
 	}
-	
+
 	var nextTimestamp int64
 	var sequenceNumber int = 1
-	
+
 	if lastOperationId == "" {
 		// No previous operations, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
@@ -315,10 +314,10 @@ func generateNextOperationId(userID string) (string, error) {
 			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
-	
+
 	// Format as {timestamp_ms}_{sequence_number}
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
-	
+
 	log.Printf("Generated operation ID: %s", operationId)
 	return operationId, nil
 }
@@ -326,13 +325,13 @@ func generateNextOperationId(userID string) (string, error) {
 // addSyncOperation records a sync operation in the sync_operations table
 // Uses the new operation_id system with timestamp-based format and automatic generation
 func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s",
 		userID, providedOperationID, action, tableName, recordID, deviceID)
-	
+
 	// Generate operation ID if not provided or if provided ID is not valid timestamp format
 	var operationID string
 	var err error
-	
+
 	if providedOperationID != "" && isValidOperationId(providedOperationID) {
 		// Use provided operation ID if it's valid
 		operationID = providedOperationID
@@ -346,19 +345,19 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		}
 		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
 	}
-	
+
 	// Validate that we have a valid operation ID
 	if !isValidOperationId(operationID) {
 		return fmt.Errorf("invalid operation ID format: %s", operationID)
 	}
-	
+
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshaling sync operation data: %v", err)
 		return err
 	}
-	
+
 	// Prepare device_ids JSON array - store null if deviceID is empty
 	var deviceIDsJSON []byte
 	if deviceID != "" {
@@ -372,17 +371,17 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		deviceIDsJSON = []byte("null")
 		log.Printf("Device ID empty, storing null in device_ids column")
 	}
-	
+
 	// Extract timestamp from operation ID for created_at field
 	operationTimestamp := extractTimestampFromOperationId(operationID)
 	if operationTimestamp == 0 {
 		operationTimestamp = time.Now().UnixMilli()
 		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
-	
+
 	// Use current server timestamp
 	serverTimestamp := time.Now().UnixMilli()
-	
+
 	// Handle client timestamp - use null if 0
 	var clientTimestampValue interface{}
 	if clientTimestamp == 0 {
@@ -391,7 +390,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	} else {
 		clientTimestampValue = clientTimestamp
 	}
-	
+
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
@@ -399,31 +398,31 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	result, err := db.Exec(
 		insertQuery,
 		userID,
 		operationID,
-		action,            // operation_type (create, update, delete, pay)
-		tableName,         // entity_type (user_locale)
-		recordID,          // entity_id
-		string(dataJSON),  // operation_data
+		action,                // operation_type (create, update, delete, pay)
+		tableName,             // entity_type (user_locale)
+		recordID,              // entity_id
+		string(dataJSON),      // operation_data
 		string(deviceIDsJSON), // device_ids as JSON array or null
 		clientTimestampValue,  // client_timestamp (original from client or null)
-		serverTimestamp,   // server_timestamp (when processed)
-		operationTimestamp, // created_at (extracted from operation_id for ordering)
+		serverTimestamp,       // server_timestamp (when processed)
+		operationTimestamp,    // created_at (extracted from operation_id for ordering)
 	)
-	
+
 	if err != nil {
 		log.Printf("Error inserting sync operation: %v", err)
 		return err
 	}
-	
+
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d",
 		syncOpID, operationID, operationTimestamp)
-	
+
 	return nil
 }
 
@@ -599,15 +598,15 @@ func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id for consistency
 	// Following the implementation guide: ALL handlers must use same pattern
 	log.Printf("✅ Recording sync operation for user locale update with auto-generated operation_id")
-	
+
 	// Create sync operation data for user locale update
 	syncData := map[string]interface{}{
-		"user_id": req.UserID,
-		"locale":  req.Locale,
-		"action":  "update_locale",
+		"user_id":      req.UserID,
+		"locale":       req.Locale,
+		"action":       "update_locale",
 		"processed_at": time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		req.UserID,
@@ -617,14 +616,14 @@ func handleUpdateUserLocale(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s", req.UserID),
 		syncData,
 		req.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,            // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for user locale update: %v", err)
 		// Don't fail the locale update for sync errors, just log warning
 	} else {
-		log.Printf("✅ SUCCESS: Successfully recorded sync operation for user locale update: user=%s, locale=%s", 
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for user locale update: user=%s, locale=%s",
 			req.UserID, req.Locale)
 	}
 

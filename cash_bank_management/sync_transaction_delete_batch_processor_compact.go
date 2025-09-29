@@ -14,30 +14,30 @@ import (
 // TransactionDeleteBatchProcessor gestiona el procesamiento por lotes de eliminaciones
 // Proporciona capacidades de procesamiento paralelo y gestión de errores optimizada
 type TransactionDeleteBatchProcessor struct {
-	maxConcurrency    int                              // Máximo número de goroutines concurrentes
-	batchSize         int                              // Tamaño de lote para procesamiento
-	timeout           time.Duration                    // Timeout para operaciones individuales
-	retryAttempts     int                              // Número máximo de reintentos
-	validateBalance   bool                             // Si validar balance durante procesamiento
-	auditEnabled      bool                             // Si habilitar auditoría detallada
-	conflictStrategy  string                           // Estrategia para manejo de conflictos
-	processingQueue   chan OfflineTransactionDeletion  // Cola de procesamiento
-	resultChannel     chan SyncTransactionDeleteResult // Canal de resultados
-	workerWg          sync.WaitGroup                   // WaitGroup para workers
-	isRunning         bool                             // Estado del procesador
-	mutex             sync.RWMutex                     // Mutex para acceso thread-safe
+	maxConcurrency   int                              // Máximo número de goroutines concurrentes
+	batchSize        int                              // Tamaño de lote para procesamiento
+	timeout          time.Duration                    // Timeout para operaciones individuales
+	retryAttempts    int                              // Número máximo de reintentos
+	validateBalance  bool                             // Si validar balance durante procesamiento
+	auditEnabled     bool                             // Si habilitar auditoría detallada
+	conflictStrategy string                           // Estrategia para manejo de conflictos
+	processingQueue  chan OfflineTransactionDeletion  // Cola de procesamiento
+	resultChannel    chan SyncTransactionDeleteResult // Canal de resultados
+	workerWg         sync.WaitGroup                   // WaitGroup para workers
+	isRunning        bool                             // Estado del procesador
+	mutex            sync.RWMutex                     // Mutex para acceso thread-safe
 }
 
 // BatchProcessorMetrics contiene métricas básicas del procesador de lotes
 type BatchProcessorMetrics struct {
-	StartTime              time.Time      `json:"start_time"`              // Tiempo de inicio del batch
-	EndTime                time.Time      `json:"end_time"`                // Tiempo de finalización
-	TotalOperations        int            `json:"total_operations"`        // Total de operaciones procesadas
-	SuccessfulOperations   int            `json:"successful_operations"`   // Operaciones exitosas
-	FailedOperations       int            `json:"failed_operations"`       // Operaciones fallidas
-	ConflictOperations     int            `json:"conflict_operations"`     // Operaciones con conflicto
-	ProcessingTimeMs       int64          `json:"processing_time_ms"`      // Tiempo total de procesamiento
-	ErrorsByType           map[string]int `json:"errors_by_type"`          // Errores agrupados por tipo
+	StartTime            time.Time      `json:"start_time"`            // Tiempo de inicio del batch
+	EndTime              time.Time      `json:"end_time"`              // Tiempo de finalización
+	TotalOperations      int            `json:"total_operations"`      // Total de operaciones procesadas
+	SuccessfulOperations int            `json:"successful_operations"` // Operaciones exitosas
+	FailedOperations     int            `json:"failed_operations"`     // Operaciones fallidas
+	ConflictOperations   int            `json:"conflict_operations"`   // Operaciones con conflicto
+	ProcessingTimeMs     int64          `json:"processing_time_ms"`    // Tiempo total de procesamiento
+	ErrorsByType         map[string]int `json:"errors_by_type"`        // Errores agrupados por tipo
 }
 
 // TransactionDeleteBatchConfig estructura de configuración compacta
@@ -144,10 +144,10 @@ func (p *TransactionDeleteBatchProcessor) ProcessBatch(deletions []OfflineTransa
 	response.Success = response.FailedOps == 0 && len(response.Conflicts) == 0
 
 	if response.Success {
-		response.Message = fmt.Sprintf("Batch processed successfully: %d deletions in %dms", 
+		response.Message = fmt.Sprintf("Batch processed successfully: %d deletions in %dms",
 			response.SuccessfulOps, processingTime)
 	} else {
-		response.Message = fmt.Sprintf("Batch completed with %d errors, %d conflicts", 
+		response.Message = fmt.Sprintf("Batch completed with %d errors, %d conflicts",
 			response.FailedOps, len(response.Conflicts))
 	}
 
@@ -170,7 +170,7 @@ func (p *TransactionDeleteBatchProcessor) deletionWorker(workerID int) {
 
 		// Process deletion with retry
 		success := p.processDeletionWithRetry(deletion, &result)
-		
+
 		if success {
 			result.Status = "success"
 			result.ValidationPassed = true

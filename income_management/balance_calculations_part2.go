@@ -134,4 +134,3 @@ func updateAnnualBalance(userID string, incomeAmount, expenseAmount, billsAmount
 
 	return err
 }
-

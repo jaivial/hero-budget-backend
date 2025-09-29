@@ -11,9 +11,9 @@ import (
 // Database operations for expense management with comprehensive balance tracking
 
 func fetchExpensesFromDatabase(userID string) ([]Expense, error) {
-	// SQL query to fetch all expenses for a user, ordered by most recent
+	// SQL query to fetch all expenses for a user, ordered by most recent, including category_id
 	query := `
-		SELECT id, user_id, amount, date, category, payment_method, description, created_at, updated_at
+		SELECT id, user_id, amount, date, category, category_id, payment_method, description, created_at, updated_at
 		FROM expenses
 		WHERE user_id = ?
 		ORDER BY date DESC, id DESC
@@ -35,6 +35,7 @@ func fetchExpensesFromDatabase(userID string) ([]Expense, error) {
 			&expense.Amount,
 			&expense.Date,
 			&expense.Category,
+			&expense.CategoryID,
 			&expense.PaymentMethod,
 			&expense.Description,
 			&expense.CreatedAt,
@@ -50,9 +51,9 @@ func fetchExpensesFromDatabase(userID string) ([]Expense, error) {
 }
 
 func getExpenseByID(expenseID int, userID string) (*Expense, error) {
-	// SQL query to fetch a specific expense by ID and user ID
+	// SQL query to fetch a specific expense by ID and user ID, including category_id
 	query := `
-		SELECT id, user_id, amount, date, category, payment_method, description, created_at, updated_at
+		SELECT id, user_id, amount, date, category, category_id, payment_method, description, created_at, updated_at
 		FROM expenses
 		WHERE id = ? AND user_id = ?
 	`
@@ -66,6 +67,7 @@ func getExpenseByID(expenseID int, userID string) (*Expense, error) {
 		&expense.Amount,
 		&expense.Date,
 		&expense.Category,
+		&expense.CategoryID,
 		&expense.PaymentMethod,
 		&expense.Description,
 		&expense.CreatedAt,
@@ -79,10 +81,10 @@ func getExpenseByID(expenseID int, userID string) (*Expense, error) {
 }
 
 func addExpenseToDatabase(expense AddExpenseRequest) (int, error) {
-	// SQL query to insert a new expense
+	// SQL query to insert a new expense including category_id
 	query := `
-		INSERT INTO expenses (user_id, amount, date, category, payment_method, description)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO expenses (user_id, amount, date, category, category_id, payment_method, description)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 	`
 
 	result, err := db.Exec(
@@ -91,6 +93,7 @@ func addExpenseToDatabase(expense AddExpenseRequest) (int, error) {
 		expense.Amount,
 		expense.Date,
 		expense.Category,
+		expense.CategoryID,
 		expense.PaymentMethod,
 		expense.Description,
 	)
@@ -123,6 +126,10 @@ func updateExpenseInDatabase(updateRequest UpdateExpenseRequest) error {
 	if updateRequest.Category != "" {
 		setParts = append(setParts, "category = ?")
 		args = append(args, updateRequest.Category)
+	}
+	if updateRequest.CategoryID != nil {
+		setParts = append(setParts, "category_id = ?")
+		args = append(args, updateRequest.CategoryID)
 	}
 	if updateRequest.PaymentMethod != "" {
 		setParts = append(setParts, "payment_method = ?")
@@ -304,19 +311,19 @@ func fetchMonthlyAnalytics(userID, monthStr string) (interface{}, error) {
 	`
 
 	var analytics struct {
-		YearMonth           string  `json:"year_month"`
-		IncomeCashAmount    float64 `json:"income_cash_amount"`
-		IncomeBankAmount    float64 `json:"income_bank_amount"`
-		ExpenseCashAmount   float64 `json:"expense_cash_amount"`
-		ExpenseBankAmount   float64 `json:"expense_bank_amount"`
-		BillCashAmount      float64 `json:"bill_cash_amount"`
-		BillBankAmount      float64 `json:"bill_bank_amount"`
-		CashAmount          float64 `json:"cash_amount"`
-		BankAmount          float64 `json:"bank_amount"`
-		BalanceCashAmount   float64 `json:"balance_cash_amount"`
-		BalanceBankAmount   float64 `json:"balance_bank_amount"`
-		PreviousCashAmount  float64 `json:"previous_cash_amount"`
-		PreviousBankAmount  float64 `json:"previous_bank_amount"`
+		YearMonth          string  `json:"year_month"`
+		IncomeCashAmount   float64 `json:"income_cash_amount"`
+		IncomeBankAmount   float64 `json:"income_bank_amount"`
+		ExpenseCashAmount  float64 `json:"expense_cash_amount"`
+		ExpenseBankAmount  float64 `json:"expense_bank_amount"`
+		BillCashAmount     float64 `json:"bill_cash_amount"`
+		BillBankAmount     float64 `json:"bill_bank_amount"`
+		CashAmount         float64 `json:"cash_amount"`
+		BankAmount         float64 `json:"bank_amount"`
+		BalanceCashAmount  float64 `json:"balance_cash_amount"`
+		BalanceBankAmount  float64 `json:"balance_bank_amount"`
+		PreviousCashAmount float64 `json:"previous_cash_amount"`
+		PreviousBankAmount float64 `json:"previous_bank_amount"`
 	}
 
 	err := db.QueryRow(query, userID, monthStr).Scan(

@@ -124,7 +124,7 @@ func invalidateCategoriesCache(userID string) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate categories cache for user %s: %v", userID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (categories)", userID)
 	}
 }

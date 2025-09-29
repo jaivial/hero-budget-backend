@@ -35,6 +35,7 @@ var operationIdPattern = regexp.MustCompile(`^\d{13}_\d{3}$`)
 // isValidOperationId validates if operation ID follows timestamp-based format
 // Parameters:
 //   - operationId: Operation ID to validate
+//
 // Returns: bool - true if valid format, false otherwise
 func isValidOperationId(operationId string) bool {
 	if operationId == "" {
@@ -46,18 +47,19 @@ func isValidOperationId(operationId string) bool {
 // extractTimestampFromOperationId extracts timestamp from operation ID
 // Parameters:
 //   - operationId: Operation ID in timestamp_sequence format
+//
 // Returns: int64, bool - timestamp in milliseconds and success flag
 func extractTimestampFromOperationId(operationId string) (int64, bool) {
 	if !isValidOperationId(operationId) {
 		return 0, false
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		return 0, false
 	}
-	
+
 	return timestamp, true
 }
 
@@ -65,6 +67,7 @@ func extractTimestampFromOperationId(operationId string) (int64, bool) {
 // When last operation ID is null or "null", all operations need to be fetched
 // Parameters:
 //   - operationId: Operation ID to check
+//
 // Returns: bool - true if should fetch all operations
 func shouldFetchAllOperations(operationId string) bool {
 	return operationId == "" || operationId == "null"
@@ -75,6 +78,7 @@ func shouldFetchAllOperations(operationId string) bool {
 // Parameters:
 //   - timestamp: Unix timestamp in milliseconds (use time.Now().UnixMilli())
 //   - sequence: Sequence number within the same millisecond (001-999)
+//
 // Returns: string - formatted operation ID
 func generateOperationId(timestamp int64, sequence int) string {
 	return fmt.Sprintf("%d_%03d", timestamp, sequence)
@@ -83,18 +87,19 @@ func generateOperationId(timestamp int64, sequence int) string {
 // getSyncScopeDescription generates human-readable description of sync scope
 // Parameters:
 //   - lastOperationId: Last processed operation ID
+//
 // Returns: string - description of what will be synced
 func getSyncScopeDescription(lastOperationId string) string {
 	if shouldFetchAllOperations(lastOperationId) {
 		return "Full sync required - fetching all operations from server"
 	}
-	
+
 	timestamp, valid := extractTimestampFromOperationId(lastOperationId)
 	if valid {
-		return fmt.Sprintf("Incremental sync - fetching operations after %s", 
+		return fmt.Sprintf("Incremental sync - fetching operations after %s",
 			time.UnixMilli(timestamp).Format(time.RFC3339))
 	}
-	
+
 	return "Incremental sync - fetching recent operations"
 }
 
@@ -122,15 +127,15 @@ type AddSyncOperationRequest struct {
 	EntityType    string   `json:"entity_type"`
 	EntityID      string   `json:"entity_id"`
 	OperationData string   `json:"operation_data"`
-	DeviceID      string   `json:"device_id,omitempty"`      // Single device ID (backward compatibility)
-	DeviceIDs     []string `json:"device_ids,omitempty"`     // Array of device IDs (new format)
+	DeviceID      string   `json:"device_id,omitempty"`  // Single device ID (backward compatibility)
+	DeviceIDs     []string `json:"device_ids,omitempty"` // Array of device IDs (new format)
 }
 
 // FetchSyncOperationsRequest estructura para solicitudes de obtención de operaciones
 // Permite filtrar por usuario y timestamp o por operation_id para sincronización incremental
 type FetchSyncOperationsRequest struct {
 	UserID          string `json:"user_id"`
-	Timestamp       int64  `json:"timestamp"`       // Legacy timestamp-based sync
+	Timestamp       int64  `json:"timestamp"`         // Legacy timestamp-based sync
 	LastOperationID string `json:"last_operation_id"` // New operation ID-based sync
 }
 
@@ -286,7 +291,7 @@ func migrateDeviceIdToArray() error {
 	checkColumnSQL := `
 	SELECT COUNT(*) > 0 FROM pragma_table_info('sync_operations') 
 	WHERE name = 'device_id' AND name != 'device_ids';`
-	
+
 	err := db.QueryRow(checkColumnSQL).Scan(&columnExists)
 	if err != nil {
 		return fmt.Errorf("error checking for device_id column: %v", err)
@@ -304,7 +309,7 @@ func migrateDeviceIdToArray() error {
 	checkDeviceIdsSQL := `
 	SELECT COUNT(*) > 0 FROM pragma_table_info('sync_operations') 
 	WHERE name = 'device_ids';`
-	
+
 	err = db.QueryRow(checkDeviceIdsSQL).Scan(&deviceIdsExists)
 	if err != nil {
 		return fmt.Errorf("error checking for device_ids column: %v", err)
@@ -453,12 +458,12 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		// Operation ID-based sync (preferred method)
 		syncScope := getSyncScopeDescription(lastOperationID)
 		isValidFormat := isValidOperationId(lastOperationID) || shouldFetchAllOperations(lastOperationID)
-		
+
 		log.Printf("🔄 Using operation ID-based sync for user %s", userID)
 		log.Printf("   - Last operation ID: %s", lastOperationID)
 		log.Printf("   - Valid format: %t", isValidFormat)
 		log.Printf("   - Sync scope: %s", syncScope)
-		
+
 		if shouldFetchAllOperations(lastOperationID) {
 			// First-time sync - get all operations for this user (ordered by timestamp-based operation_id)
 			query = `
@@ -522,7 +527,7 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	} else if timestampStr != "" {
 		// Legacy timestamp-based sync (backward compatibility)
 		log.Printf("🕒 Using legacy timestamp-based sync for user %s from timestamp: %s", userID, timestampStr)
-		
+
 		timestamp, err := strconv.ParseInt(timestampStr, 10, 64)
 		if err != nil {
 			response := ApiResponse{
@@ -534,7 +539,7 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 			json.NewEncoder(w).Encode(response)
 			return
 		}
-		
+
 		query = `
 		SELECT operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, COALESCE(device_ids, '[]')
 		FROM sync_operations 
@@ -572,8 +577,8 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var op SyncOperation
 		var deviceIdsJSON string
-		
-		err := rows.Scan(&op.OperationID, &op.UserID, &op.CreatedAt, &op.OperationType, 
+
+		err := rows.Scan(&op.OperationID, &op.UserID, &op.CreatedAt, &op.OperationType,
 			&op.EntityType, &op.EntityID, &op.OperationData, &deviceIdsJSON)
 		if err != nil {
 			log.Printf("❌ Row scan error: %v", err)
@@ -590,7 +595,7 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 		} else {
 			op.DeviceIDs = []string{} // Default to empty array
 		}
-		
+
 		operations = append(operations, op)
 	}
 
@@ -609,7 +614,7 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 	// Log success message with detailed operation ID information
 	if lastOperationID != "" {
 		syncScope := getSyncScopeDescription(lastOperationID)
-		
+
 		if shouldFetchAllOperations(lastOperationID) {
 			log.Printf("✅ Retrieved %d sync operations for user %s (FULL SYNC)", len(operations), userID)
 			log.Printf("   - Sync scope: %s", syncScope)
@@ -621,14 +626,14 @@ func handleFetchSyncOperations(w http.ResponseWriter, r *http.Request) {
 			log.Printf("   - Sync scope: %s", syncScope)
 			log.Printf("   - Ordering: timestamp-based operation_id ASC")
 		}
-		
+
 		// Log first and last operation IDs if we have results
 		if len(operations) > 0 {
 			firstOp := operations[0]
 			lastOp := operations[len(operations)-1]
 			log.Printf("   - First operation: %s", firstOp.OperationID)
 			log.Printf("   - Last operation: %s", lastOp.OperationID)
-			
+
 			// Validate the ordering
 			firstTimestamp, firstValid := extractTimestampFromOperationId(firstOp.OperationID)
 			lastTimestamp, lastValid := extractTimestampFromOperationId(lastOp.OperationID)
@@ -681,7 +686,7 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate required fields
-	if req.OperationID == "" || req.UserID == "" || req.OperationType == "" || 
+	if req.OperationID == "" || req.UserID == "" || req.OperationType == "" ||
 		req.EntityType == "" || req.EntityID == "" || req.OperationData == "" {
 		response := ApiResponse{
 			Success: false,
@@ -757,7 +762,7 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 	INSERT INTO sync_operations (operation_id, user_id, created_at, operation_type, entity_type, entity_id, operation_data, device_ids)
 	VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
 
-	_, err = db.Exec(insertSQL, req.OperationID, req.UserID, currentTime, req.OperationType, 
+	_, err = db.Exec(insertSQL, req.OperationID, req.UserID, currentTime, req.OperationType,
 		req.EntityType, req.EntityID, req.OperationData, deviceIdsJSON)
 	if err != nil {
 		log.Printf("❌ Database insert error: %v", err)
@@ -771,7 +776,7 @@ func handleAddSyncOperation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("✅ Added sync operation: %s for user %s (type: %s, entity: %s/%s, devices: %v)", 
+	log.Printf("✅ Added sync operation: %s for user %s (type: %s, entity: %s/%s, devices: %v)",
 		req.OperationID, req.UserID, req.OperationType, req.EntityType, req.EntityID, deviceIdsToStore)
 
 	response := ApiResponse{
@@ -803,7 +808,7 @@ func handleAddDeviceToOperation(w http.ResponseWriter, r *http.Request) {
 		OperationID string `json:"operation_id"`
 		DeviceID    string `json:"device_id"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("❌ JSON decode error: %v", err)
 		response := ApiResponse{
@@ -929,10 +934,10 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 	for i, operationID := range req.OperationIDs {
 		operationStartTime := time.Now()
 		log.Printf("🔄 Processing operation %d/%d: %s", i+1, len(req.OperationIDs), operationID)
-		
+
 		err := addDeviceToOperation(operationID, req.DeviceID)
 		operationDuration := time.Since(operationStartTime)
-		
+
 		if err != nil {
 			log.Printf("❌ FAILED to add device '%s' to operation '%s' in %v", req.DeviceID, operationID, operationDuration)
 			log.Printf("   - Error: %v", err)
@@ -944,7 +949,7 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 			successfulUpdates = append(successfulUpdates, operationID)
 		}
 	}
-	
+
 	batchProcessingDuration := time.Since(batchProcessingStartTime)
 
 	// Log detailed results
@@ -958,19 +963,19 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 	log.Printf("   - Total request time: %v", totalRequestDuration)
 	log.Printf("   - Average time per operation: %v", batchProcessingDuration/time.Duration(len(req.OperationIDs)))
 	log.Printf("   - Device ID added: '%s'", req.DeviceID)
-	
+
 	if len(successfulUpdates) > 0 {
 		log.Printf("✅ Successfully updated operation IDs: %v", successfulUpdates)
 	}
 	if len(failedUpdates) > 0 {
 		log.Printf("❌ Failed to update operation IDs: %v", failedUpdates)
 	}
-	
+
 	// Determine response status
 	allSuccessful := len(failedUpdates) == 0
 	statusCode := http.StatusOK
 	message := fmt.Sprintf("Batch update completed: %d successful, %d failed", len(successfulUpdates), len(failedUpdates))
-	
+
 	if !allSuccessful && len(successfulUpdates) == 0 {
 		// All failed
 		statusCode = http.StatusInternalServerError
@@ -989,15 +994,15 @@ func handleBatchUpdateDeviceOperations(w http.ResponseWriter, r *http.Request) {
 		Success: allSuccessful,
 		Message: message,
 		Data: map[string]interface{}{
-			"device_id":              req.DeviceID,
-			"total_operations":       len(req.OperationIDs),
-			"updated_operations":     successfulUpdates, // Changed from successful_updates to match frontend expectation
-			"failed_operations":      failedUpdates,     // Changed from failed_updates to match frontend expectation
-			"success_count":          len(successfulUpdates),
-			"failure_count":          len(failedUpdates),
-			"success_rate":           float64(len(successfulUpdates)) / float64(len(req.OperationIDs)) * 100,
-			"batch_processing_time":  batchProcessingDuration.Milliseconds(),
-			"total_request_time":     totalRequestDuration.Milliseconds(),
+			"device_id":             req.DeviceID,
+			"total_operations":      len(req.OperationIDs),
+			"updated_operations":    successfulUpdates, // Changed from successful_updates to match frontend expectation
+			"failed_operations":     failedUpdates,     // Changed from failed_updates to match frontend expectation
+			"success_count":         len(successfulUpdates),
+			"failure_count":         len(failedUpdates),
+			"success_rate":          float64(len(successfulUpdates)) / float64(len(req.OperationIDs)) * 100,
+			"batch_processing_time": batchProcessingDuration.Milliseconds(),
+			"total_request_time":    totalRequestDuration.Milliseconds(),
 		},
 	}
 

@@ -45,7 +45,7 @@ func validateCategorySyncRequest(request SyncCategoriesBatchRequest) error {
 	}
 
 	// Log de validación exitosa
-	log.Printf("✅ Sync request validation passed for user %s: %d categories", 
+	log.Printf("✅ Sync request validation passed for user %s: %d categories",
 		request.UserID, len(request.Categories))
 
 	return nil
@@ -173,7 +173,7 @@ func validateCategoryEmoji(emoji string) error {
 		if len(encodedPart) == 0 {
 			return fmt.Errorf("empty Base64 encoded emoji")
 		}
-		
+
 		// Validar caracteres Base64
 		base64Pattern := regexp.MustCompile(`^[A-Za-z0-9+/]*={0,2}$`)
 		if !base64Pattern.MatchString(encodedPart) {

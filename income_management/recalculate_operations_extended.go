@@ -12,7 +12,7 @@ func recalculateSemiannualBalances(userID string, date time.Time) error {
 	if date.Month() > 6 {
 		semester = 2
 	}
-	
+
 	// Calculate semester date range
 	var semesterStart, semesterEnd time.Time
 	if semester == 1 {
@@ -22,10 +22,10 @@ func recalculateSemiannualBalances(userID string, date time.Time) error {
 		semesterStart = time.Date(year, 7, 1, 0, 0, 0, 0, time.UTC)
 		semesterEnd = time.Date(year, 12, 31, 0, 0, 0, 0, time.UTC)
 	}
-	
+
 	semesterStartStr := semesterStart.Format("2006-01-02")
 	semesterEndStr := semesterEnd.Format("2006-01-02")
-	
+
 	// Calculate semiannual totals
 	query := `
 		SELECT 
@@ -35,7 +35,7 @@ func recalculateSemiannualBalances(userID string, date time.Time) error {
 		FROM incomes 
 		WHERE user_id = ? AND date BETWEEN ? AND ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err := db.QueryRow(query, userID, semesterStartStr, semesterEndStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {
@@ -50,7 +50,7 @@ func recalculateSemiannualBalances(userID string, date time.Time) error {
 func recalculateAnnualBalances(userID string, date time.Time) error {
 	year := date.Year()
 	yearStr := fmt.Sprintf("%d", year)
-	
+
 	// Calculate annual totals
 	query := `
 		SELECT 
@@ -60,7 +60,7 @@ func recalculateAnnualBalances(userID string, date time.Time) error {
 		FROM incomes 
 		WHERE user_id = ? AND substr(date, 1, 4) = ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err := db.QueryRow(query, userID, yearStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {

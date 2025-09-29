@@ -14,10 +14,10 @@ import (
 // SavingsCreateRequest estructura para solicitudes de creación de metas de ahorro
 // Permite crear nuevas metas de ahorro con parámetros de sincronización
 type SavingsCreateRequest struct {
-	UserID    string  `json:"user_id"`              // ID del usuario que crea la meta
-	Available float64 `json:"available,omitempty"`  // Cantidad disponible inicial (opcional)
-	Goal      float64 `json:"goal"`                 // Meta de ahorro a establecer
-	Period    string  `json:"period,omitempty"`     // Período para la meta (opcional, default: monthly)
+	UserID    string  `json:"user_id"`             // ID del usuario que crea la meta
+	Available float64 `json:"available,omitempty"` // Cantidad disponible inicial (opcional)
+	Goal      float64 `json:"goal"`                // Meta de ahorro a establecer
+	Period    string  `json:"period,omitempty"`    // Período para la meta (opcional, default: monthly)
 	// Sync operation parameters for incremental synchronization
 	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
 	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
@@ -92,7 +92,7 @@ func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
 	log.Printf("Recording sync operation for savings create with auto-generated operation_id")
-	
+
 	// Create sync operation data for savings create
 	syncData := map[string]interface{}{
 		"user_id":   createRequest.UserID,
@@ -102,7 +102,7 @@ func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
 		"percent":   newSavings.Percent,
 		"action":    "create",
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		createRequest.UserID,
@@ -112,9 +112,9 @@ func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s", createRequest.UserID),
 		syncData,
 		createRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for savings create: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -128,13 +128,13 @@ func handleCreateSavings(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", createRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since savings affect dashboard
 		err = cacheManager.InvalidateDashboardCache(createRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", createRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", createRequest.UserID)
 	}
 
@@ -210,7 +210,7 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
 	log.Printf("Recording sync operation for savings update with auto-generated operation_id")
-	
+
 	// Create sync operation data for savings update
 	syncData := map[string]interface{}{
 		"user_id":   updateRequest.UserID,
@@ -220,7 +220,7 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		"percent":   currentSavings.Percent,
 		"action":    "update",
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		updateRequest.UserID,
@@ -230,9 +230,9 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s", updateRequest.UserID),
 		syncData,
 		updateRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for savings update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -247,13 +247,13 @@ func handleUpdateSavings(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since savings affect dashboard
 		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", updateRequest.UserID)
 	}
 
@@ -294,13 +294,13 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
 	log.Printf("Recording sync operation for savings delete with auto-generated operation_id")
-	
+
 	// Create sync operation data for savings delete
 	syncData := map[string]interface{}{
 		"user_id": deleteRequest.UserID,
 		"action":  "delete",
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		deleteRequest.UserID,
@@ -310,9 +310,9 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%s", deleteRequest.UserID),
 		syncData,
 		deleteRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for savings delete: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -327,13 +327,13 @@ func handleDeleteSavings(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", deleteRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since savings affect dashboard
 		err = cacheManager.InvalidateDashboardCache(deleteRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", deleteRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", deleteRequest.UserID)
 	}
 
@@ -461,4 +461,3 @@ func deleteSavingsData(userID string) error {
 
 	return nil
 }
-

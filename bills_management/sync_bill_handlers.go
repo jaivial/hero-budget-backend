@@ -23,11 +23,11 @@ func handleSyncBillHealth(w http.ResponseWriter, r *http.Request) {
 	_, err := openBillDatabase()
 	if err != nil {
 		response := map[string]interface{}{
-			"service":     "bills_management_sync",
-			"status":      "unhealthy",
-			"error":       err.Error(),
-			"timestamp":   time.Now().UTC().Format(time.RFC3339),
-			"version":     "1.0.0",
+			"service":   "bills_management_sync",
+			"status":    "unhealthy",
+			"error":     err.Error(),
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"version":   "1.0.0",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -109,7 +109,7 @@ func handleSyncBillChanges(w http.ResponseWriter, r *http.Request) {
 	userID := r.URL.Query().Get("user_id")
 	lastOperationId := r.URL.Query().Get("last_operation_id")
 	limitStr := r.URL.Query().Get("limit")
-	
+
 	if userID == "" {
 		sendErrorResponse(w, "user_id es requerido", http.StatusBadRequest)
 		return
@@ -123,7 +123,7 @@ func handleSyncBillChanges(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	log.Printf("Fetching bill operations for user %s since operation_id: %s (limit: %d)", 
+	log.Printf("Fetching bill operations for user %s since operation_id: %s (limit: %d)",
 		userID, lastOperationId, limit)
 
 	// Crear solicitud de cambios con operation_id
@@ -158,12 +158,12 @@ func openBillDatabase() (*sql.DB, error) {
 	if db == nil {
 		return nil, fmt.Errorf("conexión a base de datos no inicializada")
 	}
-	
+
 	// Verificar que la conexión esté activa
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("error de conexión a base de datos: %v", err)
 	}
-	
+
 	return db, nil
 }
 

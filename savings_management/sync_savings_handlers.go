@@ -25,11 +25,11 @@ func handleSyncSavingsHealth(w http.ResponseWriter, r *http.Request) {
 	_, err := openSavingsDatabase()
 	if err != nil {
 		response := map[string]interface{}{
-			"service":     "savings_management_sync",
-			"status":      "unhealthy",
-			"error":       err.Error(),
-			"timestamp":   time.Now().UTC().Format(time.RFC3339),
-			"version":     "1.0.0",
+			"service":   "savings_management_sync",
+			"status":    "unhealthy",
+			"error":     err.Error(),
+			"timestamp": time.Now().UTC().Format(time.RFC3339),
+			"version":   "1.0.0",
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusServiceUnavailable)
@@ -110,7 +110,7 @@ func handleSyncSavingsChanges(w http.ResponseWriter, r *http.Request) {
 	// Extraer parámetros de la consulta
 	userID := r.URL.Query().Get("user_id")
 	lastSync := r.URL.Query().Get("last_sync")
-	
+
 	if userID == "" {
 		sendErrorResponse(w, "user_id es requerido", http.StatusBadRequest)
 		return
@@ -189,12 +189,12 @@ func openSavingsDatabase() (*sql.DB, error) {
 	if db == nil {
 		return nil, fmt.Errorf("conexión a base de datos no inicializada")
 	}
-	
+
 	// Verificar que la conexión esté activa
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("error de conexión a base de datos: %v", err)
 	}
-	
+
 	return db, nil
 }
 
@@ -217,13 +217,13 @@ func invalidateSavingsCache(userID string) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate savings cache for user %s: %v", userID, err)
 		}
-		
+
 		// También invalidar cache del dashboard ya que savings afecta el dashboard
 		err = cacheManager.InvalidateDashboardCache(userID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", userID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (savings and dashboard)", userID)
 	} else {
 		log.Printf("Cache invalidation for savings - user: %s (cache manager unavailable)", userID)
@@ -234,9 +234,9 @@ func invalidateSavingsCache(userID string) {
 // Implementa la lógica para aplicar la resolución elegida por el usuario
 func resolveSavingsConflict(request SyncSavingsConflictRequest) error {
 	// Implementación de resolución de conflictos específica para ahorros
-	log.Printf("Resolviendo conflicto de ahorro para usuario %s, resolución: %s", 
+	log.Printf("Resolviendo conflicto de ahorro para usuario %s, resolución: %s",
 		request.UserID, request.Resolution)
-	
+
 	switch request.Resolution {
 	case "server_wins":
 		// El servidor mantiene su versión, descarta cambios del cliente

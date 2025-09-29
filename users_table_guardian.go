@@ -105,24 +105,24 @@ func (g *UsersTableGuardian) CreateBackup() error {
 	// Copiar todos los datos
 	for rows.Next() {
 		var (
-			id                 int
-			googleID           sql.NullString
-			appleID            sql.NullString
-			email              string
-			password           string
-			name               string
-			givenName          string
-			familyName         string
-			picture            string
-			profileImageBlob   sql.NullString
-			locale             string
-			verifiedEmail      bool
-			verificationCode   string
-			userType           string
-			createdAt          string
-			updatedAt          string
-			resetToken         sql.NullString
-			resetExpires       sql.NullString
+			id               int
+			googleID         sql.NullString
+			appleID          sql.NullString
+			email            string
+			password         string
+			name             string
+			givenName        string
+			familyName       string
+			picture          string
+			profileImageBlob sql.NullString
+			locale           string
+			verifiedEmail    bool
+			verificationCode string
+			userType         string
+			createdAt        string
+			updatedAt        string
+			resetToken       sql.NullString
+			resetExpires     sql.NullString
 		)
 
 		err := rows.Scan(&id, &googleID, &appleID, &email, &password, &name, &givenName, &familyName,
@@ -277,24 +277,24 @@ func (g *UsersTableGuardian) RestoreFromBackup() error {
 
 	for rows.Next() {
 		var (
-			id                 int
-			googleID           sql.NullString
-			appleID            sql.NullString
-			email              string
-			password           string
-			name               string
-			givenName          string
-			familyName         string
-			picture            string
-			profileImageBlob   sql.NullString
-			locale             string
-			verifiedEmail      bool
-			verificationCode   string
-			userType           string
-			createdAt          string
-			updatedAt          string
-			resetToken         sql.NullString
-			resetExpires       sql.NullString
+			id               int
+			googleID         sql.NullString
+			appleID          sql.NullString
+			email            string
+			password         string
+			name             string
+			givenName        string
+			familyName       string
+			picture          string
+			profileImageBlob sql.NullString
+			locale           string
+			verifiedEmail    bool
+			verificationCode string
+			userType         string
+			createdAt        string
+			updatedAt        string
+			resetToken       sql.NullString
+			resetExpires     sql.NullString
 		)
 
 		err := rows.Scan(&id, &googleID, &appleID, &email, &password, &name, &givenName, &familyName,

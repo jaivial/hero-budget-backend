@@ -38,7 +38,7 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 
 	// Extract year-month from transfer date for monthly tracking
 	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
-	
+
 	// Get distribution for the specific month to check cash availability
 	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
 	if err != nil {
@@ -56,7 +56,7 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 	// Calculate deltas for cascade updates
 	cashDelta := -transferRequest.Amount // Cash decreases
 	bankDelta := +transferRequest.Amount // Bank increases
-	
+
 	// Update amounts atomically - subtract from cash, add to bank
 	distribution.CashAmount -= transferRequest.Amount
 	distribution.BankAmount += transferRequest.Amount
@@ -74,13 +74,13 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
 		WHERE user_id = ? AND year_month = ?
 	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
-	
+
 	if err != nil {
 		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months
 	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
 	if err != nil {
@@ -99,7 +99,7 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 	// 🚨 CRITICAL: ALWAYS record sync operation with auto-generated operation_id
 	// This follows the consistent pattern from the implementation guide
 	log.Printf("✅ Recording sync operation for cash-to-bank transfer with auto-generated operation_id")
-	
+
 	err = addSyncOperationForCashBankTransfer(
 		transferRequest.UserID,
 		transferRequest.OperationID, // May be empty - will auto-generate
@@ -109,12 +109,12 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		transferRequest.DeviceID, // Use device_id from request
 		transferRequest.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for cash-to-bank transfer: %v", err)
 		// Don't fail the transfer for sync errors, just log warning
 	} else {
-		log.Printf("✅ SUCCESS: Successfully recorded sync operation for cash-to-bank transfer: user=%s, amount=%.2f", 
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for cash-to-bank transfer: user=%s, amount=%.2f",
 			transferRequest.UserID, transferRequest.Amount)
 	}
 
@@ -124,13 +124,13 @@ func handleCashToBankTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache
 		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
 	}
 
@@ -169,7 +169,7 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 
 	// Extract year-month from transfer date for monthly tracking
 	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
-	
+
 	// Get distribution for the specific month to check bank balance
 	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
 	if err != nil {
@@ -187,7 +187,7 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 	// Calculate deltas for cascade updates
 	cashDelta := +transferRequest.Amount // Cash increases
 	bankDelta := -transferRequest.Amount // Bank decreases
-	
+
 	// Update amounts - subtract from bank, add to cash
 	distribution.BankAmount -= transferRequest.Amount
 	distribution.CashAmount += transferRequest.Amount
@@ -204,13 +204,13 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
 		WHERE user_id = ? AND year_month = ?
 	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
-	
+
 	if err != nil {
 		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months
 	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
 	if err != nil {
@@ -228,7 +228,7 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 	// 🚨 CRITICAL: ALWAYS record sync operation with auto-generated operation_id
 	// This follows the consistent pattern from the implementation guide
 	log.Printf("✅ Recording sync operation for bank-to-cash transfer with auto-generated operation_id")
-	
+
 	err = addSyncOperationForCashBankTransfer(
 		transferRequest.UserID,
 		transferRequest.OperationID, // May be empty - will auto-generate
@@ -238,12 +238,12 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		transferRequest.DeviceID, // Use device_id from request
 		transferRequest.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for bank-to-cash transfer: %v", err)
 		// Don't fail the transfer for sync errors, just log warning
 	} else {
-		log.Printf("✅ SUCCESS: Successfully recorded sync operation for bank-to-cash transfer: user=%s, amount=%.2f", 
+		log.Printf("✅ SUCCESS: Successfully recorded sync operation for bank-to-cash transfer: user=%s, amount=%.2f",
 			transferRequest.UserID, transferRequest.Amount)
 	}
 
@@ -253,12 +253,12 @@ func handleBankToCashTransferWithSync(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
 	}
 

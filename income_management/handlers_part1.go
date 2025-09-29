@@ -74,6 +74,7 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 		Amount:        addRequest.Amount,
 		Date:          addRequest.Date,
 		Category:      addRequest.Category,
+		CategoryID:    addRequest.CategoryID, // Support for new category_id field
 		PaymentMethod: addRequest.PaymentMethod,
 		Description:   addRequest.Description,
 	}
@@ -92,7 +93,7 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id (following consistent pattern)
 	// Critical: ALL handlers must follow the same pattern for sync operations
 	log.Printf("Recording sync operation for income creation with auto-generated operation_id")
-	
+
 	// Create sync operation data matching the income structure
 	syncData := map[string]interface{}{
 		"id":             incomeID,
@@ -105,7 +106,7 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 		"created_at":     time.Now().Format("2006-01-02 15:04:05"),
 		"updated_at":     time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		income.UserID,
@@ -115,9 +116,9 @@ func handleAddIncome(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(incomeID),
 		syncData,
 		addRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                   // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for income creation: %v", err)
 		// Don't fail the income creation for sync errors, just log warning

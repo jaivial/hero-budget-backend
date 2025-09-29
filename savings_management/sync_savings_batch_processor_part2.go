@@ -25,45 +25,45 @@ func validateSavingsDataConsistency(savings *SavingsData) error {
 	if savings.DailyTarget < 0 {
 		return fmt.Errorf("daily_target no puede ser negativo: %f", savings.DailyTarget)
 	}
-	
+
 	// Validar que el porcentaje esté en rango válido
 	if savings.Percent < 0 || savings.Percent > 100 {
 		return fmt.Errorf("percent debe estar entre 0 y 100: %f", savings.Percent)
 	}
-	
+
 	// Validar consistencia matemática básica para porcentaje
 	if savings.Goal > 0 {
 		expectedPercent := (savings.Available / savings.Goal) * 100
 		if expectedPercent > 100 {
 			expectedPercent = 100
 		}
-		
+
 		tolerance := 1.0 // Tolerancia de 1% para errores de redondeo
-		if absSavings(savings.Percent - expectedPercent) > tolerance {
-			return fmt.Errorf("percent (%f) no coincide con available/goal*100 (%f)", 
+		if absSavings(savings.Percent-expectedPercent) > tolerance {
+			return fmt.Errorf("percent (%f) no coincide con available/goal*100 (%f)",
 				savings.Percent, expectedPercent)
 		}
 	}
-	
+
 	// Validar need_to_save
 	expectedNeedToSave := savings.Goal - savings.Available
 	if expectedNeedToSave < 0 {
 		expectedNeedToSave = 0
 	}
-	
+
 	tolerance := 0.01 // Tolerancia para errores de redondeo
-	if absSavings(savings.NeedToSave - expectedNeedToSave) > tolerance {
-		return fmt.Errorf("need_to_save (%f) no coincide con goal - available (%f)", 
+	if absSavings(savings.NeedToSave-expectedNeedToSave) > tolerance {
+		return fmt.Errorf("need_to_save (%f) no coincide con goal - available (%f)",
 			savings.NeedToSave, expectedNeedToSave)
 	}
-	
+
 	// Validar daily_target
 	expectedDailyTarget := savings.NeedToSave / 30 // Asumiendo 30 días por mes
-	if absSavings(savings.DailyTarget - expectedDailyTarget) > tolerance {
-		return fmt.Errorf("daily_target (%f) no coincide con need_to_save/30 (%f)", 
+	if absSavings(savings.DailyTarget-expectedDailyTarget) > tolerance {
+		return fmt.Errorf("daily_target (%f) no coincide con need_to_save/30 (%f)",
 			savings.DailyTarget, expectedDailyTarget)
 	}
-	
+
 	return nil
 }
 
@@ -71,14 +71,14 @@ func validateSavingsDataConsistency(savings *SavingsData) error {
 // Mantiene registro de todas las operaciones realizadas
 func logSavingsOperation(userID, operation string, oldValues, newValues *SavingsData) {
 	log.Printf("AUDIT: Usuario %s - Operación %s en savings", userID, operation)
-	
+
 	if oldValues != nil {
-		log.Printf("AUDIT: Valores anteriores - Available: %.2f, Goal: %.2f, Percent: %.2f%%", 
+		log.Printf("AUDIT: Valores anteriores - Available: %.2f, Goal: %.2f, Percent: %.2f%%",
 			oldValues.Available, oldValues.Goal, oldValues.Percent)
 	}
-	
+
 	if newValues != nil {
-		log.Printf("AUDIT: Valores nuevos - Available: %.2f, Goal: %.2f, Percent: %.2f%%", 
+		log.Printf("AUDIT: Valores nuevos - Available: %.2f, Goal: %.2f, Percent: %.2f%%",
 			newValues.Available, newValues.Goal, newValues.Percent)
 	}
 }
@@ -87,7 +87,7 @@ func logSavingsOperation(userID, operation string, oldValues, newValues *Savings
 // Identifica discrepancias que requieren resolución manual
 func detectSavingsConflicts(localSavings OfflineSavings, serverSavings SavingsData) []SavingsConflictResolution {
 	var conflicts []SavingsConflictResolution
-	
+
 	// Verificar conflictos de meta de ahorro
 	if localSavings.Goal != serverSavings.Goal && localSavings.Goal != 0 {
 		conflicts = append(conflicts, SavingsConflictResolution{
@@ -99,7 +99,7 @@ func detectSavingsConflicts(localSavings OfflineSavings, serverSavings SavingsDa
 			Suggestions:  []string{"Usar meta del servidor", "Usar meta local", "Promediar metas"},
 		})
 	}
-	
+
 	// Verificar conflictos de cantidad disponible
 	if localSavings.Available != serverSavings.Available && localSavings.Available != 0 {
 		conflicts = append(conflicts, SavingsConflictResolution{
@@ -111,7 +111,7 @@ func detectSavingsConflicts(localSavings OfflineSavings, serverSavings SavingsDa
 			Suggestions:  []string{"Sincronizar transacciones", "Usar valor más alto", "Verificar manualmente"},
 		})
 	}
-	
+
 	// Verificar conflictos de período
 	if localSavings.Period != serverSavings.Period && localSavings.Period != "" {
 		conflicts = append(conflicts, SavingsConflictResolution{
@@ -123,7 +123,7 @@ func detectSavingsConflicts(localSavings OfflineSavings, serverSavings SavingsDa
 			Suggestions:  []string{"Usar período del servidor", "Usar período local", "Mantener ambos"},
 		})
 	}
-	
+
 	return conflicts
 }
 
@@ -131,7 +131,7 @@ func detectSavingsConflicts(localSavings OfflineSavings, serverSavings SavingsDa
 // Implementa diferentes estrategias de resolución según el tipo de conflicto
 func applySavingsConflictResolution(conflict SavingsConflictResolution, resolution string) error {
 	log.Printf("Aplicando resolución '%s' para conflicto %s", resolution, conflict.ConflictType)
-	
+
 	switch conflict.ConflictType {
 	case "goal_mismatch":
 		return resolveSavingsGoalConflict(conflict, resolution)
@@ -207,16 +207,16 @@ func resolveSavingsPeriodConflict(conflict SavingsConflictResolution, resolution
 func validateSavingsBusinessLogic(savings *SavingsData) error {
 	// Regla 1: No se puede tener más del 100% de la meta alcanzada
 	if savings.Available > savings.Goal && savings.Goal > 0 {
-		log.Printf("Advertencia: Cantidad ahorrada (%.2f) excede la meta (%.2f) para usuario %s", 
+		log.Printf("Advertencia: Cantidad ahorrada (%.2f) excede la meta (%.2f) para usuario %s",
 			savings.Available, savings.Goal, savings.UserID)
 	}
-	
+
 	// Regla 2: El target diario debe ser realista
-	if savings.DailyTarget > savings.Goal * 0.1 && savings.Goal > 0 {
-		return fmt.Errorf("target diario (%.2f) muy alto para meta (%.2f)", 
+	if savings.DailyTarget > savings.Goal*0.1 && savings.Goal > 0 {
+		return fmt.Errorf("target diario (%.2f) muy alto para meta (%.2f)",
 			savings.DailyTarget, savings.Goal)
 	}
-	
+
 	// Regla 3: El período debe ser válido
 	validPeriods := []string{"daily", "weekly", "monthly", "quarterly", "semiannual", "annual"}
 	isValidPeriod := false
@@ -229,7 +229,7 @@ func validateSavingsBusinessLogic(savings *SavingsData) error {
 	if !isValidPeriod {
 		return fmt.Errorf("período inválido: %s", savings.Period)
 	}
-	
+
 	return nil
 }
 
@@ -239,18 +239,18 @@ func optimizeSavingsSync(operations []OfflineSavings) []OfflineSavings {
 	// Eliminar operaciones duplicadas (mismo user_id y action)
 	seenOperations := make(map[string]bool)
 	var optimizedOps []OfflineSavings
-	
+
 	// Procesar en orden inverso para mantener la operación más reciente
 	for i := len(operations) - 1; i >= 0; i-- {
 		op := operations[i]
 		key := fmt.Sprintf("%s_%s", op.UserID, op.Action)
-		
+
 		if !seenOperations[key] {
 			optimizedOps = append([]OfflineSavings{op}, optimizedOps...) // Prepend
 			seenOperations[key] = true
 		}
 	}
-	
+
 	log.Printf("Optimización de sync: %d operaciones reducidas a %d", len(operations), len(optimizedOps))
 	return optimizedOps
 }
@@ -259,40 +259,45 @@ func optimizeSavingsSync(operations []OfflineSavings) []OfflineSavings {
 // Proporciona información adicional sobre el progreso de ahorro
 func calculateSavingsMetrics(savings SavingsData) map[string]interface{} {
 	metrics := make(map[string]interface{})
-	
+
 	// Calcular días para alcanzar la meta al ritmo actual
 	if savings.DailyTarget > 0 && savings.NeedToSave > 0 {
 		daysToGoal := savings.NeedToSave / savings.DailyTarget
 		metrics["days_to_goal"] = int(daysToGoal)
 	}
-	
+
 	// Calcular fecha estimada de completación
 	if savings.DailyTarget > 0 && savings.NeedToSave > 0 {
 		daysToGoal := savings.NeedToSave / savings.DailyTarget
 		estimatedDate := time.Now().AddDate(0, 0, int(daysToGoal))
 		metrics["estimated_completion"] = estimatedDate.Format("2006-01-02")
 	}
-	
+
 	// Calcular progreso semanal recomendado
 	if savings.DailyTarget > 0 {
 		weeklyTarget := savings.DailyTarget * 7
 		metrics["weekly_target"] = weeklyTarget
 	}
-	
+
 	// Calcular progreso mensual recomendado
 	if savings.DailyTarget > 0 {
 		monthlyTarget := savings.DailyTarget * 30
 		metrics["monthly_target"] = monthlyTarget
 	}
-	
+
 	// Determinar estado del progreso
 	switch {
-	case savings.Percent >= 100: metrics["status"] = "completed"
-	case savings.Percent >= 75: metrics["status"] = "on_track"
-	case savings.Percent >= 50: metrics["status"] = "moderate_progress"
-	case savings.Percent >= 25: metrics["status"] = "slow_progress"
-	default: metrics["status"] = "just_started"
+	case savings.Percent >= 100:
+		metrics["status"] = "completed"
+	case savings.Percent >= 75:
+		metrics["status"] = "on_track"
+	case savings.Percent >= 50:
+		metrics["status"] = "moderate_progress"
+	case savings.Percent >= 25:
+		metrics["status"] = "slow_progress"
+	default:
+		metrics["status"] = "just_started"
 	}
-	
+
 	return metrics
 }

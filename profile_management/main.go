@@ -153,7 +153,7 @@ func isValidOperationId(operationId string) bool {
 	if operationId == "" {
 		return false
 	}
-	
+
 	// Expected format: 1755209423000_001
 	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
@@ -161,7 +161,7 @@ func isValidOperationId(operationId string) bool {
 		log.Printf("Error validating operation ID pattern: %v", err)
 		return false
 	}
-	
+
 	return matched
 }
 
@@ -170,18 +170,18 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	if !isValidOperationId(operationId) {
 		return 0
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	if len(parts) != 2 {
 		return 0
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		log.Printf("Error parsing timestamp from operation ID: %v", err)
 		return 0
 	}
-	
+
 	return timestamp
 }
 
@@ -189,7 +189,7 @@ func extractTimestampFromOperationId(operationId string) int64 {
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No previous operations found for user: %s", userID)
@@ -198,7 +198,7 @@ func getLastOperationIdForUser(userID string) (string, error) {
 		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
 		return "", err
 	}
-	
+
 	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
 	return lastOperationId, nil
 }
@@ -207,16 +207,16 @@ func getLastOperationIdForUser(userID string) (string, error) {
 // Gets the last operation ID and adds +1 millisecond time unit
 func generateNextOperationId(userID string) (string, error) {
 	log.Printf("Generating next operation ID for user: %s", userID)
-	
+
 	// Get the last operation ID for this user
 	lastOperationId, err := getLastOperationIdForUser(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get last operation ID: %v", err)
 	}
-	
+
 	var nextTimestamp int64
 	var sequenceNumber int = 1
-	
+
 	if lastOperationId == "" {
 		// No previous operations, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
@@ -234,10 +234,10 @@ func generateNextOperationId(userID string) (string, error) {
 			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
-	
+
 	// Format as {timestamp_ms}_{sequence_number}
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
-	
+
 	log.Printf("Generated operation ID: %s", operationId)
 	return operationId, nil
 }
@@ -259,11 +259,11 @@ func updateSyncOperationsSchema() error {
 			server_timestamp INTEGER DEFAULT 0
 		);
 	`
-	
+
 	if _, err := db.Exec(createTableSQL); err != nil {
 		return fmt.Errorf("failed to create sync_operations table: %v", err)
 	}
-	
+
 	// Create necessary indexes for performance
 	indexes := []string{
 		"CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id ON sync_operations(operation_id);",
@@ -271,26 +271,26 @@ func updateSyncOperationsSchema() error {
 		"CREATE INDEX IF NOT EXISTS idx_sync_operations_user_created ON sync_operations(user_id, created_at);",
 		"CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity ON sync_operations(user_id, entity_type, entity_id);",
 	}
-	
+
 	for _, indexSQL := range indexes {
 		if _, err := db.Exec(indexSQL); err != nil {
 			log.Printf("Warning: Failed to create index: %v", err)
 		}
 	}
-	
+
 	return nil
 }
 
 // addSyncOperation records a sync operation in the sync_operations table
 // Uses the new operation_id system with timestamp-based format and automatic generation
 func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s",
 		userID, providedOperationID, action, tableName, recordID, deviceID)
-	
+
 	// Generate operation ID if not provided or if provided ID is not valid timestamp format
 	var operationID string
 	var err error
-	
+
 	if providedOperationID != "" && isValidOperationId(providedOperationID) {
 		// Use provided operation ID if it's valid
 		operationID = providedOperationID
@@ -304,19 +304,19 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		}
 		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
 	}
-	
+
 	// Validate that we have a valid operation ID
 	if !isValidOperationId(operationID) {
 		return fmt.Errorf("invalid operation ID format: %s", operationID)
 	}
-	
+
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshaling sync operation data: %v", err)
 		return err
 	}
-	
+
 	// Prepare device_ids JSON array - store null if deviceID is empty
 	var deviceIDsJSON []byte
 	if deviceID != "" {
@@ -330,17 +330,17 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		deviceIDsJSON = []byte("null")
 		log.Printf("Device ID empty, storing null in device_ids column")
 	}
-	
+
 	// Extract timestamp from operation ID for created_at field
 	operationTimestamp := extractTimestampFromOperationId(operationID)
 	if operationTimestamp == 0 {
 		operationTimestamp = time.Now().UnixMilli()
 		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
-	
+
 	// Use current server timestamp
 	serverTimestamp := time.Now().UnixMilli()
-	
+
 	// Handle client timestamp - use null if 0
 	var clientTimestampValue interface{}
 	if clientTimestamp == 0 {
@@ -349,7 +349,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	} else {
 		clientTimestampValue = clientTimestamp
 	}
-	
+
 	// Log all parameters before insertion
 	log.Printf("DEBUG: About to insert sync operation with parameters:")
 	log.Printf("  userID: %s", userID)
@@ -362,7 +362,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	log.Printf("  clientTimestampValue: %v", clientTimestampValue)
 	log.Printf("  serverTimestamp: %d", serverTimestamp)
 	log.Printf("  operationTimestamp: %d", operationTimestamp)
-	
+
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
@@ -370,35 +370,35 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	log.Printf("DEBUG: Executing SQL query: %s", insertQuery)
-	
+
 	result, err := db.Exec(
 		insertQuery,
 		userID,
 		operationID,
-		action,            // operation_type (create, update, delete, pay)
-		tableName,         // entity_type (profile_picture, profile_info)
-		recordID,          // entity_id
-		string(dataJSON),  // operation_data
+		action,                // operation_type (create, update, delete, pay)
+		tableName,             // entity_type (profile_picture, profile_info)
+		recordID,              // entity_id
+		string(dataJSON),      // operation_data
 		string(deviceIDsJSON), // device_ids as JSON array or null
 		clientTimestampValue,  // client_timestamp (original from client or null)
-		serverTimestamp,   // server_timestamp (when processed)
-		operationTimestamp, // created_at (extracted from operation_id for ordering)
+		serverTimestamp,       // server_timestamp (when processed)
+		operationTimestamp,    // created_at (extracted from operation_id for ordering)
 	)
-	
+
 	if err != nil {
 		log.Printf("ERROR: Failed to insert sync operation: %v", err)
 		log.Printf("ERROR: SQL was: %s", insertQuery)
 		return err
 	}
-	
+
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
 	rowsAffected, _ := result.RowsAffected()
-	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d, rows_affected: %d", 
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d, rows_affected: %d",
 		syncOpID, operationID, operationTimestamp, rowsAffected)
-	
+
 	// Verify the record was actually inserted by querying it back
 	var count int
 	countQuery := "SELECT COUNT(*) FROM sync_operations WHERE operation_id = ?"
@@ -411,7 +411,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			log.Printf("ERROR: Sync operation was not found after insertion!")
 		}
 	}
-	
+
 	return nil
 }
 
@@ -542,17 +542,17 @@ func handleTestImageUpdate(w http.ResponseWriter, r *http.Request) {
 
 /**
  * handleEditProfilePicture - Dedicated endpoint for profile picture updates
- * 
+ *
  * This endpoint is specifically designed to handle profile picture updates
  * with optimized processing and focused error handling for image operations.
- * 
+ *
  * Request format:
  * POST /profile/editprofilepicture
  * {
  *   "user_id": 123,
  *   "profile_image_base64": "base64_encoded_image_data"
  * }
- * 
+ *
  * Response format:
  * {
  *   "success": true,
@@ -592,7 +592,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	log.Printf("  📋 User ID: %d (type: %T)", req.UserID, req.UserID)
 	log.Printf("  📊 Image data length: %d bytes (%.2f KB)", len(req.ProfileImageB64), float64(len(req.ProfileImageB64))/1024)
 	log.Printf("  🎯 Request timestamp: %s", time.Now().Format("2006-01-02 15:04:05.000 MST"))
-	
+
 	// Log first 100 characters of image data for debugging
 	if len(req.ProfileImageB64) > 100 {
 		log.Printf("  📸 Image data preview: %s...", req.ProfileImageB64[:100])
@@ -615,7 +615,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var processedImage *string // Use pointer to handle NULL for removal
-	
+
 	if isRemoval {
 		// Profile picture removal - set to NULL
 		log.Printf("🗑️✅ EDIT PROFILE PICTURE: PROCESSING REMOVAL:")
@@ -627,7 +627,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		log.Printf("  📥 Frontend processed image data: %d bytes (%.2f KB)", len(req.ProfileImageB64), float64(len(req.ProfileImageB64))/1024)
 		log.Printf("  🎯 Skipping backend processing - frontend already optimized the image")
 		log.Printf("  📸 Image data preview: %s...", req.ProfileImageB64[:min(50, len(req.ProfileImageB64))])
-		
+
 		// Basic validation of image data
 		if len(req.ProfileImageB64) == 0 {
 			log.Printf("❌📸 EDIT PROFILE PICTURE: IMAGE DATA IS EMPTY")
@@ -657,7 +657,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	} else {
 		log.Printf("  🗑️ Setting profile image to NULL (removal)")
 	}
-	
+
 	result, err := db.Exec(
 		"UPDATE users SET profile_image_blob = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
 		processedImage, req.UserID,
@@ -694,7 +694,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		log.Printf("⚠️📋 EDIT PROFILE PICTURE: WARNING - FAILED TO RETRIEVE UPDATED USER:")
 		log.Printf("  💥 Error: %v", err)
 		log.Printf("  🆔 User ID: %d", req.UserID)
-		
+
 		// Still return success since the update worked
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(ApiResponse{
@@ -722,13 +722,13 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id if needed
 	// Following the consistent sync recording pattern from implementation guide
 	log.Printf("🔄 DEBUG: Starting sync operation recording for profile picture update")
-	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d", 
+	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d",
 		req.OperationID, req.DeviceID, req.Timestamp)
-	
+
 	// Prepare sync operation data for recording
 	// IMPORTANT: Include the actual image data so other devices can sync the complete profile picture
 	var syncOperationData map[string]interface{}
-	
+
 	if isRemoval {
 		// Profile picture removal
 		syncOperationData = map[string]interface{}{
@@ -742,22 +742,22 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("🗑️ SYNC: Recording profile picture REMOVAL operation")
 	} else {
-		// Profile picture update  
+		// Profile picture update
 		syncOperationData = map[string]interface{}{
 			"user_id":              req.UserID,
 			"action":               "update",
-			"type":                 "profile_picture", 
-			"profile_image_base64": *processedImage,  // Include the actual image data for sync
+			"type":                 "profile_picture",
+			"profile_image_base64": *processedImage, // Include the actual image data for sync
 			"image_size":           len(*processedImage),
 			"processed_at":         time.Now().Format("2006-01-02 15:04:05"),
 			"has_profile_image":    true,
 		}
 		log.Printf("🖼️ SYNC: Recording profile picture UPDATE operation (image size: %d bytes)", len(*processedImage))
 	}
-	
+
 	log.Printf("🔄 DEBUG: Calling addSyncOperation with params: userID=%d, operationID='%s', deviceID='%s'",
 		req.UserID, req.OperationID, req.DeviceID)
-	
+
 	// Record the sync operation with auto-generation if operation_id not provided
 	err = addSyncOperation(
 		fmt.Sprintf("%d", req.UserID),
@@ -769,7 +769,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 		req.DeviceID,
 		req.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for profile picture update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -780,20 +780,20 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	// Return success response with updated user data
 	log.Printf("📤🎉 EDIT PROFILE PICTURE: SENDING SUCCESS RESPONSE...")
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	var message string
 	if isRemoval {
 		message = "Profile picture removed successfully"
 	} else {
 		message = fmt.Sprintf("Profile picture updated successfully. Image size: %d bytes", len(*processedImage))
 	}
-	
+
 	response := ApiResponse{
 		Success: true,
 		Message: message,
 		Data:    updatedUser,
 	}
-	
+
 	log.Printf("📋📤 EDIT PROFILE PICTURE: RESPONSE DETAILS:")
 	log.Printf("  ✅ Success: true")
 	log.Printf("  📝 Message: %s", message)
@@ -801,7 +801,7 @@ func handleEditProfilePicture(w http.ResponseWriter, r *http.Request) {
 	log.Printf("  📧 Email: %s", updatedUser.Email)
 	log.Printf("  👨 Name: %s", updatedUser.Name)
 	log.Printf("  🖼️ Has profile image: %v", updatedUser.ProfileImageBlob != nil && len(*updatedUser.ProfileImageBlob) > 0)
-	
+
 	json.NewEncoder(w).Encode(response)
 	log.Printf("🎉✅ EDIT PROFILE PICTURE: REQUEST COMPLETED SUCCESSFULLY FOR USER %d", req.UserID)
 }
@@ -993,9 +993,9 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id if needed
 	// Following the consistent sync recording pattern from implementation guide
 	log.Printf("🔄 DEBUG: Starting sync operation recording for profile info update")
-	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d", 
+	log.Printf("🔄 DEBUG: Request sync params - OperationID='%s', DeviceID='%s', Timestamp=%d",
 		req.OperationID, req.DeviceID, req.Timestamp)
-	
+
 	// Prepare sync operation data for recording
 	syncOperationData := map[string]interface{}{
 		"user_id":      req.UserID,
@@ -1005,16 +1005,16 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		"action":       "update",
 		"processed_at": time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Include profile image info if it was updated
 	if req.ProfileImageB64 != "" {
 		syncOperationData["has_profile_image"] = true
 		syncOperationData["image_size"] = len(req.ProfileImageB64)
 	}
-	
+
 	log.Printf("🔄 DEBUG: Calling addSyncOperation with params: userID=%d, operationID='%s', deviceID='%s'",
 		req.UserID, req.OperationID, req.DeviceID)
-	
+
 	// Record the sync operation with auto-generation if operation_id not provided
 	err = addSyncOperation(
 		fmt.Sprintf("%d", req.UserID),
@@ -1026,7 +1026,7 @@ func handleProfileUpdate(w http.ResponseWriter, r *http.Request) {
 		req.DeviceID,
 		req.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for profile info update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -1331,7 +1331,7 @@ func getUserById(userID int, user *User) error {
 // Process image: resize, compress, and convert to WebP
 func processImage(base64Image string) (string, error) {
 	log.Printf("🔄 IMAGE PROCESSING: Starting image processing, input length: %d", len(base64Image))
-	
+
 	// Debug: Log first 100 characters of input
 	if len(base64Image) > 100 {
 		log.Printf("🔍 IMAGE PROCESSING: Input preview: %s...", base64Image[:100])
@@ -1379,7 +1379,7 @@ func processImage(base64Image string) (string, error) {
 	} else {
 		log.Printf("✅ IMAGE PROCESSING: Successfully decoded using standard base64")
 	}
-	
+
 	log.Printf("🔍 IMAGE PROCESSING: Decoded image data size: %d bytes", len(imgData))
 
 	// Determine image format and decode
@@ -1619,7 +1619,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id if needed
 	// Following the consistent sync recording pattern from implementation guide
 	log.Printf("Recording sync operation for user info update with auto-generated operation_id")
-	
+
 	// Prepare sync operation data for recording
 	syncOperationData := map[string]interface{}{
 		"user_id":      userIDInt,
@@ -1630,7 +1630,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		"action":       "update",
 		"processed_at": time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Record the sync operation with auto-generation if operation_id not provided
 	err = addSyncOperation(
 		updateRequest.ID,
@@ -1642,7 +1642,7 @@ func handleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		updateRequest.DeviceID,
 		updateRequest.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for user info update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning

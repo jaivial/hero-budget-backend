@@ -28,7 +28,7 @@ func processCategoriesSyncBatch(request SyncCategoriesBatchRequest) (SyncCategor
 	}
 
 	// Log de inicio del procesamiento
-	log.Printf("Starting batch processing for user %s with %d categories", 
+	log.Printf("Starting batch processing for user %s with %d categories",
 		request.UserID, len(request.Categories))
 
 	// Procesar cada categoría en el lote
@@ -62,7 +62,7 @@ func processCategoriesSyncBatch(request SyncCategoriesBatchRequest) (SyncCategor
 					response.SuccessfulOps++
 					log.Printf("✅ Category added: %s -> %s", category.LocalID, serverID)
 				}
-				
+
 			case "update":
 				err := processCategoryUpdate(category)
 				if err != nil {
@@ -75,7 +75,7 @@ func processCategoriesSyncBatch(request SyncCategoriesBatchRequest) (SyncCategor
 					response.SuccessfulOps++
 					log.Printf("✅ Category updated: %s", category.LocalID)
 				}
-				
+
 			case "delete":
 				err := processCategoryDelete(category)
 				if err != nil {
@@ -87,14 +87,14 @@ func processCategoriesSyncBatch(request SyncCategoriesBatchRequest) (SyncCategor
 					response.SuccessfulOps++
 					log.Printf("✅ Category deleted: %s", category.LocalID)
 				}
-				
+
 			default:
 				result.Status = "error"
 				result.Error = fmt.Sprintf("unknown action: %s", category.Action)
 				response.FailedOps++
 			}
 		}
-		
+
 		// Agregar resultado a la respuesta
 		response.Results = append(response.Results, result)
 		response.ProcessedOps++
@@ -110,18 +110,18 @@ func processCategoriesSyncBatch(request SyncCategoriesBatchRequest) (SyncCategor
 
 	// Determinar éxito general de la operación
 	response.Success = response.FailedOps == 0
-	
+
 	// Configurar mensaje de respuesta apropiado
 	if response.Success {
-		response.Message = fmt.Sprintf("Batch processed successfully: %d operations completed", 
+		response.Message = fmt.Sprintf("Batch processed successfully: %d operations completed",
 			response.SuccessfulOps)
 	} else {
-		response.Message = fmt.Sprintf("Batch completed with %d errors out of %d operations", 
+		response.Message = fmt.Sprintf("Batch completed with %d errors out of %d operations",
 			response.FailedOps, response.ProcessedOps)
 	}
 
 	// Log del resultado final
-	log.Printf("Batch processing completed for user %s: %d successful, %d failed, %d conflicts", 
+	log.Printf("Batch processing completed for user %s: %d successful, %d failed, %d conflicts",
 		request.UserID, response.SuccessfulOps, response.FailedOps, len(response.Conflicts))
 
 	return response, nil
@@ -144,7 +144,7 @@ func fetchCategoriesChanges(userID, lastSync string, limit, offset int) (SyncCat
 	}
 
 	// Log de inicio de consulta
-	log.Printf("Fetching categories changes for user %s from %s (limit: %d, offset: %d)", 
+	log.Printf("Fetching categories changes for user %s from %s (limit: %d, offset: %d)",
 		userID, lastSync, limit, offset)
 
 	// Obtener todas las categorías del usuario (simplificado - sin filtro temporal)
@@ -173,7 +173,7 @@ func fetchCategoriesChanges(userID, lastSync string, limit, offset int) (SyncCat
 	response.HasMore = end < len(categories)
 
 	// Log del resultado
-	log.Printf("✅ Categories changes fetched: %d categories, hasMore: %t", 
+	log.Printf("✅ Categories changes fetched: %d categories, hasMore: %t",
 		len(response.Categories), response.HasMore)
 
 	return response, nil
@@ -208,7 +208,7 @@ func getCategoriesSyncStats(userID string) (SyncCategoriesStats, error) {
 	// Calcular estadísticas específicas de categorías
 	incomeCount := 0
 	expenseCount := 0
-	
+
 	for _, category := range categories {
 		if category.Type == "income" {
 			incomeCount++
@@ -231,7 +231,7 @@ func getCategoriesSyncStats(userID string) (SyncCategoriesStats, error) {
 	stats.DataSizeBytes = dataSize
 
 	// Log de estadísticas calculadas
-	log.Printf("✅ Categories sync stats calculated for user %s: %d total, %d income, %d expense", 
+	log.Printf("✅ Categories sync stats calculated for user %s: %d total, %d income, %d expense",
 		userID, stats.TotalCategoriesManaged, stats.IncomeCategoriesSynced, stats.ExpenseCategoriesSynced)
 
 	return stats, nil
@@ -258,21 +258,21 @@ func resolveCategoriesConflict(request SyncCategoriesConflictRequest) (SyncCateg
 	case "server_wins":
 		// El servidor mantiene su versión, ignorar cambios del cliente
 		log.Printf("Conflict resolved: server version maintained for %s", request.LocalID)
-		
+
 	case "client_wins":
 		// Aplicar cambios del cliente, sobrescribir versión del servidor
 		if request.MergedData != nil {
 			// Aquí se aplicarían los datos del cliente
 			log.Printf("Conflict resolved: client version applied for %s", request.LocalID)
 		}
-		
+
 	case "merge":
 		// Fusionar datos según lógica específica de categorías
 		if request.MergedData != nil {
 			// Aquí se aplicarían los datos fusionados
 			log.Printf("Conflict resolved: merged data applied for %s", request.LocalID)
 		}
-		
+
 	default:
 		result.Status = "error"
 		result.Error = fmt.Sprintf("unsupported resolution strategy: %s", request.Resolution)
@@ -280,7 +280,7 @@ func resolveCategoriesConflict(request SyncCategoriesConflictRequest) (SyncCateg
 	}
 
 	// Log de resolución exitosa
-	log.Printf("✅ Conflict resolved successfully for user %s using %s strategy", 
+	log.Printf("✅ Conflict resolved successfully for user %s using %s strategy",
 		request.UserID, request.Resolution)
 
 	return result, nil

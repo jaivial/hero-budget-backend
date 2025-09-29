@@ -68,7 +68,6 @@ func init() {
 	log.Println("Database connection established successfully")
 }
 
-
 func main() {
 	// Set up CORS middleware
 	http.HandleFunc("/auth/apple", corsMiddleware(handleAppleAuth))
@@ -124,7 +123,6 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Identity token is required", http.StatusBadRequest)
 		return
 	}
-
 
 	// Parse and validate the Apple JWT token
 	claims, err := validateAppleToken(req.IdentityToken)
@@ -193,7 +191,6 @@ func handleAppleAuth(w http.ResponseWriter, r *http.Request) {
 			sendErrorResponse(w, "Failed to create user", http.StatusInternalServerError)
 			return
 		}
-
 
 		log.Printf("Created new Apple user: %s with type 'apple'", newUser.Email)
 		sendSuccessResponse(w, "User created successfully", newUser)
@@ -273,4 +270,3 @@ func getEnvOrDefault(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

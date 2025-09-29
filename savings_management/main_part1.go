@@ -41,10 +41,10 @@ type SavingsData struct {
 // Permite actualizar valores específicos sin afectar el resto de los datos de savings
 // Incluye parámetros de sincronización para seguimiento de operaciones incrementales
 type SavingsUpdateRequest struct {
-	UserID    string  `json:"user_id"`              // ID del usuario que realiza la actualización
-	Available float64 `json:"available,omitempty"`  // Nueva cantidad disponible (opcional)
-	Goal      float64 `json:"goal,omitempty"`       // Nueva meta de ahorro (opcional)
-	Period    string  `json:"period,omitempty"`     // Nuevo período para la meta (opcional)
+	UserID    string  `json:"user_id"`             // ID del usuario que realiza la actualización
+	Available float64 `json:"available,omitempty"` // Nueva cantidad disponible (opcional)
+	Goal      float64 `json:"goal,omitempty"`      // Nueva meta de ahorro (opcional)
+	Period    string  `json:"period,omitempty"`    // Nuevo período para la meta (opcional)
 	// Sync operation parameters for incremental synchronization
 	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
 	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
@@ -65,9 +65,9 @@ type SavingsDeleteRequest struct {
 // ApiResponse estructura estándar para respuestas de la API de ahorros
 // Proporciona formato consistente para todas las respuestas del servicio
 type ApiResponse struct {
-	Success bool        `json:"success"`          // Indica si la operación fue exitosa
+	Success bool        `json:"success"`           // Indica si la operación fue exitosa
 	Message string      `json:"message,omitempty"` // Mensaje descriptivo del resultado
-	Data    interface{} `json:"data,omitempty"`   // Datos de respuesta (opcional)
+	Data    interface{} `json:"data,omitempty"`    // Datos de respuesta (opcional)
 }
 
 // init inicializa la conexión a la base de datos y configura el entorno

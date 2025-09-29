@@ -56,7 +56,7 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 	if len(updateRequest.Date) < 7 {
 		yearMonth = time.Now().Format("2006-01")
 	}
-	
+
 	// Get current distribution to maintain bank amount
 	distribution, err := fetchCashBankDistribution(updateRequest.UserID, yearMonth)
 	if err != nil {
@@ -67,7 +67,7 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 
 	// Calculate delta for cascade updates
 	cashDelta := updateRequest.Amount - distribution.CashAmount
-	
+
 	// Update cash amount and recalculate totals
 	distribution.CashAmount = updateRequest.Amount
 	distribution.MonthlyTotal = distribution.CashAmount + distribution.BankAmount
@@ -88,7 +88,7 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error updating cash amount", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months if there's a delta
 	if cashDelta != 0 {
 		bankDelta := 0.0 // Bank amount doesn't change
@@ -110,7 +110,7 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 	// 🚨 CRITICAL: ALWAYS record sync operation with auto-generated operation_id
 	// This follows the consistent pattern from the implementation guide
 	log.Printf("✅ Recording sync operation for cash update with auto-generated operation_id")
-	
+
 	err = addSyncOperationForCashBankUpdate(
 		updateRequest.UserID,
 		updateRequest.OperationID, // May be empty - will auto-generate
@@ -120,7 +120,7 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 		updateRequest.DeviceID, // Use device_id from request
 		updateRequest.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for cash update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -134,13 +134,13 @@ func handleUpdateCashWithSync(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since cash/bank affects dashboard
 		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
 	}
 
@@ -183,7 +183,7 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 	if len(updateRequest.Date) < 7 {
 		yearMonth = time.Now().Format("2006-01")
 	}
-	
+
 	// Get current distribution to maintain cash amount
 	distribution, err := fetchCashBankDistribution(updateRequest.UserID, yearMonth)
 	if err != nil {
@@ -194,7 +194,7 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 
 	// Calculate delta for cascade updates
 	bankDelta := updateRequest.Amount - distribution.BankAmount
-	
+
 	// Update bank amount and recalculate totals
 	distribution.BankAmount = updateRequest.Amount
 	distribution.MonthlyTotal = distribution.CashAmount + distribution.BankAmount
@@ -215,7 +215,7 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Error updating bank amount", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months if there's a delta
 	if bankDelta != 0 {
 		cashDelta := 0.0 // Cash amount doesn't change
@@ -237,7 +237,7 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 	// 🚨 CRITICAL: ALWAYS record sync operation with auto-generated operation_id
 	// This follows the consistent pattern from the implementation guide
 	log.Printf("✅ Recording sync operation for bank update with auto-generated operation_id")
-	
+
 	err = addSyncOperationForCashBankUpdate(
 		updateRequest.UserID,
 		updateRequest.OperationID, // May be empty - will auto-generate
@@ -247,7 +247,7 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 		updateRequest.DeviceID, // Use device_id from request
 		updateRequest.Timestamp,
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for bank update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -261,13 +261,13 @@ func handleUpdateBankWithSync(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache
 		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
 	}
 

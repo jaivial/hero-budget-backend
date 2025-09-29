@@ -53,7 +53,7 @@ func handleFetchDistribution(w http.ResponseWriter, r *http.Request) {
 		// Por defecto usa mes actual para compatibilidad
 		yearMonth = time.Now().Format("2006-01")
 	}
-	
+
 	// Fetch cash bank distribution data from database
 	// Obtiene datos de distribución desde la base de datos
 	// Incluye cálculo de porcentajes y validación de datos
@@ -122,7 +122,7 @@ func handleUpdateCash(w http.ResponseWriter, r *http.Request) {
 	if len(updateRequest.Date) < 7 {
 		yearMonth = time.Now().Format("2006-01")
 	}
-	
+
 	// Get current distribution to maintain bank amount
 	// Obtiene distribución actual para mantener cantidad de banco
 	// Necesario para recalcular el total y porcentajes correctamente
@@ -177,14 +177,14 @@ func handleUpdateCash(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since cash/bank affects dashboard
 		// También invalida cache del dashboard ya que efectivo/banco afecta el dashboard
 		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
 	}
 
@@ -233,7 +233,7 @@ func handleUpdateBank(w http.ResponseWriter, r *http.Request) {
 	if len(updateRequest.Date) < 7 {
 		yearMonth = time.Now().Format("2006-01")
 	}
-	
+
 	// Get current distribution to maintain cash amount
 	// Obtiene distribución actual para mantener cantidad de efectivo
 	distribution, err := fetchCashBankDistribution(updateRequest.UserID, yearMonth)
@@ -282,14 +282,14 @@ func handleUpdateBank(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache
 		// También invalida cache del dashboard
 		err = cacheManager.InvalidateDashboardCache(updateRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", updateRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", updateRequest.UserID)
 	}
 

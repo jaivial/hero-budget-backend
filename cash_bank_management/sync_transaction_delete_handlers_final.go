@@ -31,7 +31,7 @@ func handleSyncTransactionDeleteBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Processing transaction delete sync for user %s: %d deletions", 
+	log.Printf("Processing transaction delete sync for user %s: %d deletions",
 		syncRequest.UserID, len(syncRequest.Deletions))
 
 	response, err := processTransactionDeleteSyncBatch(syncRequest)
@@ -65,7 +65,7 @@ func handleSyncTransactionDeleteChanges(w http.ResponseWriter, r *http.Request) 
 
 	lastSync := r.URL.Query().Get("last_sync")
 	limitStr := r.URL.Query().Get("limit")
-	
+
 	limit := 100
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 && parsedLimit <= 500 {
@@ -224,13 +224,13 @@ func processTransactionDeleteSyncBatch(request SyncTransactionDeleteBatchRequest
 				}
 			}
 		}
-		
+
 		response.Results = append(response.Results, result)
 		response.ProcessedOps++
 	}
 
 	response.Success = response.FailedOps == 0 && len(response.Conflicts) == 0
-	
+
 	if response.Success {
 		response.Message = fmt.Sprintf("Processed %d deletions successfully", response.SuccessfulOps)
 	} else {
@@ -257,7 +257,7 @@ func fetchTransactionDeleteChanges(userID, lastSync string, limit int) (SyncTran
 	rows, err := db.Query(`
 		SELECT id, user_id, transaction_id, transaction_type, original_amount, 
 			   original_date, deletion_reason, deleted_at, deleted_by, balance_adjusted, can_be_restored
-		FROM transaction_deletion_log WHERE user_id = ? AND deleted_at > ? ORDER BY deleted_at DESC LIMIT ?`, 
+		FROM transaction_deletion_log WHERE user_id = ? AND deleted_at > ? ORDER BY deleted_at DESC LIMIT ?`,
 		userID, lastSync, limit)
 	if err != nil {
 		return response, fmt.Errorf("query error: %v", err)
@@ -267,15 +267,15 @@ func fetchTransactionDeleteChanges(userID, lastSync string, limit int) (SyncTran
 	for rows.Next() {
 		var record TransactionDeletionRecord
 		var deletedAt time.Time
-		
-		err := rows.Scan(&record.ID, &record.UserID, &record.TransactionID, 
+
+		err := rows.Scan(&record.ID, &record.UserID, &record.TransactionID,
 			&record.TransactionType, &record.OriginalAmount, &record.OriginalDate,
-			&record.DeletionReason, &deletedAt, &record.DeletedBy, 
+			&record.DeletionReason, &deletedAt, &record.DeletedBy,
 			&record.BalanceAdjusted, &record.CanBeRestored)
 		if err != nil {
 			continue
 		}
-		
+
 		record.DeletedAt = deletedAt
 		response.Deletions = append(response.Deletions, record)
 	}
@@ -295,15 +295,15 @@ func getTransactionDeleteSyncStats(userID string) (SyncTransactionDeleteStats, e
 
 	// Get total deletions
 	db.QueryRow("SELECT COUNT(*) FROM transaction_deletion_log WHERE user_id = ?", userID).Scan(&stats.TotalDeletions)
-	
+
 	// Get total amount deleted
 	db.QueryRow("SELECT COALESCE(SUM(original_amount), 0) FROM transaction_deletion_log WHERE user_id = ?", userID).Scan(&stats.TotalAmountDeleted)
-	
+
 	// Get balance adjustments
 	db.QueryRow("SELECT COUNT(*) FROM transaction_deletion_log WHERE user_id = ? AND balance_adjusted = 1", userID).Scan(&stats.BalanceAdjustments)
 
 	stats.DataSizeBytes = int64(stats.TotalDeletions * 256)
 	stats.AverageLatency = 150.0
-	
+
 	return stats, nil
 }

@@ -158,10 +158,10 @@ func processAddedMonths(db *sql.DB, updateData BillUpdateData, addedMonths []str
 	for _, month := range addedMonths {
 		// Asegurar que existe fila para el mes en monthly_balance
 		db.Exec("INSERT OR IGNORE INTO monthly_balance (user_id, year_month) VALUES (?, ?)", updateData.UserID, month)
-		
+
 		// Añadir al bill_amount del mes
 		updateBalanceColumns(db, updateData.UserID, month, updateData.NewAmount, updateData.NewPaymentMethod, "bill", 1)
-		
+
 		// Comprometer dinero del balance principal
 		updateBalanceColumns(db, updateData.UserID, month, updateData.NewAmount, updateData.NewPaymentMethod, "main", -1)
 	}
@@ -193,7 +193,7 @@ func processRemainingMonthsAmountChange(db *sql.DB, updateData BillUpdateData, r
 // Identifica qué meses del periodo tienen gastos registrados
 func getExpenseMonths(db *sql.DB, billID int, userID string) map[string]bool {
 	expenseMonths := make(map[string]bool)
-	
+
 	// Consultar expenses asociados al bill agrupados por mes
 	rows, err := db.Query("SELECT DISTINCT strftime('%Y-%m', date) FROM expenses WHERE bill_id = ? AND user_id = ?", billID, userID)
 	if err == nil {

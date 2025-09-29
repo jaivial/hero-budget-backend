@@ -334,7 +334,7 @@ func getVerificationEmailTemplate(language string) VerificationEmailTemplate {
 
 func migrateTableStructure(db *sql.DB) error {
 	log.Println("🔍 Checking if table structure migration is needed...")
-	
+
 	// PROTECCIÓN CRÍTICA: Verificar usuarios existentes antes de cualquier migración
 	userCount, err := getUserCount(db)
 	if err != nil {
@@ -342,7 +342,7 @@ func migrateTableStructure(db *sql.DB) error {
 		userCount = 0
 	}
 	log.Printf("📊 Current users in database: %d", userCount)
-	
+
 	// Backup específico de usuarios tipo email antes de migración
 	emailUsers, err := getEmailTypeUsers(db)
 	if err != nil {
@@ -445,7 +445,7 @@ func migrateTableStructure(db *sql.DB) error {
 	if err != nil {
 		return fmt.Errorf("failed to copy data to new table: %v", err)
 	}
-	
+
 	// VERIFICACIÓN CRÍTICA: Confirmar que todos los usuarios se copiaron
 	newUserCount, err := tx.Query("SELECT COUNT(*) FROM users_new")
 	if err != nil {
@@ -495,7 +495,7 @@ func migrateTableStructure(db *sql.DB) error {
 			log.Printf("🚨 WARNING: User count changed during migration! Before: %d, After: %d", userCount, finalCount)
 		}
 	}
-	
+
 	log.Println("✅ Table structure migration completed successfully")
 	log.Printf("🔐 All %d users preserved during migration", finalCount)
 	return nil
@@ -515,7 +515,7 @@ func getEmailTypeUsers(db *sql.DB) ([]map[string]interface{}, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	var emailUsers []map[string]interface{}
 	for rows.Next() {
 		var id int
@@ -524,9 +524,9 @@ func getEmailTypeUsers(db *sql.DB) ([]map[string]interface{}, error) {
 			continue
 		}
 		emailUsers = append(emailUsers, map[string]interface{}{
-			"id": id,
+			"id":    id,
 			"email": email,
-			"type": userType,
+			"type":  userType,
 		})
 	}
 	return emailUsers, nil
@@ -1213,10 +1213,10 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 				log.Printf("User ID: %d is already verified. Returning success.", dbUserID)
 				w.Header().Set("Content-Type", "application/json")
 				json.NewEncoder(w).Encode(map[string]interface{}{
-					"success": true,
-					"message": "Email already verified",
-					"user_id": dbUserID,
-					"email":   email,
+					"success":     true,
+					"message":     "Email already verified",
+					"user_id":     dbUserID,
+					"email":       email,
 					"correct_otp": verificationCode, // Debug: Return correct OTP code
 				})
 				return
@@ -1227,16 +1227,16 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
 			json.NewEncoder(w).Encode(map[string]interface{}{
-				"error": "Invalid verification code",
+				"error":       "Invalid verification code",
 				"correct_otp": verificationCode, // Debug: Return correct OTP code
-				"user_id": dbUserID,
-				"email": email,
+				"user_id":     dbUserID,
+				"email":       email,
 			})
 			return
 		}
 	} else if err == sql.ErrNoRows {
 		log.Printf("Invalid verification code: %s - User not found", code)
-		
+
 		// Debug: Try to find any user and return their correct OTP for testing
 		var debugUserID int
 		var debugEmail string
@@ -1250,13 +1250,13 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 				"error": "Invalid verification code",
 				"debug_info": map[string]interface{}{
 					"latest_user_id": debugUserID,
-					"latest_email": debugEmail,
-					"correct_otp": debugOTP,
+					"latest_email":   debugEmail,
+					"correct_otp":    debugOTP,
 				},
 			})
 			return
 		}
-		
+
 		http.Error(w, "Invalid verification code", http.StatusNotFound)
 		return
 	} else if err != nil {
@@ -1298,10 +1298,10 @@ func handleVerifyEmail(w http.ResponseWriter, r *http.Request) {
 	// Return success response
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
-		"success": true,
-		"message": "Email verification successful",
-		"user_id": dbUserID,
-		"email":   email,
+		"success":      true,
+		"message":      "Email verification successful",
+		"user_id":      dbUserID,
+		"email":        email,
 		"verified_otp": verificationCode, // Debug: Return the verified OTP code
 	})
 }

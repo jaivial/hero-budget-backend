@@ -14,7 +14,7 @@ import (
 // Maneja validación de nombres duplicados y codificación de emojis
 func processCategoryAdd(category OfflineCategory) (string, error) {
 	// Log de inicio de adición de categoría
-	log.Printf("Processing category add for user %s: %s (%s)", 
+	log.Printf("Processing category add for user %s: %s (%s)",
 		category.UserID, category.Name, category.Type)
 
 	// Crear estructura de categoría compatible con función existente
@@ -33,13 +33,12 @@ func processCategoryAdd(category OfflineCategory) (string, error) {
 
 	// Convertir ID entero a string para compatibilidad
 	serverID := fmt.Sprintf("%d", categoryID)
-	
+
 	// Log de adición exitosa
 	log.Printf("✅ Category added successfully: %s -> server ID %s", category.LocalID, serverID)
-	
+
 	return serverID, nil
 }
-
 
 // detectCategoryConflicts detecta conflictos potenciales en operaciones de categorías
 // Compara datos del cliente con el servidor para identificar inconsistencias
@@ -124,19 +123,19 @@ func applyCategoryConflictResolution(conflict CategoriesConflictResolution, reso
 		// No hacer nada, mantener datos del servidor
 		log.Printf("Server wins: keeping server data for category %s", conflict.LocalID)
 		return nil
-		
+
 	case "client_wins":
 		// Aplicar datos del cliente
 		if localData, ok := conflict.LocalData.(OfflineCategory); ok {
 			return processCategoryUpdate(localData)
 		}
 		return fmt.Errorf("invalid local data type for category %s", conflict.LocalID)
-		
+
 	case "merge":
 		// Implementar lógica de fusión específica para categorías
 		log.Printf("Merge resolution not yet implemented for category %s", conflict.LocalID)
 		return fmt.Errorf("merge resolution not implemented")
-		
+
 	default:
 		return fmt.Errorf("unsupported resolution strategy: %s", resolution)
 	}

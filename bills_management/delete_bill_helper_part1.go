@@ -13,11 +13,11 @@ import (
 type DeleteBillRequest struct {
 	UserID string `json:"user_id"`
 	BillID int    `json:"bill_id"`
-	
+
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // BillData represents the bill data needed for monthly balance updates
@@ -100,7 +100,7 @@ func deleteBill(request DeleteBillRequest) error {
 	`, request.BillID, request.UserID).Scan(
 		&billData.ID, &billData.UserID, &billData.Amount,
 		&billData.PaymentMethod, &billData.StartDate, &billData.Duration)
-	
+
 	if err != nil {
 		log.Printf("Error getting bill data for deletion: %v", err)
 		return err
@@ -124,7 +124,7 @@ func deleteBill(request DeleteBillRequest) error {
 
 	// Always record sync operation with auto-generated operation_id (like add/update handlers)
 	log.Printf("Recording sync operation for bill deletion with auto-generated operation_id")
-	
+
 	// Create sync operation data with deleted bill structure
 	syncData := map[string]interface{}{
 		"id":              request.BillID,
@@ -136,7 +136,7 @@ func deleteBill(request DeleteBillRequest) error {
 		"duration_months": billData.Duration,
 		"deleted_at":      time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with device_id from request
 	err = addSyncOperation(
 		request.UserID,
@@ -146,9 +146,9 @@ func deleteBill(request DeleteBillRequest) error {
 		strconv.Itoa(request.BillID),
 		syncData,
 		request.DeviceID, // Use device_id from request
-		0, // Timestamp will be auto-generated
+		0,                // Timestamp will be auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("Warning: Failed to record sync operation: %v", err)
 		// Don't fail the bill deletion for sync errors, just log warning

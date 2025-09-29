@@ -135,13 +135,13 @@ func main() {
 func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 	log.Printf("🟡 BACKEND: Received Google auth request from %s", r.RemoteAddr)
 	log.Printf("🟡 BACKEND: Request method: %s, Content-Type: %s", r.Method, r.Header.Get("Content-Type"))
-	
+
 	var data struct {
 		IDToken      string `json:"idToken"`
 		AccessToken  string `json:"accessToken"`
 		DeviceLocale string `json:"deviceLocale"`
 	}
-	
+
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		log.Printf("❌ BACKEND: Failed to decode request body: %v", err)
 		http.Error(w, "Invalid request", http.StatusBadRequest)
@@ -149,11 +149,11 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log.Printf("🟡 BACKEND: Request data received:", map[string]interface{}{
-		"hasIdToken":     len(data.IDToken) > 0,
-		"idTokenLength":  len(data.IDToken),
-		"accessToken":    data.AccessToken,
-		"deviceLocale":   data.DeviceLocale,
-		"clientID":       googleOauthConfig.ClientID,
+		"hasIdToken":    len(data.IDToken) > 0,
+		"idTokenLength": len(data.IDToken),
+		"accessToken":   data.AccessToken,
+		"deviceLocale":  data.DeviceLocale,
+		"clientID":      googleOauthConfig.ClientID,
 	})
 
 	// Proceed directly with token verification without cache
@@ -172,7 +172,7 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 	// Extract user information from the verified payload
 	log.Printf("🟡 BACKEND: Extracting user information from token payload...")
-	
+
 	user := User{
 		GoogleID:      payload.Subject,
 		Email:         payload.Claims["email"].(string),
@@ -230,7 +230,7 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 	if err == sql.ErrNoRows {
 		log.Printf("🟡 BACKEND: User not found in database, creating new user...")
-		
+
 		// Check if user with same email but different type exists
 		var emailUser User
 		emailErr := db.QueryRow(`
@@ -271,7 +271,7 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 		return
 	} else {
 		log.Printf("🟡 BACKEND: Found existing user with ID: %d, updating...", existingUser.ID)
-		
+
 		// Update existing user
 		log.Printf("🟡 BACKEND: Updating existing user with locale: '%s' (previous: '%s')", user.Locale, existingUser.Locale)
 		_, err = db.Exec(`
@@ -306,28 +306,28 @@ func handleGoogleAuth(w http.ResponseWriter, r *http.Request) {
 
 	// Set response headers
 	w.Header().Set("Content-Type", "application/json")
-	
+
 	// Create the expected response structure
 	response := map[string]interface{}{
 		"success": true,
 		"message": "Google authentication successful",
 		"user":    user,
 	}
-	
+
 	log.Printf("🟡 BACKEND: Sending structured response:", map[string]interface{}{
 		"success": true,
 		"hasUser": true,
 		"userID":  user.ID,
 		"email":   user.Email,
 	})
-	
+
 	// Return user information in expected format
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("❌ BACKEND: Failed to encode JSON response: %v", err)
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		return
 	}
-	
+
 	log.Printf("✅ BACKEND: Successfully sent response for user: %s", user.Email)
 }
 
@@ -439,4 +439,3 @@ func updateUserLocale(userID int, locale string) error {
 	log.Printf("Idioma actualizado para el usuario %d: %s", userID, locale)
 	return nil
 }
-

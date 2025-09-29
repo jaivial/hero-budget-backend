@@ -34,7 +34,7 @@ func handleSyncCashBankBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	log.Printf("Processing sync batch for user %s: %d distributions, %d transfers", 
+	log.Printf("Processing sync batch for user %s: %d distributions, %d transfers",
 		syncRequest.UserID, len(syncRequest.Distributions), len(syncRequest.Transfers))
 
 	// Procesar solicitud usando función dedicada
@@ -70,7 +70,7 @@ func handleSyncCashBankChanges(w http.ResponseWriter, r *http.Request) {
 
 	lastSync := r.URL.Query().Get("last_sync")
 	limitStr := r.URL.Query().Get("limit")
-	
+
 	limit := 100 // Default
 	if limitStr != "" {
 		if parsedLimit, err := strconv.Atoi(limitStr); err == nil && parsedLimit > 0 {
@@ -149,7 +149,7 @@ func processCashBankSyncBatchCompact(request SyncCashBankBatchRequest) (SyncCash
 					BankPercent:  distribution.BankPercent,
 					MonthlyTotal: distribution.MonthlyTotal,
 				}
-				
+
 				if err := updateCashBankDistribution(newDist); err != nil {
 					result.Status = "error"
 					result.Error = err.Error()
@@ -159,7 +159,7 @@ func processCashBankSyncBatchCompact(request SyncCashBankBatchRequest) (SyncCash
 				}
 			}
 		}
-		
+
 		response.Results = append(response.Results, result)
 		response.ProcessedOps++
 	}
@@ -183,7 +183,7 @@ func processCashBankSyncBatchCompact(request SyncCashBankBatchRequest) (SyncCash
 				response.SuccessfulOps++
 			}
 		}
-		
+
 		response.Results = append(response.Results, result)
 		response.ProcessedOps++
 	}
@@ -201,16 +201,16 @@ func processCashBankSyncBatchCompact(request SyncCashBankBatchRequest) (SyncCash
 // fetchCashBankChangesCompact obtiene cambios del servidor (versión compacta)
 func fetchCashBankChangesCompact(userID, lastSync string, limit int) (SyncCashBankChangesResponse, error) {
 	response := SyncCashBankChangesResponse{
-		Success:      true,
-		Message:      "Changes fetched successfully",
+		Success:       true,
+		Message:       "Changes fetched successfully",
 		Distributions: make([]CashBankDistribution, 0),
-		Transfers:    make([]CashBankTransfer, 0),
-		ServerTime:   time.Now().Format(time.RFC3339),
-		LastSync:     time.Now().Format(time.RFC3339),
+		Transfers:     make([]CashBankTransfer, 0),
+		ServerTime:    time.Now().Format(time.RFC3339),
+		LastSync:      time.Now().Format(time.RFC3339),
 	}
 
 	// Obtener distribución actual
-	// Use current month for sync operations - TODO: consider passing month parameter  
+	// Use current month for sync operations - TODO: consider passing month parameter
 	currentMonth := time.Now().Format("2006-01")
 	distribution, err := fetchCashBankDistribution(userID, currentMonth)
 	if err == nil && distribution.UserID != "" {
@@ -225,12 +225,12 @@ func fetchCashBankChangesCompact(userID, lastSync string, limit int) (SyncCashBa
 		ORDER BY created_at DESC
 		LIMIT ?
 	`, userID, limit)
-	
+
 	if err == nil {
 		defer rows.Close()
 		for rows.Next() {
 			var transfer CashBankTransfer
-			rows.Scan(&transfer.ID, &transfer.UserID, &transfer.TransferType, 
+			rows.Scan(&transfer.ID, &transfer.UserID, &transfer.TransferType,
 				&transfer.Amount, &transfer.Date, &transfer.CreatedAt)
 			response.Transfers = append(response.Transfers, transfer)
 		}

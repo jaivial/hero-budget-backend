@@ -298,13 +298,13 @@ func updateCascadeForPeriodIncome(userID, tableName, periodColumn, period string
 // Se usa como fallback para casos no específicos o tipos de período no cubiertos por las funciones especializadas
 func updateSubsequentPeriods(userID, tableName, periodType string, transactionDate time.Time) error {
 	log.Printf("Using generic updateSubsequentPeriods for user %s, table %s, period type %s", userID, tableName, periodType)
-	
+
 	// Para la implementación genérica, usar lógica similar a updateSubsequentMonthsForExpense
 	// pero sin hacer cambios específicos de amount ya que no tenemos esa información en este contexto
-	
+
 	var nextPeriods []string
 	var periodColumn string
-	
+
 	// Determinar los períodos futuros y la columna correspondiente
 	switch periodType {
 	case "monthly":
@@ -337,7 +337,7 @@ func updateSubsequentPeriods(userID, tableName, periodType string, transactionDa
 		nextPeriod := transactionDate.Format("2006-01-02")
 		nextPeriods = append(nextPeriods, nextPeriod)
 	}
-	
+
 	// Simplemente actualizar los timestamps de los períodos futuros que existan
 	// Esta es una implementación conservadora que no modifica balances sin información específica
 	for _, nextPeriod := range nextPeriods {
@@ -348,7 +348,7 @@ func updateSubsequentPeriods(userID, tableName, periodType string, transactionDa
 			log.Printf("Error checking period %s existence: %v", nextPeriod, err)
 			continue
 		}
-		
+
 		if exists {
 			// Solo actualizar timestamp para indicar que fue procesado
 			updateQuery := fmt.Sprintf("UPDATE %s SET updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND %s = ?", tableName, periodColumn)
@@ -360,6 +360,6 @@ func updateSubsequentPeriods(userID, tableName, periodType string, transactionDa
 			}
 		}
 	}
-	
+
 	return nil
 }

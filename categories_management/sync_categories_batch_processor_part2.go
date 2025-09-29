@@ -111,8 +111,8 @@ func (bp *CategoriesBatchProcessor) detectPotentialConflicts(category OfflineCat
 	if category.Action == "add" {
 		for _, existing := range existingCategories {
 			if existing.UserID == category.UserID &&
-			   existing.Type == category.Type &&
-			   existing.Name == category.Name {
+				existing.Type == category.Type &&
+				existing.Name == category.Name {
 				conflict := CategoriesConflictResolution{
 					LocalID:       category.LocalID,
 					ServerID:      fmt.Sprintf("%d", existing.ID),
@@ -205,7 +205,7 @@ func (bp *CategoriesBatchProcessor) updatePerformanceStats(processingTime time.D
 
 	// Log de estadísticas de rendimiento
 	throughput := float64(itemCount) / processingTime.Seconds()
-	log.Printf("📊 Performance stats: %d items in %v (%.2f items/sec), avg latency: %.2fms", 
+	log.Printf("📊 Performance stats: %d items in %v (%.2f items/sec), avg latency: %.2fms",
 		itemCount, processingTime, throughput, bp.Stats.AverageLatency)
 }
 
@@ -259,9 +259,9 @@ func (bp *CategoriesBatchProcessor) checkCategoryLimits(userID, categoryType str
 
 	// Definir límites por tipo
 	const maxCategoriesPerType = 50
-	
+
 	if len(existingCategories) >= maxCategoriesPerType {
-		return fmt.Errorf("maximum categories limit reached for type %s: %d/%d", 
+		return fmt.Errorf("maximum categories limit reached for type %s: %d/%d",
 			categoryType, len(existingCategories), maxCategoriesPerType)
 	}
 
@@ -274,7 +274,7 @@ func (bp *CategoriesBatchProcessor) checkDeleteDependencies(category OfflineCate
 	// - Transacciones que usan esta categoría
 	// - Presupuestos vinculados a esta categoría
 	// - Reglas automáticas que referencian esta categoría
-	
+
 	// Por ahora, implementación básica
 	if category.ServerID == "" {
 		return fmt.Errorf("server ID required to check dependencies")
@@ -282,7 +282,7 @@ func (bp *CategoriesBatchProcessor) checkDeleteDependencies(category OfflineCate
 
 	// Log de verificación de dependencias
 	log.Printf("✅ Dependency check passed for category deletion: %s", category.LocalID)
-	
+
 	return nil
 }
 

@@ -13,11 +13,11 @@ func getCashBankBalance(userID, month string) (interface{}, error) {
 	`
 
 	var balance struct {
-		CashAmount    float64 `json:"cash_amount"`
-		CashPercent   float64 `json:"cash_percent"`
-		BankAmount    float64 `json:"bank_amount"`
-		BankPercent   float64 `json:"bank_percent"`
-		MonthlyTotal  float64 `json:"monthly_total"`
+		CashAmount   float64 `json:"cash_amount"`
+		CashPercent  float64 `json:"cash_percent"`
+		BankAmount   float64 `json:"bank_amount"`
+		BankPercent  float64 `json:"bank_percent"`
+		MonthlyTotal float64 `json:"monthly_total"`
 	}
 
 	err := db.QueryRow(query, userID, month).Scan(
@@ -149,7 +149,7 @@ func updateCashBankBalance(userID, month string, cashAmount, bankAmount float64)
 	// Calculate monthly total and percentages
 	monthlyTotal := cashAmount + bankAmount
 	var cashPercent, bankPercent float64
-	
+
 	if monthlyTotal > 0 {
 		cashPercent = (cashAmount / monthlyTotal) * 100
 		bankPercent = (bankAmount / monthlyTotal) * 100
@@ -159,7 +159,7 @@ func updateCashBankBalance(userID, month string, cashAmount, bankAmount float64)
 	var exists bool
 	checkQuery := `SELECT 1 FROM cash_bank WHERE user_id = ? AND month = ?`
 	err := db.QueryRow(checkQuery, userID, month).Scan(&exists)
-	
+
 	if err == sql.ErrNoRows {
 		// Insert new record
 		insertQuery := `

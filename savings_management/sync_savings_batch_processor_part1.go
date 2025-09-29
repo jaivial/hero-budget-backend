@@ -13,7 +13,7 @@ import (
 // Retorna respuesta detallada con resultados y conflictos detectados
 func processSavingsBatch(request SyncSavingsBatchRequest) (*SyncSavingsBatchResponse, error) {
 	log.Printf("Procesando lote de sincronización: %d registros de ahorros para usuario %s", len(request.Savings), request.UserID)
-	
+
 	// Inicializar respuesta del lote
 	response := &SyncSavingsBatchResponse{
 		Success:       true,
@@ -27,37 +27,37 @@ func processSavingsBatch(request SyncSavingsBatchRequest) (*SyncSavingsBatchResp
 		LastSync:      time.Now().UTC().Format(time.RFC3339),
 		NextSyncTime:  time.Now().Add(15 * time.Minute).UTC().Format(time.RFC3339),
 	}
-	
+
 	// Procesar cada registro de ahorro en el lote
 	for _, offlineSavings := range request.Savings {
 		response.ProcessedOps++
-		
+
 		// Procesar operación individual
 		result, serverSavings, err := processSingleSavingsOperation(offlineSavings)
-		
+
 		// Agregar resultado a la respuesta
 		response.Results = append(response.Results, result)
-		
+
 		if err != nil {
 			response.FailedOps++
 			log.Printf("Error procesando ahorro %s: %v", offlineSavings.LocalID, err)
 			continue
 		}
-		
+
 		response.SuccessfulOps++
-		
+
 		// Agregar datos del servidor si la operación fue exitosa
 		if serverSavings != nil {
 			response.ServerData = append(response.ServerData, *serverSavings)
 		}
 	}
-	
+
 	// Actualizar estado general de la respuesta
 	if response.FailedOps > 0 {
 		response.Success = false
 		response.Message = fmt.Sprintf("Lote procesado con %d errores de %d operaciones", response.FailedOps, response.ProcessedOps)
 	}
-	
+
 	log.Printf("Lote completado: %d exitosas, %d fallidas de %d total", response.SuccessfulOps, response.FailedOps, response.ProcessedOps)
 	return response, nil
 }
@@ -72,10 +72,10 @@ func processSingleSavingsOperation(offlineSavings OfflineSavings) (SyncSavingsRe
 		Status:        "success",
 		SyncTimestamp: time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	var serverSavings *SavingsData
 	var err error
-	
+
 	// Procesar según el tipo de acción
 	switch offlineSavings.Action {
 	case "add":
@@ -87,19 +87,19 @@ func processSingleSavingsOperation(offlineSavings OfflineSavings) (SyncSavingsRe
 	default:
 		err = fmt.Errorf("acción no soportada: %s", offlineSavings.Action)
 	}
-	
+
 	// Manejar errores
 	if err != nil {
 		result.Status = "error"
 		result.Error = err.Error()
 		return result, nil, err
 	}
-	
+
 	// Asignar ServerID si es aplicable
 	if serverSavings != nil {
 		result.ServerID = fmt.Sprintf("savings_%s", serverSavings.UserID)
 	}
-	
+
 	return result, serverSavings, nil
 }
 
@@ -116,34 +116,34 @@ func processAddSavingsOperation(offlineSavings OfflineSavings) (*SavingsData, er
 		NeedToSave:  offlineSavings.NeedToSave,
 		DailyTarget: offlineSavings.DailyTarget,
 	}
-	
+
 	// Si no se proporciona período, usar mensual por defecto
 	if newSavings.Period == "" {
 		newSavings.Period = "monthly"
 	}
-	
+
 	// Recalcular valores derivados para asegurar consistencia
 	if err := recalculateSavingsValues(&newSavings); err != nil {
 		return nil, fmt.Errorf("error recalculando valores: %v", err)
 	}
-	
+
 	// Verificar si ya existe un registro de ahorro para este usuario
 	existingSavings, err := fetchSavingsData(newSavings.UserID)
 	if err != nil {
 		return nil, fmt.Errorf("error verificando ahorro existente: %v", err)
 	}
-	
+
 	// Si ya existe y tiene datos significativos, es un conflicto
 	if existingSavings.Goal > 0 || existingSavings.Available > 0 {
 		return nil, fmt.Errorf("ya existe un registro de ahorro para el usuario %s", newSavings.UserID)
 	}
-	
+
 	// Insertar nuevo registro de ahorro en la base de datos
 	err = updateSavingsData(newSavings)
 	if err != nil {
 		return nil, fmt.Errorf("error insertando registro de ahorro: %v", err)
 	}
-	
+
 	log.Printf("Registro de ahorro creado exitosamente para usuario %s", newSavings.UserID)
 	return &newSavings, nil
 }
@@ -156,10 +156,10 @@ func processUpdateSavingsOperation(offlineSavings OfflineSavings) (*SavingsData,
 	if err != nil {
 		return nil, fmt.Errorf("registro de ahorro no encontrado: %v", err)
 	}
-	
+
 	// Actualizar campos especificados
 	updatedSavings := existingSavings
-	
+
 	// Solo actualizar campos que no sean cero (para permitir updates parciales)
 	if offlineSavings.Available > 0 {
 		updatedSavings.Available = offlineSavings.Available
@@ -171,18 +171,18 @@ func processUpdateSavingsOperation(offlineSavings OfflineSavings) (*SavingsData,
 		updatedSavings.Period = offlineSavings.Period
 	}
 	// Para percent, need_to_save y daily_target se recalculan automáticamente
-	
+
 	// Recalcular valores derivados
 	if err := recalculateSavingsValues(&updatedSavings); err != nil {
 		return nil, fmt.Errorf("error recalculando valores: %v", err)
 	}
-	
+
 	// Actualizar en la base de datos
 	err = updateSavingsData(updatedSavings)
 	if err != nil {
 		return nil, fmt.Errorf("error actualizando registro de ahorro: %v", err)
 	}
-	
+
 	log.Printf("Registro de ahorro actualizado exitosamente para usuario %s", updatedSavings.UserID)
 	return &updatedSavings, nil
 }
@@ -195,13 +195,13 @@ func processDeleteSavingsOperation(offlineSavings OfflineSavings) error {
 	if err != nil {
 		return fmt.Errorf("registro de ahorro no encontrado para eliminar: %v", err)
 	}
-	
+
 	// Eliminar registro de ahorro de la base de datos
 	err = deleteSavingsData(offlineSavings.UserID)
 	if err != nil {
 		return fmt.Errorf("error eliminando registro de ahorro: %v", err)
 	}
-	
+
 	log.Printf("Registro de ahorro eliminado exitosamente para usuario %s", offlineSavings.UserID)
 	return nil
 }
@@ -218,20 +218,20 @@ func recalculateSavingsValues(savings *SavingsData) error {
 	} else {
 		savings.Percent = 0
 	}
-	
+
 	// Calcular cantidad necesaria para alcanzar la meta
 	savings.NeedToSave = savings.Goal - savings.Available
 	if savings.NeedToSave < 0 {
 		savings.NeedToSave = 0 // No puede ser negativo
 	}
-	
+
 	// Calcular target diario asumiendo 30 días por mes
 	if savings.NeedToSave > 0 {
 		savings.DailyTarget = savings.NeedToSave / 30
 	} else {
 		savings.DailyTarget = 0
 	}
-	
+
 	// Validar que los valores recalculados sean coherentes
 	if savings.Available < 0 {
 		return fmt.Errorf("available no puede ser negativo después del recálculo")
@@ -242,7 +242,7 @@ func recalculateSavingsValues(savings *SavingsData) error {
 	if savings.Percent < 0 || savings.Percent > 100 {
 		return fmt.Errorf("percent debe estar entre 0 y 100 después del recálculo")
 	}
-	
+
 	return nil
 }
 
@@ -250,7 +250,7 @@ func recalculateSavingsValues(savings *SavingsData) error {
 // Implementa lógica para obtener actualizaciones del servidor
 func getSavingsChanges(request SyncSavingsChangesRequest) (*SyncSavingsChangesResponse, error) {
 	log.Printf("Obteniendo cambios de ahorros para usuario %s desde %s", request.UserID, request.LastSync)
-	
+
 	// Inicializar respuesta
 	response := &SyncSavingsChangesResponse{
 		Success:      true,
@@ -262,7 +262,7 @@ func getSavingsChanges(request SyncSavingsChangesRequest) (*SyncSavingsChangesRe
 		LastSync:     time.Now().UTC().Format(time.RFC3339),
 		ServerTime:   time.Now().UTC().Format(time.RFC3339),
 	}
-	
+
 	// Obtener datos actuales del usuario
 	currentSavings, err := fetchSavingsData(request.UserID)
 	if err != nil {
@@ -270,10 +270,10 @@ func getSavingsChanges(request SyncSavingsChangesRequest) (*SyncSavingsChangesRe
 		log.Printf("No hay datos de ahorros para usuario %s", request.UserID)
 		return response, nil
 	}
-	
+
 	// Si hay datos, incluirlos en los cambios
 	response.Changes = append(response.Changes, currentSavings)
 	response.TotalChanges = 1
-	
+
 	return response, nil
 }

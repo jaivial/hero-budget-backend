@@ -102,7 +102,7 @@ func createBillPaymentRecords(db *sql.DB, billID int, userID string, startDate s
 	// Crear registro para cada mes del periodo con TODOS los campos requeridos
 	// FIXED: Incluir user_id y amount como hace el frontend
 	for _, yearMonth := range months {
-		_, err = db.Exec("INSERT OR IGNORE INTO bill_payments (bill_id, year_month, paid, payment_date, payment_method, user_id, amount) VALUES (?, ?, 0, NULL, ?, ?, ?)", 
+		_, err = db.Exec("INSERT OR IGNORE INTO bill_payments (bill_id, year_month, paid, payment_date, payment_method, user_id, amount) VALUES (?, ?, 0, NULL, ?, ?, ?)",
 			billID, yearMonth, paymentMethod, userID, amount)
 		if err != nil {
 			return fmt.Errorf("error creating payment record for month %s: %v", yearMonth, err)

@@ -110,7 +110,7 @@ func validateOperationLimits(categories []OfflineCategory) error {
 	// Validar límites
 	for operation, count := range operationCounts {
 		if limit, exists := limits[operation]; exists && count > limit {
-			return fmt.Errorf("too many %s operations: maximum %d, got %d", 
+			return fmt.Errorf("too many %s operations: maximum %d, got %d",
 				operation, limit, count)
 		}
 	}
@@ -141,17 +141,17 @@ func validateCategoryBusinessRules(category OfflineCategory, existingCategories 
 		// Validar unicidad de nombres por tipo de categoría
 		for _, existing := range existingCategories {
 			// Saltar si es la misma categoría (para updates)
-			if category.Action == "update" && 
-			   category.ServerID != "" && 
-			   fmt.Sprintf("%d", existing.ID) == category.ServerID {
+			if category.Action == "update" &&
+				category.ServerID != "" &&
+				fmt.Sprintf("%d", existing.ID) == category.ServerID {
 				continue
 			}
 
 			// Verificar duplicado de nombre en el mismo tipo
 			if existing.UserID == category.UserID &&
-			   existing.Type == category.Type &&
-			   strings.EqualFold(existing.Name, category.Name) {
-				return fmt.Errorf("category name '%s' already exists for type '%s'", 
+				existing.Type == category.Type &&
+				strings.EqualFold(existing.Name, category.Name) {
+				return fmt.Errorf("category name '%s' already exists for type '%s'",
 					category.Name, category.Type)
 			}
 		}
@@ -209,7 +209,7 @@ func validateCategoryDataIntegrity(category OfflineCategory) error {
 		// Esta validación es opcional y flexible
 		_ = incomeEmojis
 		_ = expenseEmojis
-		
+
 		// Podrías implementar validación más estricta aquí si es necesario
 		// Por ejemplo, advertir sobre emojis inconsistentes con el tipo
 	}
@@ -273,7 +273,7 @@ func validateCategoryConflictResolution(request SyncCategoriesConflictRequest) e
 func validateSyncRequestSize(request SyncCategoriesBatchRequest) error {
 	// Calcular tamaño aproximado de la solicitud
 	estimatedSize := 0
-	
+
 	// Tamaño base de la estructura
 	estimatedSize += len(request.UserID) + len(request.LastSync) + len(request.ClientID)
 	estimatedSize += len(request.DeviceInfo) + len(request.AppVersion)
@@ -284,14 +284,14 @@ func validateSyncRequestSize(request SyncCategoriesBatchRequest) error {
 		categorySize += len(category.UserID) + len(category.Name) + len(category.Type)
 		categorySize += len(category.Emoji) + len(category.OfflineTimestamp) + len(category.SyncTimestamp)
 		categorySize += len(category.Status) + 20 // Buffer para otros campos
-		
+
 		estimatedSize += categorySize
 	}
 
 	// Límite máximo de 1MB por solicitud
 	maxSize := 1024 * 1024 // 1MB
 	if estimatedSize > maxSize {
-		return fmt.Errorf("sync request too large: estimated %d bytes, maximum %d bytes", 
+		return fmt.Errorf("sync request too large: estimated %d bytes, maximum %d bytes",
 			estimatedSize, maxSize)
 	}
 

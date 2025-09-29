@@ -40,15 +40,15 @@ func checkTransactionCanBeDeleted(transactionID, userID string) (exists bool, ca
 	var transactionType string
 	var amount float64
 	var createdAt time.Time
-	
+
 	query := `SELECT COUNT(*), COALESCE(transaction_type, ''), COALESCE(amount, 0), COALESCE(created_at, datetime('now'))
 			  FROM cash_bank_transactions WHERE id = ? AND user_id = ?`
-	
+
 	err = db.QueryRow(query, transactionID, userID).Scan(&count, &transactionType, &amount, &createdAt)
 	if err != nil {
 		return false, false, fmt.Errorf("error checking transaction: %v", err)
 	}
-	
+
 	exists = count > 0
 	if !exists {
 		return false, false, nil
@@ -61,7 +61,7 @@ func checkTransactionCanBeDeleted(transactionID, userID string) (exists bool, ca
 
 	// Check dependencies
 	var depCount int
-	err = db.QueryRow("SELECT COUNT(*) FROM cash_bank_transactions WHERE user_id = ? AND related_transaction_id = ?", 
+	err = db.QueryRow("SELECT COUNT(*) FROM cash_bank_transactions WHERE user_id = ? AND related_transaction_id = ?",
 		userID, transactionID).Scan(&depCount)
 	if err != nil && err != sql.ErrNoRows {
 		return true, false, err
@@ -89,13 +89,13 @@ func calculateBalanceImpactForDeletion(transactionID, userID string) (Transactio
 
 	var transactionType string
 	var amount float64
-	
-	err := db.QueryRow("SELECT transaction_type, amount FROM cash_bank_transactions WHERE id = ? AND user_id = ?", 
+
+	err := db.QueryRow("SELECT transaction_type, amount FROM cash_bank_transactions WHERE id = ? AND user_id = ?",
 		transactionID, userID).Scan(&transactionType, &amount)
 	if err != nil {
 		return impact, fmt.Errorf("error fetching transaction: %v", err)
 	}
-	
+
 	impact.TransactionType = transactionType
 	impact.Amount = amount
 
@@ -105,7 +105,7 @@ func calculateBalanceImpactForDeletion(transactionID, userID string) (Transactio
 	if err != nil {
 		return impact, fmt.Errorf("error fetching distribution: %v", err)
 	}
-	
+
 	impact.BalanceBefore = distribution.MonthlyTotal
 
 	// Calculate impact
@@ -156,8 +156,8 @@ func executeTransactionDeletion(transactionID, userID, deletionReason string) er
 	var transactionType string
 	var amount float64
 	var originalDate string
-	
-	err = tx.QueryRow("SELECT transaction_type, amount, date FROM cash_bank_transactions WHERE id = ? AND user_id = ?", 
+
+	err = tx.QueryRow("SELECT transaction_type, amount, date FROM cash_bank_transactions WHERE id = ? AND user_id = ?",
 		transactionID, userID).Scan(&transactionType, &amount, &originalDate)
 	if err != nil {
 		return fmt.Errorf("error fetching transaction: %v", err)
@@ -168,8 +168,8 @@ func executeTransactionDeletion(transactionID, userID, deletionReason string) er
 	auditQuery := `INSERT INTO transaction_deletion_log (id, user_id, transaction_id, transaction_type, 
 					original_amount, original_date, deletion_reason, deleted_at, deleted_by, balance_adjusted, can_be_restored) 
 					VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-	
-	_, err = tx.Exec(auditQuery, auditID, userID, transactionID, transactionType, 
+
+	_, err = tx.Exec(auditQuery, auditID, userID, transactionID, transactionType,
 		amount, originalDate, deletionReason, time.Now(), fmt.Sprintf("sync_%s", userID[:8]), true, true)
 	if err != nil {
 		return fmt.Errorf("error creating audit record: %v", err)
@@ -180,7 +180,7 @@ func executeTransactionDeletion(transactionID, userID, deletionReason string) er
 	if err != nil {
 		return fmt.Errorf("error deleting transaction: %v", err)
 	}
-	
+
 	if rowsAffected, _ := result.RowsAffected(); rowsAffected != 1 {
 		return fmt.Errorf("unexpected rows affected: %d", rowsAffected)
 	}

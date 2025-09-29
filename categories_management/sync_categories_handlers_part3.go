@@ -9,7 +9,6 @@ import (
 // Contiene funciones auxiliares para sincronización de categorías
 // Incluye obtención de cambios, estadísticas y resolución de conflictos
 
-
 // processCategoryUpdate procesa la actualización de una categoría desde sync offline
 // Actualiza los campos modificados manteniendo la integridad de datos
 // Maneja validación de tipos y codificación de emojis
@@ -45,7 +44,7 @@ func processCategoryUpdate(category OfflineCategory) error {
 
 	// Log de actualización exitosa
 	log.Printf("✅ Category updated successfully: %s", category.LocalID)
-	
+
 	return nil
 }
 
@@ -75,7 +74,7 @@ func processCategoryDelete(category OfflineCategory) error {
 
 	// Log de eliminación exitosa
 	log.Printf("✅ Category deleted successfully: %s", category.LocalID)
-	
+
 	return nil
 }
 
@@ -99,12 +98,12 @@ func validateCategoryConsistency(category OfflineCategory) error {
 		if category.Name == "" {
 			return fmt.Errorf("category name is required")
 		}
-		
+
 		// Validar tipo de categoría
 		if category.Type != "income" && category.Type != "expense" {
 			return fmt.Errorf("category type must be 'income' or 'expense'")
 		}
-		
+
 		// Validar que el emoji esté presente (puede ser predeterminado)
 		if category.Emoji == "" {
 			return fmt.Errorf("category emoji is required")
@@ -118,6 +117,6 @@ func validateCategoryConsistency(category OfflineCategory) error {
 
 	// Log de validación exitosa
 	log.Printf("✅ Category validation passed for %s (%s)", category.LocalID, category.Action)
-	
+
 	return nil
 }

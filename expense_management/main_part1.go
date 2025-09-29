@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -24,7 +25,8 @@ type Expense struct {
 	Amount        float64 `json:"amount"`
 	Date          string  `json:"date"`
 	Category      string  `json:"category"`
-	PaymentMethod string  `json:"payment_method"` // "cash" o "bank"
+	CategoryID    *int    `json:"category_id,omitempty"` // Pointer to int for optional field
+	PaymentMethod string  `json:"payment_method"`        // "cash" o "bank"
 	Description   string  `json:"description,omitempty"`
 	CreatedAt     string  `json:"created_at,omitempty"`
 	UpdatedAt     string  `json:"updated_at,omitempty"`
@@ -35,12 +37,13 @@ type AddExpenseRequest struct {
 	Amount        float64 `json:"amount"`
 	Date          string  `json:"date"`
 	Category      string  `json:"category"`
+	CategoryID    *int    `json:"category_id,omitempty"` // Pointer to int for optional field
 	PaymentMethod string  `json:"payment_method"`
 	Description   string  `json:"description,omitempty"`
 	// Sync operation parameters for incremental synchronization
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique ID for sync operation
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 }
 
 type UpdateExpenseRequest struct {
@@ -49,21 +52,22 @@ type UpdateExpenseRequest struct {
 	Amount        float64 `json:"amount,omitempty"`
 	Date          string  `json:"date,omitempty"`
 	Category      string  `json:"category,omitempty"`
+	CategoryID    *int    `json:"category_id,omitempty"` // Pointer to int for optional field
 	PaymentMethod string  `json:"payment_method,omitempty"`
 	Description   string  `json:"description,omitempty"`
 	// Sync operation parameters for incremental synchronization
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique ID for sync operation
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 }
 
 type DeleteExpenseRequest struct {
 	UserID    string `json:"user_id"`
 	ExpenseID int    `json:"expense_id"`
 	// Sync operation parameters for incremental synchronization
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique ID for sync operation
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp
+	OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 }
 
 type ApiResponse struct {
@@ -137,13 +141,13 @@ func init() {
 	// CENTRALIZED SCHEMA: DDL operations moved to database_schema.sql
 	// Tables are now created by centralized database initialization
 	log.Println("✅ Using centralized database schema - no local DDL operations")
-	
+
 	// Initialize sync operations schema for expense management
 	err = initializeSyncOperationsSchema()
 	if err != nil {
 		log.Printf("Warning: Failed to initialize sync operations schema: %v", err)
 	}
-	
+
 	// Initialize cache manager for Redis operations
 	cacheManager, err = common.NewCacheManager()
 	if err != nil {
@@ -156,13 +160,21 @@ func init() {
 }
 
 func main() {
+	// Run database migration on service startup
+	// Ejecuta migración de base de datos al iniciar el servicio
+	log.Printf("🔄 Starting database migration for Expense Management service...")
+	if err := runDatabaseMigration(); err != nil {
+		log.Fatalf("❌ Database migration failed: %v", err)
+	}
+	log.Printf("✅ Database migration completed successfully")
+
 	// Set up CORS middleware and routes for expense management endpoints
 	http.HandleFunc("/expenses/add", corsMiddleware(handleAddExpense))
 	http.HandleFunc("/expenses/update", corsMiddleware(handleUpdateExpense))
 	http.HandleFunc("/expenses/delete", corsMiddleware(handleDeleteExpense))
 	http.HandleFunc("/expenses/fetch", corsMiddleware(handleFetchExpenses))
-	
-	// CRITICAL: Add the /expenses endpoint that Flutter expects  
+
+	// CRITICAL: Add the /expenses endpoint that Flutter expects
 	http.HandleFunc("/expenses", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("🔥 NEW ENDPOINT /expenses called with method: %s, query: %s", r.Method, r.URL.RawQuery)
 		handleFetchExpenses(w, r)
@@ -186,18 +198,99 @@ func main() {
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
+// runDatabaseMigration executes database migrations on service startup
+// Applies schema changes for Expense Management service compatibility
+// Returns error if migration fails, allowing service to fail fast on startup
+func runDatabaseMigration() error {
+	log.Printf("🔄 Expense Management - Running database migration...")
+
+	// Get database path using the same approach as other services
+	dbPath := "../budget_data.db"
+
+	log.Printf("📂 Using database path: %s", dbPath)
+
+	// Open database connection
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	log.Printf("✅ Database connection established")
+
+	// Execute migration SQL statements for expense management
+	migrationStatements := []string{
+		// Add category_id column to expenses table
+		`ALTER TABLE expenses ADD COLUMN category_id INTEGER;`,
+
+		// Create index for new column
+		`CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);`,
+
+		// Populate category_id for existing expense records
+		`UPDATE expenses
+		 SET category_id = (
+			 SELECT c.id
+			 FROM categories c
+			 WHERE c.name = expenses.category
+			 AND c.user_id = expenses.user_id
+			 AND c.type = 'expense'
+			 LIMIT 1
+		 )
+		 WHERE category_id IS NULL AND category IS NOT NULL;`,
+	}
+
+	// Execute each migration statement
+	for i, statement := range migrationStatements {
+		log.Printf("🔄 Executing migration statement %d/%d...", i+1, len(migrationStatements))
+
+		_, err := db.Exec(statement)
+		if err != nil {
+			// Check if error is about column already existing (not a real error)
+			if strings.Contains(err.Error(), "duplicate column name") ||
+				strings.Contains(err.Error(), "already exists") {
+				log.Printf("💡 Migration statement %d already applied, skipping: %s", i+1, err.Error())
+				continue
+			}
+
+			log.Printf("❌ Migration statement %d failed: %s", i+1, statement)
+			return fmt.Errorf("migration statement %d failed: %v", i+1, err)
+		}
+
+		log.Printf("✅ Migration statement %d completed successfully", i+1)
+	}
+
+	// Verify migration success with statistics
+	var expensesTotal, expensesWithCategoryId int
+
+	db.QueryRow("SELECT COUNT(*) FROM expenses").Scan(&expensesTotal)
+	db.QueryRow("SELECT COUNT(*) FROM expenses WHERE category_id IS NOT NULL").Scan(&expensesWithCategoryId)
+
+	log.Printf("📊 Expense Management Migration Statistics:")
+	log.Printf("  - Expenses: %d total, %d with category_id (%.1f%%)",
+		expensesTotal, expensesWithCategoryId,
+		float64(expensesWithCategoryId)/float64(expensesTotal)*100)
+
+	log.Printf("🎉 Expense Management - Database migration completed successfully!")
+	return nil
+}
+
 // openDatabase obtiene la conexión a la base de datos para operaciones de sincronización
 // Verifica que la conexión esté activa antes de retornarla
 func openDatabase() (*sql.DB, error) {
 	if db == nil {
 		return nil, fmt.Errorf("conexión a base de datos no inicializada")
 	}
-	
+
 	// Verificar que la conexión esté activa
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("error de conexión a base de datos: %v", err)
 	}
-	
+
 	return db, nil
 }
 
@@ -209,10 +302,10 @@ func handleSyncHealthBasic(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response := map[string]interface{}{
-		"service": "expense_management_sync",
-		"status":  "healthy",
+		"service":   "expense_management_sync",
+		"status":    "healthy",
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
-		"version": "1.0.0",
+		"version":   "1.0.0",
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -221,7 +314,6 @@ func handleSyncHealthBasic(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error enviando respuesta de health: %v", err)
 	}
 }
-
 
 func corsMiddleware(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -249,13 +341,13 @@ func invalidateExpenseCache(userID string) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate expense cache for user %s: %v", userID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since expenses affect dashboard
 		err = cacheManager.InvalidateDashboardCache(userID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", userID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (expenses and dashboard)", userID)
 	}
 }
@@ -311,7 +403,7 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation following the implementation guide pattern
 	// All handlers must use the same consistent pattern
 	log.Printf("Recording sync operation for expense creation with auto-generated operation_id")
-	
+
 	// Create sync operation data
 	syncData := map[string]interface{}{
 		"id":             expenseID,
@@ -319,11 +411,12 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		"amount":         expense.Amount,
 		"date":           expense.Date,
 		"category":       expense.Category,
+		"category_id":    expense.CategoryID,
 		"payment_method": expense.PaymentMethod,
 		"description":    expense.Description,
 		"created_at":     time.Now().Format(time.RFC3339),
 	}
-	
+
 	// Add sync operation record - always record with auto-generation
 	err = addSyncOperation(
 		expense.UserID,
@@ -333,9 +426,9 @@ func handleAddExpense(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%d", expenseID),
 		syncData,
 		expense.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for expense creation: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -408,14 +501,14 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation following the implementation guide pattern
 	log.Printf("Recording sync operation for expense update with auto-generated operation_id")
-	
+
 	// Create sync operation data
 	syncData := map[string]interface{}{
-		"id":             updateRequest.ExpenseID,
-		"user_id":        updateRequest.UserID,
-		"updated_at":     time.Now().Format(time.RFC3339),
+		"id":         updateRequest.ExpenseID,
+		"user_id":    updateRequest.UserID,
+		"updated_at": time.Now().Format(time.RFC3339),
 	}
-	
+
 	// Add only the fields that were updated
 	if updateRequest.Amount > 0 {
 		syncData["amount"] = updateRequest.Amount
@@ -426,13 +519,16 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 	if updateRequest.Category != "" {
 		syncData["category"] = updateRequest.Category
 	}
+	if updateRequest.CategoryID != nil {
+		syncData["category_id"] = updateRequest.CategoryID
+	}
 	if updateRequest.PaymentMethod != "" {
 		syncData["payment_method"] = updateRequest.PaymentMethod
 	}
 	if updateRequest.Description != "" {
 		syncData["description"] = updateRequest.Description
 	}
-	
+
 	// Add sync operation record - always record with auto-generation
 	err = addSyncOperation(
 		updateRequest.UserID,
@@ -442,9 +538,9 @@ func handleUpdateExpense(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%d", updateRequest.ExpenseID),
 		syncData,
 		updateRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for expense update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -504,7 +600,7 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation following the implementation guide pattern
 	log.Printf("Recording sync operation for expense deletion with auto-generated operation_id")
-	
+
 	// Create sync operation data
 	syncData := map[string]interface{}{
 		"id":             deleteRequest.ExpenseID,
@@ -512,11 +608,12 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 		"amount":         expense.Amount,
 		"date":           expense.Date,
 		"category":       expense.Category,
+		"category_id":    expense.CategoryID,
 		"payment_method": expense.PaymentMethod,
 		"description":    expense.Description,
 		"deleted_at":     time.Now().Format(time.RFC3339),
 	}
-	
+
 	// Add sync operation record - always record with auto-generation
 	err = addSyncOperation(
 		deleteRequest.UserID,
@@ -526,9 +623,9 @@ func handleDeleteExpense(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%d", deleteRequest.ExpenseID),
 		syncData,
 		deleteRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for expense deletion: %v", err)
 		// Don't fail the main operation for sync errors, just log warning

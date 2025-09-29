@@ -3,6 +3,7 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -139,7 +140,7 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation with auto-generated operation_id (consistent pattern from implementation guide)
 	log.Printf("Recording sync operation for category creation with auto-generated operation_id")
-	
+
 	// Create sync operation data with created category structure
 	syncData := map[string]interface{}{
 		"id":         createdCategory.ID,
@@ -150,7 +151,7 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 		"created_at": createdCategory.CreatedAt,
 		"updated_at": createdCategory.UpdatedAt,
 	}
-	
+
 	// Always add sync operation record to database - auto-generate operation_id if not provided
 	err = addSyncOperation(
 		addRequest.UserID,
@@ -159,10 +160,10 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 		"categories",
 		strconv.Itoa(createdCategory.ID),
 		syncData,
-		addRequest.DeviceID, // Use device_id from request (can be empty)
+		addRequest.DeviceID,  // Use device_id from request (can be empty)
 		addRequest.Timestamp, // Use timestamp from request (can be 0)
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for category creation: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -224,6 +225,9 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Store original category name for transaction update comparison
+	originalCategoryName := existingCategory.Name
+
 	// Update fields if provided - actualización parcial preservando valores existentes
 	if updateRequest.Name != "" {
 		existingCategory.Name = updateRequest.Name
@@ -253,9 +257,34 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	log.Printf("DEBUG - Emoji después de actualización: %s", updatedCategory.Emoji)
 
+	// Update transaction category names if category name changed
+	if updateRequest.Name != "" && originalCategoryName != updatedCategory.Name {
+		log.Printf("🔄 Category name changed from '%s' to '%s', updating transaction category names...",
+			originalCategoryName, updatedCategory.Name)
+
+		updateResult := updateTransactionsCategoryName(
+			updatedCategory.ID,
+			originalCategoryName,
+			updatedCategory.Name,
+			updatedCategory.Type,
+			updatedCategory.UserID,
+		)
+
+		if updateResult.Success {
+			log.Printf("✅ Successfully updated %d transaction(s) with new category name",
+				updateResult.UpdatedCount)
+		} else {
+			log.Printf("⚠️ Failed to update transaction category names: %s", updateResult.Error)
+			// Note: We don't fail the category update if transaction update fails
+			// This allows the category update to succeed even if transaction update has issues
+		}
+	} else {
+		log.Printf("💡 Category name unchanged ('%s'), skipping transaction updates", updatedCategory.Name)
+	}
+
 	// Record sync operation with auto-generated operation_id (consistent pattern from implementation guide)
 	log.Printf("Recording sync operation for category update with auto-generated operation_id")
-	
+
 	// Create sync operation data with updated category structure
 	syncData := map[string]interface{}{
 		"id":         updatedCategory.ID,
@@ -266,7 +295,7 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		"created_at": updatedCategory.CreatedAt,
 		"updated_at": updatedCategory.UpdatedAt,
 	}
-	
+
 	// Always add sync operation record to database - auto-generate operation_id if not provided
 	err = addSyncOperation(
 		updateRequest.UserID,
@@ -275,10 +304,10 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 		"categories",
 		strconv.Itoa(updateRequest.CategoryID),
 		syncData,
-		updateRequest.DeviceID, // Use device_id from request (can be empty)
+		updateRequest.DeviceID,  // Use device_id from request (can be empty)
 		updateRequest.Timestamp, // Use timestamp from request (can be 0)
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for category update: %v", err)
 		// Don't fail the main operation for sync errors, just log warning
@@ -291,4 +320,159 @@ func handleUpdateCategory(w http.ResponseWriter, r *http.Request) {
 
 	// Return success response with the updated category
 	sendSuccessResponse(w, "Category updated successfully", updatedCategory)
+}
+
+// TransactionUpdateResult represents the result of updating transaction category names
+type TransactionUpdateResult struct {
+	Success      bool   `json:"success"`
+	UpdatedCount int    `json:"updated_count"`
+	Error        string `json:"error,omitempty"`
+}
+
+// updateTransactionsCategoryName updates transaction category names when a category name changes
+// Updates expenses, incomes, and bills tables where category_id matches the updated category
+// Implements triple-entity update strategy: expenses, incomes, AND bills
+// Only updates if the category name actually changed to avoid unnecessary operations
+//
+// Parameters:
+//   - categoryId: ID of the category that was updated
+//   - oldCategoryName: Previous category name
+//   - newCategoryName: New category name
+//   - categoryType: Type of category ('income' or 'expense')
+//   - userId: User ID for permission validation
+//
+// Returns: TransactionUpdateResult with update status and total count (transactions + bills)
+func updateTransactionsCategoryName(categoryId int, oldCategoryName, newCategoryName, categoryType, userId string) TransactionUpdateResult {
+	log.Printf("🔄 Starting transaction category name update for category ID %d...", categoryId)
+	log.Printf("📝 Update details: User=%s, Type=%s, Old='%s', New='%s'",
+		userId, categoryType, oldCategoryName, newCategoryName)
+
+	// Skip update if names are the same
+	if oldCategoryName == newCategoryName {
+		log.Printf("💡 Category names are identical, skipping transaction updates")
+		return TransactionUpdateResult{
+			Success:      true,
+			UpdatedCount: 0,
+		}
+	}
+
+	// Get database connection
+	dbPath := "../budget_data.db"
+
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		log.Printf("❌ Failed to open database: %v", err)
+		return TransactionUpdateResult{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to open database: %v", err),
+		}
+	}
+	defer db.Close()
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		log.Printf("❌ Failed to ping database: %v", err)
+		return TransactionUpdateResult{
+			Success: false,
+			Error:   fmt.Sprintf("Failed to ping database: %v", err),
+		}
+	}
+
+	// Determine which table to update based on category type
+	tableName := "expenses"
+	if categoryType == "income" {
+		tableName = "incomes"
+	}
+
+	log.Printf("📝 Updating %s transactions with category_id: %d", tableName, categoryId)
+
+	totalUpdated := 0
+
+	// Update transactions where category_id matches (primary method)
+	updateSql := fmt.Sprintf(`
+		UPDATE %s
+		SET category = ?, updated_at = datetime('now', 'localtime')
+		WHERE user_id = ? AND category_id = ?
+	`, tableName)
+
+	result, err := db.Exec(updateSql, newCategoryName, userId, categoryId)
+	if err != nil {
+		log.Printf("❌ Error updating %s transactions: %v", tableName, err)
+		return TransactionUpdateResult{
+			Success: false,
+			Error:   fmt.Sprintf("Error updating %s transactions: %v", tableName, err),
+		}
+	}
+
+	primaryUpdated, _ := result.RowsAffected()
+	totalUpdated += int(primaryUpdated)
+
+	log.Printf("✅ Primary update: %d %s transactions updated via category_id", primaryUpdated, tableName)
+
+	// Also update any transactions that still use the old category name (fallback method)
+	fallbackUpdateSql := fmt.Sprintf(`
+		UPDATE %s
+		SET category = ?, updated_at = datetime('now', 'localtime')
+		WHERE user_id = ? AND category = ? AND (category_id IS NULL OR category_id != ?)
+	`, tableName)
+
+	fallbackResult, err := db.Exec(fallbackUpdateSql, newCategoryName, userId, oldCategoryName, categoryId)
+	if err != nil {
+		log.Printf("⚠️ Error in fallback %s transaction update: %v", tableName, err)
+		// Don't fail the entire operation if fallback fails
+	} else {
+		fallbackUpdated, _ := fallbackResult.RowsAffected()
+		totalUpdated += int(fallbackUpdated)
+		log.Printf("✅ Fallback update: %d additional %s transactions updated via category name", fallbackUpdated, tableName)
+	}
+
+	log.Printf("🎉 Total transactions updated: %d in %s table", totalUpdated, tableName)
+	log.Printf("📊 Transaction update summary: CategoryID=%d, Type=%s, Updated=%d",
+		categoryId, categoryType, totalUpdated)
+
+	// Update bills table if category type is expense (bills are always expenses)
+	if categoryType == "expense" {
+		log.Printf("📝 Updating bills with category_id: %d", categoryId)
+
+		// Update bills where category_id matches
+		billsUpdateSql := `
+			UPDATE bills
+			SET category = ?, updated_at = datetime('now', 'localtime')
+			WHERE user_id = ? AND category_id = ?
+		`
+
+		billsResult, err := db.Exec(billsUpdateSql, newCategoryName, userId, categoryId)
+		if err != nil {
+			log.Printf("⚠️ Error updating bills: %v", err)
+			// Don't fail the entire operation if bills update fails
+		} else {
+			billsUpdated, _ := billsResult.RowsAffected()
+			totalUpdated += int(billsUpdated)
+			log.Printf("✅ Primary update: %d bills updated via category_id", billsUpdated)
+		}
+
+		// Fallback update for bills with old category name
+		billsFallbackUpdateSql := `
+			UPDATE bills
+			SET category = ?, updated_at = datetime('now', 'localtime')
+			WHERE user_id = ? AND category = ? AND (category_id IS NULL OR category_id != ?)
+		`
+
+		billsFallbackResult, err := db.Exec(billsFallbackUpdateSql, newCategoryName, userId, oldCategoryName, categoryId)
+		if err != nil {
+			log.Printf("⚠️ Error in fallback bills update: %v", err)
+			// Don't fail the entire operation if fallback fails
+		} else {
+			billsFallbackUpdated, _ := billsFallbackResult.RowsAffected()
+			totalUpdated += int(billsFallbackUpdated)
+			log.Printf("✅ Fallback update: %d additional bills updated via category name", billsFallbackUpdated)
+		}
+	}
+
+	log.Printf("🎉 Total entities updated: %d (transactions + bills)", totalUpdated)
+
+	return TransactionUpdateResult{
+		Success:      true,
+		UpdatedCount: totalUpdated,
+	}
 }

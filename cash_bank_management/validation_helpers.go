@@ -15,9 +15,9 @@ func validateCashBankDistributionConsistency(distribution OfflineCashBankDistrib
 	// Validar consistencia matemática entre cantidades y total
 	expectedTotal := distribution.CashAmount + distribution.BankAmount
 	tolerance := 0.01 // Tolerancia para errores de punto flotante
-	
+
 	if abs(expectedTotal-distribution.MonthlyTotal) > tolerance {
-		return fmt.Errorf("inconsistencia en totales: suma(%f + %f = %f) != monthly_total(%f)", 
+		return fmt.Errorf("inconsistencia en totales: suma(%f + %f = %f) != monthly_total(%f)",
 			distribution.CashAmount, distribution.BankAmount, expectedTotal, distribution.MonthlyTotal)
 	}
 
@@ -25,7 +25,7 @@ func validateCashBankDistributionConsistency(distribution OfflineCashBankDistrib
 	if distribution.CashAmount < 0 {
 		return fmt.Errorf("cash_amount no puede ser negativo: %f", distribution.CashAmount)
 	}
-	
+
 	if distribution.BankAmount < 0 {
 		return fmt.Errorf("bank_amount no puede ser negativo: %f", distribution.BankAmount)
 	}
@@ -34,17 +34,17 @@ func validateCashBankDistributionConsistency(distribution OfflineCashBankDistrib
 	if distribution.MonthlyTotal > 0 {
 		expectedCashPercent := (distribution.CashAmount / distribution.MonthlyTotal) * 100
 		expectedBankPercent := (distribution.BankAmount / distribution.MonthlyTotal) * 100
-		
+
 		// Tolerancia para porcentajes (0.5%)
 		percentTolerance := 0.5
-		
+
 		if abs(expectedCashPercent-distribution.CashPercent) > percentTolerance {
-			return fmt.Errorf("inconsistencia en cash_percent: esperado %f, recibido %f", 
+			return fmt.Errorf("inconsistencia en cash_percent: esperado %f, recibido %f",
 				expectedCashPercent, distribution.CashPercent)
 		}
-		
+
 		if abs(expectedBankPercent-distribution.BankPercent) > percentTolerance {
-			return fmt.Errorf("inconsistencia en bank_percent: esperado %f, recibido %f", 
+			return fmt.Errorf("inconsistencia en bank_percent: esperado %f, recibido %f",
 				expectedBankPercent, distribution.BankPercent)
 		}
 	}
@@ -67,13 +67,13 @@ func validateUserAccess(userID string) error {
 	if userID == "" {
 		return fmt.Errorf("user ID cannot be empty")
 	}
-	
+
 	// Aquí se pueden agregar validaciones adicionales
 	// Por ahora, validación básica de formato
 	if len(userID) < 3 {
 		return fmt.Errorf("user ID too short")
 	}
-	
+
 	return nil
 }
 
@@ -82,11 +82,11 @@ func validateTimestamp(timestamp string) error {
 	if timestamp == "" {
 		return nil // Timestamp vacío es válido (opcional)
 	}
-	
+
 	_, err := time.Parse(time.RFC3339, timestamp)
 	if err != nil {
 		return fmt.Errorf("invalid timestamp format: %s", timestamp)
 	}
-	
+
 	return nil
 }

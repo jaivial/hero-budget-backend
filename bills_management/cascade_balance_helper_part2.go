@@ -158,7 +158,7 @@ func updatePreviousAmountsCorrectlyAfterRevert(db *sql.DB, userID string, months
 // Útil para mantener la base de datos limpia tras operaciones complejas
 func cleanupOrphanedMonthlyRecords(db *sql.DB, userID string) error {
 	log.Printf("🧹 Limpiando registros huérfanos para user_id: %s", userID)
-	
+
 	// Eliminar registros con todos los valores en 0
 	_, err := db.Exec(`
 		DELETE FROM monthly_balance 
@@ -173,12 +173,12 @@ func cleanupOrphanedMonthlyRecords(db *sql.DB, userID string) error {
 		  AND balance_bank_amount = 0 
 		  AND total_balance = 0
 	`, userID)
-	
+
 	if err != nil {
 		log.Printf("Error limpiando registros huérfanos: %v", err)
 		return err
 	}
-	
+
 	log.Printf("✅ Limpieza de registros huérfanos completada")
 	return nil
 }
@@ -187,7 +187,7 @@ func cleanupOrphanedMonthlyRecords(db *sql.DB, userID string) error {
 // Verifica que los cálculos sean coherentes y detecta posibles errores
 func validateMonthlyBalanceConsistency(db *sql.DB, userID string) error {
 	log.Printf("🔍 Validando consistencia de monthly_balance para user_id: %s", userID)
-	
+
 	// Obtener todos los registros del usuario
 	rows, err := db.Query(`
 		SELECT year_month, cash_amount, bank_amount, total_balance
@@ -195,17 +195,17 @@ func validateMonthlyBalanceConsistency(db *sql.DB, userID string) error {
 		WHERE user_id = ? 
 		ORDER BY year_month
 	`, userID)
-	
+
 	if err != nil {
 		return fmt.Errorf("error fetching records for validation: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var inconsistencies []string
 	for rows.Next() {
 		var month string
 		var cashAmount, bankAmount, totalBalance float64
-		
+
 		if rows.Scan(&month, &cashAmount, &bankAmount, &totalBalance) == nil {
 			// Verificar que total_balance = cash_amount + bank_amount
 			expectedTotal := cashAmount + bankAmount
@@ -215,7 +215,7 @@ func validateMonthlyBalanceConsistency(db *sql.DB, userID string) error {
 			}
 		}
 	}
-	
+
 	if len(inconsistencies) > 0 {
 		log.Printf("⚠️ Se encontraron %d inconsistencias:", len(inconsistencies))
 		for _, inconsistency := range inconsistencies {
@@ -223,7 +223,7 @@ func validateMonthlyBalanceConsistency(db *sql.DB, userID string) error {
 		}
 		return fmt.Errorf("found %d balance inconsistencies", len(inconsistencies))
 	}
-	
+
 	log.Printf("✅ Validación de consistencia completada sin errores")
 	return nil
 }

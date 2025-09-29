@@ -19,7 +19,7 @@ func isValidOperationId(operationId string) bool {
 	if operationId == "" {
 		return false
 	}
-	
+
 	// Expected format: 1755209423000_001
 	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
@@ -27,7 +27,7 @@ func isValidOperationId(operationId string) bool {
 		log.Printf("Error validating operation ID pattern: %v", err)
 		return false
 	}
-	
+
 	return matched
 }
 
@@ -36,18 +36,18 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	if !isValidOperationId(operationId) {
 		return 0
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	if len(parts) != 2 {
 		return 0
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		log.Printf("Error parsing timestamp from operation ID: %v", err)
 		return 0
 	}
-	
+
 	return timestamp
 }
 
@@ -55,7 +55,7 @@ func extractTimestampFromOperationId(operationId string) int64 {
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No previous operations found for user: %s", userID)
@@ -64,7 +64,7 @@ func getLastOperationIdForUser(userID string) (string, error) {
 		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
 		return "", err
 	}
-	
+
 	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
 	return lastOperationId, nil
 }
@@ -73,16 +73,16 @@ func getLastOperationIdForUser(userID string) (string, error) {
 // Gets the last operation ID and adds +1 millisecond time unit
 func generateNextOperationId(userID string) (string, error) {
 	log.Printf("Generating next operation ID for user: %s", userID)
-	
+
 	// Get the last operation ID for this user
 	lastOperationId, err := getLastOperationIdForUser(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get last operation ID: %v", err)
 	}
-	
+
 	var nextTimestamp int64
 	var sequenceNumber int = 1
-	
+
 	if lastOperationId == "" {
 		// No previous operations, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
@@ -100,10 +100,10 @@ func generateNextOperationId(userID string) (string, error) {
 			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
-	
+
 	// Format as {timestamp_ms}_{sequence_number}
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
-	
+
 	log.Printf("Generated operation ID: %s", operationId)
 	return operationId, nil
 }

@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -27,11 +27,11 @@ import (
 // Incluye información completa para clasificación y visualización de transacciones
 // Utilizada para organizar y filtrar operaciones financieras del usuario
 type Category struct {
-	ID        int    `json:"id"`                  // ID único de la categoría en la base de datos
-	UserID    string `json:"user_id"`             // ID del usuario propietario de la categoría
-	Name      string `json:"name"`                // Nombre descriptivo de la categoría
-	Type      string `json:"type"`                // "income" para ingresos, "expense" para gastos
-	Emoji     string `json:"emoji"`               // Emoji representativo para interfaz visual
+	ID        int    `json:"id"`                   // ID único de la categoría en la base de datos
+	UserID    string `json:"user_id"`              // ID del usuario propietario de la categoría
+	Name      string `json:"name"`                 // Nombre descriptivo de la categoría
+	Type      string `json:"type"`                 // "income" para ingresos, "expense" para gastos
+	Emoji     string `json:"emoji"`                // Emoji representativo para interfaz visual
 	CreatedAt string `json:"created_at,omitempty"` // Timestamp de creación de la categoría
 	UpdatedAt string `json:"updated_at,omitempty"` // Timestamp de última actualización
 }
@@ -44,27 +44,27 @@ type AddCategoryRequest struct {
 	Name   string `json:"name"`    // Nombre de la categoría (requerido, único por tipo)
 	Type   string `json:"type"`    // Tipo de categoría: "income" o "expense" (requerido)
 	Emoji  string `json:"emoji"`   // Emoji representativo (opcional, se asigna predeterminado)
-	
+
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // UpdateCategoryRequest representa una solicitud para actualizar una categoría existente
 // Permite actualización parcial de campos, manteniendo valores existentes para campos vacíos
 // Incluye validación de permisos de usuario y existencia de la categoría
 type UpdateCategoryRequest struct {
-	UserID     string `json:"user_id"`             // ID del usuario propietario (requerido para validación)
-	CategoryID int    `json:"category_id"`         // ID de la categoría a actualizar (requerido)
-	Name       string `json:"name,omitempty"`      // Nuevo nombre (opcional)
-	Type       string `json:"type,omitempty"`      // Nuevo tipo (opcional)
-	Emoji      string `json:"emoji,omitempty"`     // Nuevo emoji (opcional)
-	
+	UserID     string `json:"user_id"`         // ID del usuario propietario (requerido para validación)
+	CategoryID int    `json:"category_id"`     // ID de la categoría a actualizar (requerido)
+	Name       string `json:"name,omitempty"`  // Nuevo nombre (opcional)
+	Type       string `json:"type,omitempty"`  // Nuevo tipo (opcional)
+	Emoji      string `json:"emoji,omitempty"` // Nuevo emoji (opcional)
+
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // DeleteCategoryRequest representa una solicitud para eliminar una categoría
@@ -73,11 +73,11 @@ type UpdateCategoryRequest struct {
 type DeleteCategoryRequest struct {
 	UserID     string `json:"user_id"`     // ID del usuario propietario (requerido)
 	CategoryID int    `json:"category_id"` // ID de la categoría a eliminar (requerido)
-	
+
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // ApiResponse estructura estándar para respuestas de la API REST
@@ -95,11 +95,11 @@ var (
 	// Database connection for category data persistence
 	// Conexión principal a la base de datos SQLite para persistencia de categorías
 	db *sql.DB
-	
+
 	// Context for database operations
 	// Contexto compartido para todas las operaciones de base de datos
 	ctx = context.Background()
-	
+
 	// Cache manager for Redis operations to improve performance
 	// Gestor de cache Redis para optimizar consultas frecuentes de categorías
 	cacheManager *common.CacheManager
@@ -180,7 +180,7 @@ func isValidOperationId(operationId string) bool {
 	if operationId == "" {
 		return false
 	}
-	
+
 	// Expected format: 1755209423000_001
 	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
@@ -188,7 +188,7 @@ func isValidOperationId(operationId string) bool {
 		log.Printf("Error validating operation ID pattern: %v", err)
 		return false
 	}
-	
+
 	return matched
 }
 
@@ -197,18 +197,18 @@ func extractTimestampFromOperationId(operationId string) int64 {
 	if !isValidOperationId(operationId) {
 		return 0
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	if len(parts) != 2 {
 		return 0
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		log.Printf("Error parsing timestamp from operation ID: %v", err)
 		return 0
 	}
-	
+
 	return timestamp
 }
 
@@ -216,7 +216,7 @@ func extractTimestampFromOperationId(operationId string) int64 {
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			log.Printf("No previous operations found for user: %s", userID)
@@ -225,7 +225,7 @@ func getLastOperationIdForUser(userID string) (string, error) {
 		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
 		return "", err
 	}
-	
+
 	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
 	return lastOperationId, nil
 }
@@ -234,16 +234,16 @@ func getLastOperationIdForUser(userID string) (string, error) {
 // Gets the last operation ID and adds +1 millisecond time unit
 func generateNextOperationId(userID string) (string, error) {
 	log.Printf("Generating next operation ID for user: %s", userID)
-	
+
 	// Get the last operation ID for this user
 	lastOperationId, err := getLastOperationIdForUser(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get last operation ID: %v", err)
 	}
-	
+
 	var nextTimestamp int64
 	var sequenceNumber int = 1
-	
+
 	if lastOperationId == "" {
 		// No previous operations, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
@@ -261,10 +261,10 @@ func generateNextOperationId(userID string) (string, error) {
 			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
-	
+
 	// Format as {timestamp_ms}_{sequence_number}
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
-	
+
 	log.Printf("Generated operation ID: %s", operationId)
 	return operationId, nil
 }
@@ -273,10 +273,18 @@ func generateNextOperationId(userID string) (string, error) {
 // Define todos los endpoints disponibles y configura middleware CORS
 // Establece el puerto de escucha y arranca el servidor HTTP
 func main() {
+	// Run database migration on service startup
+	// Ejecuta migración de base de datos al iniciar el servicio
+	log.Printf("🔄 Starting database migration for Categories Management service...")
+	if err := runDatabaseMigration(); err != nil {
+		log.Fatalf("❌ Database migration failed: %v", err)
+	}
+	log.Printf("✅ Database migration completed successfully")
+
 	// Set up CORS middleware and routes para endpoints principales de categorías
 	// Configura middleware CORS y define todas las rutas HTTP disponibles
 	// Cada ruta incluye validación de métodos HTTP y manejo de errores
-	
+
 	// Endpoints principales para gestión de categorías
 	http.HandleFunc("/categories", corsMiddleware(handleFetchCategories))
 	http.HandleFunc("/categories/add", corsMiddleware(handleAddCategory))
@@ -287,16 +295,16 @@ func main() {
 	// Rutas de sincronización offline - Integración del sistema de sync
 	// Endpoints para sincronización bidireccional con clientes offline
 	// Permite operaciones por lotes y resolución de conflictos específicos para categorías
-	
+
 	// Sincronización por lotes de operaciones offline de categorías
 	http.HandleFunc("/sync/categories/batch", corsMiddleware(handleSyncCategoriesBatch))
-	
+
 	// Obtener cambios del servidor desde último sync de categorías
 	http.HandleFunc("/sync/categories/changes", corsMiddleware(handleSyncCategoriesChanges))
-	
+
 	// Obtener estadísticas de sincronización del usuario para categorías
 	http.HandleFunc("/sync/categories/stats", corsMiddleware(handleSyncCategoriesStats))
-	
+
 	// Resolver conflictos específicos de categorías de forma manual
 	http.HandleFunc("/sync/categories/resolve-conflict", corsMiddleware(handleSyncCategoriesConflictResolution))
 
@@ -315,22 +323,125 @@ func main() {
 	log.Printf("  - GET  /sync/categories/changes")
 	log.Printf("  - GET  /sync/categories/stats")
 	log.Printf("  - POST /sync/categories/resolve-conflict")
-	
+
 	// Start HTTP server with fatal error handling
 	// Arranca el servidor con manejo de errores fatales
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }
 
+// runDatabaseMigration executes database migrations on service startup
+// Applies schema changes from database_migration.sql to ensure database compatibility
+// Returns error if migration fails, allowing service to fail fast on startup
+func runDatabaseMigration() error {
+	log.Printf("🔄 Categories Management - Running database migration...")
+
+	// Get database path using the same approach as other services
+	dbPath := "../budget_data.db"
+
+	log.Printf("📂 Using database path: %s", dbPath)
+
+	// Open database connection
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	log.Printf("✅ Database connection established")
+
+	// Execute migration SQL statements
+	migrationStatements := []string{
+		// Add category_id column to incomes table
+		`ALTER TABLE incomes ADD COLUMN category_id INTEGER;`,
+
+		// Add category_id column to expenses table
+		`ALTER TABLE expenses ADD COLUMN category_id INTEGER;`,
+
+		// Create indexes for new columns
+		`CREATE INDEX IF NOT EXISTS idx_incomes_category_id ON incomes(category_id);`,
+		`CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);`,
+
+		// Populate category_id for existing records - incomes
+		`UPDATE incomes
+		 SET category_id = (
+			 SELECT c.id
+			 FROM categories c
+			 WHERE c.name = incomes.category
+			 AND c.user_id = incomes.user_id
+			 AND c.type = 'income'
+			 LIMIT 1
+		 )
+		 WHERE category_id IS NULL AND category IS NOT NULL;`,
+
+		// Populate category_id for existing records - expenses
+		`UPDATE expenses
+		 SET category_id = (
+			 SELECT c.id
+			 FROM categories c
+			 WHERE c.name = expenses.category
+			 AND c.user_id = expenses.user_id
+			 AND c.type = 'expense'
+			 LIMIT 1
+		 )
+		 WHERE category_id IS NULL AND category IS NOT NULL;`,
+	}
+
+	// Execute each migration statement
+	for i, statement := range migrationStatements {
+		log.Printf("🔄 Executing migration statement %d/%d...", i+1, len(migrationStatements))
+
+		_, err := db.Exec(statement)
+		if err != nil {
+			// Check if error is about column already existing (not a real error)
+			if strings.Contains(err.Error(), "duplicate column name") ||
+				strings.Contains(err.Error(), "already exists") {
+				log.Printf("💡 Migration statement %d already applied, skipping: %s", i+1, err.Error())
+				continue
+			}
+
+			log.Printf("❌ Migration statement %d failed: %s", i+1, statement)
+			return fmt.Errorf("migration statement %d failed: %v", i+1, err)
+		}
+
+		log.Printf("✅ Migration statement %d completed successfully", i+1)
+	}
+
+	// Verify migration success with statistics
+	var incomesTotal, incomesWithCategoryId int
+	var expensesTotal, expensesWithCategoryId int
+
+	db.QueryRow("SELECT COUNT(*) FROM incomes").Scan(&incomesTotal)
+	db.QueryRow("SELECT COUNT(*) FROM incomes WHERE category_id IS NOT NULL").Scan(&incomesWithCategoryId)
+	db.QueryRow("SELECT COUNT(*) FROM expenses").Scan(&expensesTotal)
+	db.QueryRow("SELECT COUNT(*) FROM expenses WHERE category_id IS NOT NULL").Scan(&expensesWithCategoryId)
+
+	log.Printf("📊 Migration Statistics:")
+	log.Printf("  - Incomes: %d total, %d with category_id (%.1f%%)",
+		incomesTotal, incomesWithCategoryId,
+		float64(incomesWithCategoryId)/float64(incomesTotal)*100)
+	log.Printf("  - Expenses: %d total, %d with category_id (%.1f%%)",
+		expensesTotal, expensesWithCategoryId,
+		float64(expensesWithCategoryId)/float64(expensesTotal)*100)
+
+	log.Printf("🎉 Categories Management - Database migration completed successfully!")
+	return nil
+}
+
 // addSyncOperation records a sync operation in the sync_operations table
 // Uses the new operation_id system with timestamp-based format and automatic generation
 func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s",
 		userID, providedOperationID, action, tableName, recordID, deviceID)
-	
+
 	// Generate operation ID if not provided or if provided ID is not valid timestamp format
 	var operationID string
 	var err error
-	
+
 	if providedOperationID != "" && isValidOperationId(providedOperationID) {
 		// Use provided operation ID if it's valid
 		operationID = providedOperationID
@@ -344,19 +455,19 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		}
 		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
 	}
-	
+
 	// Validate that we have a valid operation ID
 	if !isValidOperationId(operationID) {
 		return fmt.Errorf("invalid operation ID format: %s", operationID)
 	}
-	
+
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshaling sync operation data: %v", err)
 		return err
 	}
-	
+
 	// Prepare device_ids JSON array - store null if deviceID is empty
 	var deviceIDsJSON []byte
 	if deviceID != "" {
@@ -370,17 +481,17 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		deviceIDsJSON = []byte("null")
 		log.Printf("Device ID empty, storing null in device_ids column")
 	}
-	
+
 	// Extract timestamp from operation ID for created_at field
 	operationTimestamp := extractTimestampFromOperationId(operationID)
 	if operationTimestamp == 0 {
 		operationTimestamp = time.Now().UnixMilli()
 		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
-	
+
 	// Use current server timestamp
 	serverTimestamp := time.Now().UnixMilli()
-	
+
 	// Handle client timestamp - use null if 0
 	var clientTimestampValue interface{}
 	if clientTimestamp == 0 {
@@ -389,7 +500,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	} else {
 		clientTimestampValue = clientTimestamp
 	}
-	
+
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
@@ -397,31 +508,31 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	result, err := db.Exec(
 		insertQuery,
 		userID,
 		operationID,
-		action,            // operation_type (create, update, delete)
-		tableName,         // entity_type (categories)
-		recordID,          // entity_id
-		string(dataJSON),  // operation_data
+		action,                // operation_type (create, update, delete)
+		tableName,             // entity_type (categories)
+		recordID,              // entity_id
+		string(dataJSON),      // operation_data
 		string(deviceIDsJSON), // device_ids as JSON array or null
 		clientTimestampValue,  // client_timestamp (original from client or null)
-		serverTimestamp,   // server_timestamp (when processed)
-		operationTimestamp, // created_at (extracted from operation_id for ordering)
+		serverTimestamp,       // server_timestamp (when processed)
+		operationTimestamp,    // created_at (extracted from operation_id for ordering)
 	)
-	
+
 	if err != nil {
 		log.Printf("Error inserting sync operation: %v", err)
 		return err
 	}
-	
+
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d",
 		syncOpID, operationID, operationTimestamp)
-	
+
 	return nil
 }
 

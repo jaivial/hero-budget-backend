@@ -93,14 +93,14 @@ func updatePreviousAmountsCorrectly(db *sql.DB, userID string, months []string, 
 // Útil para mantener consistencia tras cambios en facturas
 func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) error {
 	log.Printf("🔄 Recalculando balances desde mes: %s", startMonth)
-	
+
 	// Obtener todos los meses desde el startMonth
 	rows, err := db.Query("SELECT year_month FROM monthly_balance WHERE user_id = ? AND year_month >= ? ORDER BY year_month", userID, startMonth)
 	if err != nil {
 		return fmt.Errorf("error fetching months for recalculation: %v", err)
 	}
 	defer rows.Close()
-	
+
 	var months []string
 	for rows.Next() {
 		var month string
@@ -108,7 +108,7 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 			months = append(months, month)
 		}
 	}
-	
+
 	// Recalcular total_balance para cada mes
 	for _, month := range months {
 		_, err = db.Exec("UPDATE monthly_balance SET total_balance = cash_amount + bank_amount WHERE user_id = ? AND year_month = ?", userID, month)
@@ -116,7 +116,7 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 			log.Printf("Error recalculando balance para mes %s: %v", month, err)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -124,7 +124,7 @@ func recalculateBalancesFromStartMonth(db *sql.DB, userID, startMonth string) er
 // Útil para verificar el estado de las tablas durante desarrollo
 func debugPrintMonthlyBalance(db *sql.DB, userID, month string) {
 	log.Printf("🔍 DEBUG: Estado de monthly_balance para user=%s, month=%s", userID, month)
-	
+
 	var cashAmount, bankAmount, billCash, billBank, expenseCash, expenseBank, balanceCash, balanceBank, totalBalance float64
 	err := db.QueryRow(`
 		SELECT 
@@ -142,12 +142,12 @@ func debugPrintMonthlyBalance(db *sql.DB, userID, month string) {
 	`, userID, month).Scan(
 		&cashAmount, &bankAmount, &billCash, &billBank,
 		&expenseCash, &expenseBank, &balanceCash, &balanceBank, &totalBalance)
-	
+
 	if err != nil {
 		log.Printf("❌ No se encontró registro para user=%s, month=%s", userID, month)
 		return
 	}
-	
+
 	log.Printf("📊 cash_amount: %.2f, bank_amount: %.2f", cashAmount, bankAmount)
 	log.Printf("📊 bill_cash: %.2f, bill_bank: %.2f", billCash, billBank)
 	log.Printf("📊 expense_cash: %.2f, expense_bank: %.2f", expenseCash, expenseBank)

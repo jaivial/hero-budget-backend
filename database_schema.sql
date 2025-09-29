@@ -78,6 +78,7 @@ CREATE TABLE IF NOT EXISTS incomes (
     amount REAL NOT NULL DEFAULT 0,
     date TEXT NOT NULL,
     category TEXT,
+    category_id INTEGER,
     payment_method TEXT DEFAULT 'bank',
     description TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -87,6 +88,7 @@ CREATE TABLE IF NOT EXISTS incomes (
 CREATE INDEX IF NOT EXISTS idx_incomes_user_id ON incomes(user_id);
 CREATE INDEX IF NOT EXISTS idx_incomes_date ON incomes(date);
 CREATE INDEX IF NOT EXISTS idx_incomes_category ON incomes(category);
+CREATE INDEX IF NOT EXISTS idx_incomes_category_id ON incomes(category_id);
 
 -- =====================================================================
 -- GESTIÓN DE GASTOS
@@ -98,6 +100,7 @@ CREATE TABLE IF NOT EXISTS expenses (
     amount REAL NOT NULL DEFAULT 0,
     date TEXT NOT NULL,
     category TEXT,
+    category_id INTEGER,
     payment_method TEXT DEFAULT 'bank',
     description TEXT,
     bill_id INTEGER,
@@ -108,6 +111,7 @@ CREATE TABLE IF NOT EXISTS expenses (
 CREATE INDEX IF NOT EXISTS idx_expenses_user_id ON expenses(user_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON expenses(date);
 CREATE INDEX IF NOT EXISTS idx_expenses_category ON expenses(category);
+CREATE INDEX IF NOT EXISTS idx_expenses_category_id ON expenses(category_id);
 CREATE INDEX IF NOT EXISTS idx_expenses_bill_id ON expenses(bill_id);
 
 -- =====================================================================

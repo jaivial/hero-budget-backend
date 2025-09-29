@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -68,11 +68,11 @@ var (
 	// Database connection for financial data persistence
 	// Conexión principal a la base de datos SQLite para persistencia de datos financieros
 	db *sql.DB
-	
+
 	// Context for database operations
 	// Contexto compartido para todas las operaciones de base de datos
 	ctx = context.Background()
-	
+
 	// Cache manager for Redis operations
 	// Gestor de cache Redis para optimizar consultas frecuentes
 	cacheManager *common.CacheManager
@@ -132,13 +132,13 @@ func init() {
 	// Schema centralizado: todas las operaciones DDL se manejan centralmente
 	// Las tablas son creadas por el servicio de inicialización centralizada
 	log.Println("✅ Using centralized database schema - no local DDL operations")
-	
+
 	// Update sync_operations schema for cash_bank operation types
 	// Actualiza el esquema de sync_operations para soportar operaciones cash_bank
 	if err := updateSyncOperationsSchema(); err != nil {
 		log.Fatalf("❌ Failed to update sync_operations schema: %v", err)
 	}
-	
+
 	// Initialize cache manager for performance optimization
 	// Inicializa el gestor de cache Redis para optimizar consultas frecuentes
 	// Si falla la inicialización, continúa sin cache (degradación elegante)
@@ -159,14 +159,14 @@ func main() {
 	// Set up CORS middleware and routes para endpoints principales
 	// Configura middleware CORS y define todas las rutas HTTP disponibles
 	// Cada ruta incluye validación de métodos HTTP y manejo de errores
-	
+
 	// Endpoint para obtener distribución actual de efectivo/banco
 	http.HandleFunc("/cash-bank/distribution", corsMiddleware(handleFetchDistribution))
-	
+
 	// Endpoints para actualizar cantidades directamente - CON SOPORTE DE SYNC CONSISTENTE
 	http.HandleFunc("/cash-bank/cash/update", corsMiddleware(handleUpdateCashWithSync))
 	http.HandleFunc("/cash-bank/bank/update", corsMiddleware(handleUpdateBankWithSync))
-	
+
 	// Endpoints para transferencias entre efectivo y banco - CON SOPORTE DE SYNC CONSISTENTE
 	http.HandleFunc("/transfer/cash-to-bank", corsMiddleware(handleCashToBankTransferWithSync))
 	http.HandleFunc("/transfer/bank-to-cash", corsMiddleware(handleBankToCashTransferWithSync))
@@ -174,29 +174,29 @@ func main() {
 	// Rutas de sincronización offline - Integración del sistema de sync
 	// Endpoints para sincronización bidireccional con clientes offline
 	// Permite operaciones por lotes y resolución de conflictos
-	
+
 	// Sincronización por lotes de operaciones offline
 	http.HandleFunc("/sync/cashbank/batch", corsMiddleware(handleSyncCashBankBatch))
-	
+
 	// Obtener cambios del servidor desde último sync
 	http.HandleFunc("/sync/cashbank/changes", corsMiddleware(handleSyncCashBankChanges))
-	
+
 	// Obtener estadísticas de sincronización del usuario
 	http.HandleFunc("/sync/cashbank/stats", corsMiddleware(handleSyncCashBankStats))
 
 	// Rutas de sincronización de eliminación de transacciones - Transaction Delete Service
 	// Endpoints especializados para sincronización de eliminaciones offline
 	// Incluyen validación de integridad y detección de conflictos específicos de eliminaciones
-	
+
 	// Sincronización por lotes de eliminaciones de transacciones offline
 	http.HandleFunc("/sync/transaction-delete/batch", corsMiddleware(handleSyncTransactionDeleteBatch))
-	
+
 	// Obtener cambios de eliminaciones del servidor desde último sync
 	http.HandleFunc("/sync/transaction-delete/changes", corsMiddleware(handleSyncTransactionDeleteChanges))
-	
+
 	// Obtener estadísticas de sincronización de eliminaciones
 	http.HandleFunc("/sync/transaction-delete/stats", corsMiddleware(handleSyncTransactionDeleteStats))
-	
+
 	// Resolver conflictos específicos de eliminación de transacciones
 	http.HandleFunc("/sync/transaction-delete/resolve-conflict", corsMiddleware(handleSyncTransactionDeleteConflictResolution))
 
@@ -208,7 +208,7 @@ func main() {
 	log.Printf("Available endpoints:")
 	log.Printf("  - GET  /cash-bank/distribution")
 	log.Printf("  - POST /cash-bank/cash/update")
-	log.Printf("  - POST /cash-bank/bank/update") 
+	log.Printf("  - POST /cash-bank/bank/update")
 	log.Printf("  - POST /transfer/cash-to-bank")
 	log.Printf("  - POST /transfer/bank-to-cash")
 	log.Printf("  - POST /sync/cashbank/batch")
@@ -219,7 +219,7 @@ func main() {
 	log.Printf("  - GET  /sync/transaction-delete/changes")
 	log.Printf("  - GET  /sync/transaction-delete/stats")
 	log.Printf("  - POST /sync/transaction-delete/resolve-conflict")
-	
+
 	// Start HTTP server with fatal error handling
 	// Arranca el servidor con manejo de errores fatales
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
@@ -263,4 +263,3 @@ func getEnvOrDefault(key, defaultValue string) string {
 	// Retorna valor por defecto si la variable no está configurada
 	return defaultValue
 }
-

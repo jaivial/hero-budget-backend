@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -30,6 +30,7 @@ var cacheManager *common.CacheManager
 
 // Bill estructura que representa una factura en el sistema
 // Contiene toda la información necesaria para gestionar facturas recurrentes
+// Incluye CategoryID para mantener relación con la tabla de categorías
 type Bill struct {
 	ID             int     `json:"id"`
 	UserID         string  `json:"user_id"`
@@ -45,6 +46,7 @@ type Bill struct {
 	OverdueDays    int     `json:"overdue_days"`
 	Recurring      bool    `json:"recurring"`
 	Category       string  `json:"category"`
+	CategoryID     *int    `json:"category_id,omitempty"` // Foreign key to categories table
 	Icon           string  `json:"icon"`
 	PaymentMethod  string  `json:"payment_method"`
 	CreatedAt      string  `json:"created_at"`
@@ -53,13 +55,15 @@ type Bill struct {
 
 // AddBillRequest estructura para solicitudes de creación de facturas
 // Incluye parámetros de sincronización para seguimiento de operaciones incrementales
+// Incluye CategoryID para mantener relación con la tabla de categorías
 type AddBillRequest struct {
 	UserID         string  `json:"user_id"`
-	BillID         int     `json:"bill_id,omitempty"`        // Client-provided bill ID for sync consistency
+	BillID         int     `json:"bill_id,omitempty"` // Client-provided bill ID for sync consistency
 	Name           string  `json:"name"`
 	Amount         float64 `json:"amount"`
 	DueDate        string  `json:"due_date"`
 	Category       string  `json:"category"`
+	CategoryID     *int    `json:"category_id,omitempty"` // Foreign key to categories table
 	Icon           string  `json:"icon"`
 	StartDate      string  `json:"start_date"`
 	PaymentDay     int     `json:"payment_day"`
@@ -67,9 +71,9 @@ type AddBillRequest struct {
 	Regularity     string  `json:"regularity"`
 	PaymentMethod  string  `json:"payment_method"`
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // UpdateBillRequest estructura para solicitudes de actualización de facturas
@@ -87,24 +91,24 @@ type UpdateBillRequest struct {
 	Icon           string  `json:"icon,omitempty"`
 	PaymentMethod  string  `json:"payment_method,omitempty"`
 	// Sync operation parameters for incremental synchronization tracking
-	OperationID   string  `json:"operation_id,omitempty"`   // Unique operation identifier for sync
-	DeviceID      string  `json:"device_id,omitempty"`      // Device identifier for sync
-	Timestamp     int64   `json:"timestamp,omitempty"`      // Client-side timestamp for sync ordering
+	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
+	DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+	Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp for sync ordering
 }
 
 // SyncOperation estructura para registrar operaciones de sincronización
 type SyncOperation struct {
-	ID           int    `json:"id"`
-	UserID       string `json:"user_id"`
-	OperationID  string `json:"operation_id"`
-	Action       string `json:"action"`        // "create", "update", "delete"
-	TableName    string `json:"table_name"`    // "bills", "expenses", etc.
-	RecordID     string `json:"record_id"`     // ID del registro afectado
-	Data         string `json:"data"`          // JSON con los datos de la operación
-	DeviceID     string `json:"device_id"`
-	ClientTimestamp int64 `json:"client_timestamp"`
-	ServerTimestamp int64 `json:"server_timestamp"`
-	CreatedAt    string `json:"created_at"`
+	ID              int    `json:"id"`
+	UserID          string `json:"user_id"`
+	OperationID     string `json:"operation_id"`
+	Action          string `json:"action"`     // "create", "update", "delete"
+	TableName       string `json:"table_name"` // "bills", "expenses", etc.
+	RecordID        string `json:"record_id"`  // ID del registro afectado
+	Data            string `json:"data"`       // JSON con los datos de la operación
+	DeviceID        string `json:"device_id"`
+	ClientTimestamp int64  `json:"client_timestamp"`
+	ServerTimestamp int64  `json:"server_timestamp"`
+	CreatedAt       string `json:"created_at"`
 }
 
 // ApiResponse estructura estándar para respuestas de la API
@@ -158,14 +162,14 @@ func init() {
 
 	fmt.Printf("Using database at: %s\n", dbPath)
 	createTablesIfNotExist()
-	
+
 	// Initialize cache manager
 	cacheManager, err = common.NewCacheManager()
 	if err != nil {
 		log.Printf("Warning: Failed to initialize cache manager: %v", err)
 		cacheManager = nil
 	}
-	
+
 	log.Println("Database connection established successfully")
 }
 
@@ -198,12 +202,12 @@ func main() {
 	http.HandleFunc("/bills/delete", corsMiddleware(handleDeleteBill))
 	http.HandleFunc("/bills/upcoming", corsMiddleware(handleGenericEndpoint))
 	http.HandleFunc("/bills/debug-add", corsMiddleware(handleDebugAddBill))
-	
+
 	// Rutas de sincronización offline para facturas (siguiendo patrón de expense_management)
 	http.HandleFunc("/bills/sync/health", corsMiddleware(handleSyncBillHealth))
 	http.HandleFunc("/bills/sync/batch", corsMiddleware(handleSyncBillBatch))
 	http.HandleFunc("/bills/sync/changes", corsMiddleware(handleSyncBillChanges))
-	
+
 	// Iniciar servidor
 	fmt.Println("Bills Management service started on :8091")
 	log.Fatal(http.ListenAndServe(":8091", nil))
@@ -212,28 +216,48 @@ func main() {
 // createTablesIfNotExist crea las tablas necesarias si no existen
 // Garantiza que la estructura de la base de datos sea correcta
 func createTablesIfNotExist() {
-	// Crear tabla bills
+	// Crear tabla bills con soporte para category_id
 	db.Exec(`CREATE TABLE IF NOT EXISTS bills (
-		id INTEGER PRIMARY KEY AUTOINCREMENT, 
-		user_id TEXT NOT NULL, 
-		name TEXT NOT NULL, 
-		amount REAL NOT NULL, 
-		due_date TEXT, 
-		start_date TEXT NOT NULL, 
-		payment_day INTEGER NOT NULL, 
-		duration_months INTEGER NOT NULL, 
-		regularity TEXT NOT NULL DEFAULT 'monthly', 
-		paid BOOLEAN DEFAULT 0, 
-		overdue BOOLEAN DEFAULT 0, 
-		overdue_days INTEGER DEFAULT 0, 
-		recurring BOOLEAN DEFAULT 1, 
-		category TEXT DEFAULT 'general', 
-		icon TEXT DEFAULT '💳', 
-		payment_method TEXT, 
-		created_at DATETIME DEFAULT CURRENT_TIMESTAMP, 
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		user_id TEXT NOT NULL,
+		name TEXT NOT NULL,
+		amount REAL NOT NULL,
+		due_date TEXT,
+		start_date TEXT NOT NULL,
+		payment_day INTEGER NOT NULL,
+		duration_months INTEGER NOT NULL,
+		regularity TEXT NOT NULL DEFAULT 'monthly',
+		paid BOOLEAN DEFAULT 0,
+		overdue BOOLEAN DEFAULT 0,
+		overdue_days INTEGER DEFAULT 0,
+		recurring BOOLEAN DEFAULT 1,
+		category TEXT DEFAULT 'general',
+		category_id INTEGER,
+		icon TEXT DEFAULT '💳',
+		payment_method TEXT,
+		created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	)`)
-	
+
+	// Migrate existing bills table to add category_id column if it doesn't exist
+	db.Exec(`ALTER TABLE bills ADD COLUMN category_id INTEGER`)
+
+	// Populate category_id for existing bills based on category name
+	db.Exec(`
+		UPDATE bills
+		SET category_id = (
+			SELECT c.id
+			FROM categories c
+			WHERE c.name = bills.category
+			AND c.user_id = bills.user_id
+			LIMIT 1
+		)
+		WHERE category_id IS NULL AND category IS NOT NULL
+	`)
+
+	// Create index on category_id for performance
+	db.Exec(`CREATE INDEX IF NOT EXISTS idx_bills_category_id ON bills(category_id)`)
+
 	// Crear tabla bill_payments
 	db.Exec(`CREATE TABLE IF NOT EXISTS bill_payments (
 		id INTEGER PRIMARY KEY AUTOINCREMENT, 
@@ -246,7 +270,7 @@ func createTablesIfNotExist() {
 		FOREIGN KEY (bill_id) REFERENCES bills (id) ON DELETE CASCADE, 
 		UNIQUE(bill_id, year_month)
 	)`)
-	
+
 	// Create sync_operations table with new operation-id based schema
 	// This matches the delta_sync format for consistency across services
 	db.Exec(`CREATE TABLE IF NOT EXISTS sync_operations (
@@ -261,12 +285,12 @@ func createTablesIfNotExist() {
 		client_timestamp INTEGER DEFAULT 0,
 		server_timestamp INTEGER DEFAULT 0
 	)`)
-	
+
 	// Migration: Add missing columns to existing sync_operations table
 	// These ALTER TABLE statements are safe to run multiple times
 	db.Exec(`ALTER TABLE sync_operations ADD COLUMN client_timestamp INTEGER DEFAULT 0`)
 	db.Exec(`ALTER TABLE sync_operations ADD COLUMN server_timestamp INTEGER DEFAULT 0`)
-	
+
 	// Migration: Update operation_type constraint to include 'pay' action
 	// SQLite doesn't support modifying CHECK constraints directly, so we need to recreate the table
 	db.Exec(`
@@ -296,20 +320,20 @@ func createTablesIfNotExist() {
 		ALTER TABLE sync_operations_new RENAME TO sync_operations;
 		DROP TABLE sync_operations_old;
 	`)
-	
+
 	// Recreate indexes on the updated sync_operations table
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_operation_id 
 		ON sync_operations(operation_id)`)
-	
+
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_operation 
 		ON sync_operations(user_id, operation_id)`)
-		
+
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_created 
 		ON sync_operations(user_id, created_at)`)
-		
+
 	db.Exec(`CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity 
 		ON sync_operations(user_id, entity_type, entity_id)`)
-	
+
 	// Añadir columna bill_id a expenses si no existe
 	db.Exec("ALTER TABLE expenses ADD COLUMN bill_id INTEGER;")
 }
@@ -376,12 +400,13 @@ func getStringValueOrDefault(value, defaultValue string) string {
 // Expected format: {timestamp_ms}_{sequence_number}
 // Parameters:
 //   - operationId: Operation ID to validate
+//
 // Returns: boolean - true if valid format, false otherwise
 func isValidOperationId(operationId string) bool {
 	if operationId == "" {
 		return false
 	}
-	
+
 	// Expected format: 1755209423000_001
 	operationIdPattern := `^\d{13}_\d{3}$`
 	matched, err := regexp.MatchString(operationIdPattern, operationId)
@@ -389,41 +414,43 @@ func isValidOperationId(operationId string) bool {
 		log.Printf("Error validating operation ID pattern: %v", err)
 		return false
 	}
-	
+
 	return matched
 }
 
 // extractTimestampFromOperationId extracts timestamp from operation ID
 // Parameters:
 //   - operationId: Operation ID in timestamp_sequence format
+//
 // Returns: int64 - timestamp in milliseconds or 0 if invalid
 func extractTimestampFromOperationId(operationId string) int64 {
 	if !isValidOperationId(operationId) {
 		return 0
 	}
-	
+
 	parts := strings.Split(operationId, "_")
 	if len(parts) != 2 {
 		return 0
 	}
-	
+
 	timestamp, err := strconv.ParseInt(parts[0], 10, 64)
 	if err != nil {
 		log.Printf("Error parsing timestamp from operation ID: %v", err)
 		return 0
 	}
-	
+
 	return timestamp
 }
 
 // getLastOperationIdForUser retrieves the last operation ID for a specific user
 // Parameters:
 //   - userID: User identifier
+//
 // Returns: string - last operation ID or empty string if none exists
 func getLastOperationIdForUser(userID string) (string, error) {
 	var lastOperationId string
 	err := db.QueryRow("SELECT operation_id FROM sync_operations WHERE user_id = ? ORDER BY operation_id DESC LIMIT 1", userID).Scan(&lastOperationId)
-	
+
 	if err != nil {
 		if err == sql.ErrNoRows {
 			// No operations found for this user
@@ -433,7 +460,7 @@ func getLastOperationIdForUser(userID string) (string, error) {
 		log.Printf("Error retrieving last operation ID for user %s: %v", userID, err)
 		return "", err
 	}
-	
+
 	log.Printf("Retrieved last operation ID for user %s: %s", userID, lastOperationId)
 	return lastOperationId, nil
 }
@@ -442,19 +469,20 @@ func getLastOperationIdForUser(userID string) (string, error) {
 // Gets the last operation ID and adds +1 millisecond time unit
 // Parameters:
 //   - userID: User identifier
+//
 // Returns: string - new operation ID in format {timestamp_ms}_{sequence_number}
 func generateNextOperationId(userID string) (string, error) {
 	log.Printf("Generating next operation ID for user: %s", userID)
-	
+
 	// Get the last operation ID for this user
 	lastOperationId, err := getLastOperationIdForUser(userID)
 	if err != nil {
 		return "", fmt.Errorf("failed to get last operation ID: %v", err)
 	}
-	
+
 	var nextTimestamp int64
 	var sequenceNumber int = 1
-	
+
 	if lastOperationId == "" {
 		// No previous operations, start with current timestamp
 		nextTimestamp = time.Now().UnixMilli()
@@ -472,11 +500,11 @@ func generateNextOperationId(userID string) (string, error) {
 			log.Printf("Incremented timestamp from %d to %d", lastTimestamp, nextTimestamp)
 		}
 	}
-	
+
 	// Format as {timestamp_ms}_{sequence_number}
 	// Using 001 format for sequence to maintain 3-digit consistency
 	operationId := fmt.Sprintf("%d_%03d", nextTimestamp, sequenceNumber)
-	
+
 	log.Printf("Generated operation ID: %s", operationId)
 	return operationId, nil
 }
@@ -484,13 +512,13 @@ func generateNextOperationId(userID string) (string, error) {
 // addSyncOperation registra una operación de sincronización en la tabla sync_operations
 // Now uses the new operation_id system with timestamp-based format and automatic generation
 func addSyncOperation(userID, providedOperationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s", 
+	log.Printf("Adding sync operation: user=%s, provided_operation=%s, action=%s, table=%s, record=%s, device=%s",
 		userID, providedOperationID, action, tableName, recordID, deviceID)
-	
+
 	// Generate operation ID if not provided or if provided ID is not valid timestamp format
 	var operationID string
 	var err error
-	
+
 	if providedOperationID != "" && isValidOperationId(providedOperationID) {
 		// Use provided operation ID if it's valid
 		operationID = providedOperationID
@@ -504,19 +532,19 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		}
 		log.Printf("Generated new operation ID: %s (provided was: %s)", operationID, providedOperationID)
 	}
-	
+
 	// Validate that we have a valid operation ID
 	if !isValidOperationId(operationID) {
 		return fmt.Errorf("invalid operation ID format: %s", operationID)
 	}
-	
+
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshaling sync operation data: %v", err)
 		return err
 	}
-	
+
 	// Prepare device_ids JSON array - store null if deviceID is empty
 	var deviceIDsJSON []byte
 	if deviceID != "" {
@@ -531,7 +559,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		deviceIDsJSON = []byte("null")
 		log.Printf("Device ID empty, storing null in device_ids column")
 	}
-	
+
 	// For operation-based sync, use the timestamp from the operation ID
 	// Extract timestamp from operation ID for created_at field
 	operationTimestamp := extractTimestampFromOperationId(operationID)
@@ -540,10 +568,10 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 		operationTimestamp = time.Now().UnixMilli()
 		log.Printf("Warning: Could not extract timestamp from operation ID, using current timestamp: %d", operationTimestamp)
 	}
-	
+
 	// Use current server timestamp
 	serverTimestamp := time.Now().UnixMilli()
-	
+
 	// Handle client timestamp - use null if 0
 	var clientTimestampValue interface{}
 	if clientTimestamp == 0 {
@@ -552,7 +580,7 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 	} else {
 		clientTimestampValue = clientTimestamp
 	}
-	
+
 	// Insert sync operation record with operation_id-based ordering
 	insertQuery := `
 		INSERT INTO sync_operations (
@@ -560,30 +588,30 @@ func addSyncOperation(userID, providedOperationID, action, tableName, recordID s
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	result, err := db.Exec(
 		insertQuery,
 		userID,
 		operationID,
-		action,            // operation_type (create, update, delete, pay)
-		tableName,         // entity_type (bills, bill_payments)
-		recordID,          // entity_id
-		string(dataJSON),  // operation_data
+		action,                // operation_type (create, update, delete, pay)
+		tableName,             // entity_type (bills, bill_payments)
+		recordID,              // entity_id
+		string(dataJSON),      // operation_data
 		string(deviceIDsJSON), // device_ids as JSON array or null
 		clientTimestampValue,  // client_timestamp (original from client or null)
-		serverTimestamp,   // server_timestamp (when processed)
-		operationTimestamp, // created_at (extracted from operation_id for ordering)
+		serverTimestamp,       // server_timestamp (when processed)
+		operationTimestamp,    // created_at (extracted from operation_id for ordering)
 	)
-	
+
 	if err != nil {
 		log.Printf("Error inserting sync operation: %v", err)
 		return err
 	}
-	
+
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d", 
+	log.Printf("Successfully added sync operation with ID: %d, operation_id: %s, timestamp: %d",
 		syncOpID, operationID, operationTimestamp)
-	
+
 	return nil
 }

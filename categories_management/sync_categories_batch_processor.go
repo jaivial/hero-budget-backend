@@ -15,15 +15,15 @@ import (
 // Maneja el estado y configuración del procesamiento de sincronización
 // Incluye métricas de rendimiento y control de transacciones
 type CategoriesBatchProcessor struct {
-	UserID           string                    // ID del usuario propietario
-	BatchSize        int                       // Tamaño del lote a procesar
-	Config           SyncCategoriesConfig      // Configuración de sincronización
-	Stats            SyncCategoriesStats       // Estadísticas de procesamiento
-	TransactionMode  bool                      // Modo transaccional habilitado
-	RollbackOnError  bool                      // Rollback automático en errores
-	ProcessedItems   []SyncCategoriesResult    // Elementos procesados exitosamente
-	FailedItems      []SyncCategoriesResult    // Elementos que fallaron
-	ConflictItems    []CategoriesConflictResolution // Conflictos detectados
+	UserID          string                         // ID del usuario propietario
+	BatchSize       int                            // Tamaño del lote a procesar
+	Config          SyncCategoriesConfig           // Configuración de sincronización
+	Stats           SyncCategoriesStats            // Estadísticas de procesamiento
+	TransactionMode bool                           // Modo transaccional habilitado
+	RollbackOnError bool                           // Rollback automático en errores
+	ProcessedItems  []SyncCategoriesResult         // Elementos procesados exitosamente
+	FailedItems     []SyncCategoriesResult         // Elementos que fallaron
+	ConflictItems   []CategoriesConflictResolution // Conflictos detectados
 }
 
 // NewCategoriesBatchProcessor crea un nuevo procesador por lotes
@@ -49,7 +49,7 @@ func NewCategoriesBatchProcessor(userID string, config SyncCategoriesConfig) *Ca
 func (bp *CategoriesBatchProcessor) ProcessBatch(request SyncCategoriesBatchRequest) (SyncCategoriesBatchResponse, error) {
 	// Log de inicio del procesamiento
 	startTime := time.Now()
-	log.Printf("🚀 Starting batch processing for user %s: %d categories", 
+	log.Printf("🚀 Starting batch processing for user %s: %d categories",
 		bp.UserID, len(request.Categories))
 
 	// Validar la solicitud completa antes del procesamiento
@@ -77,13 +77,13 @@ func (bp *CategoriesBatchProcessor) ProcessBatch(request SyncCategoriesBatchRequ
 
 	// Compilar respuesta final
 	response = bp.compileResponse(response)
-	
+
 	// Actualizar estadísticas de rendimiento
 	processingTime := time.Since(startTime)
 	bp.updatePerformanceStats(processingTime, len(request.Categories))
 
 	// Log de finalización
-	log.Printf("✅ Batch processing completed for user %s in %v: %d successful, %d failed, %d conflicts", 
+	log.Printf("✅ Batch processing completed for user %s in %v: %d successful, %d failed, %d conflicts",
 		bp.UserID, processingTime, response.SuccessfulOps, response.FailedOps, len(response.Conflicts))
 
 	return response, nil
@@ -95,21 +95,21 @@ func (bp *CategoriesBatchProcessor) ProcessBatch(request SyncCategoriesBatchRequ
 func (bp *CategoriesBatchProcessor) processInSubBatches(categories []OfflineCategory) error {
 	// Determinar tamaño de sub-lote óptimo
 	subBatchSize := bp.determineOptimalSubBatchSize(len(categories))
-	
+
 	// Procesar en sub-lotes
 	for i := 0; i < len(categories); i += subBatchSize {
 		end := i + subBatchSize
 		if end > len(categories) {
 			end = len(categories)
 		}
-		
+
 		subBatch := categories[i:end]
 		log.Printf("Processing sub-batch %d-%d of %d categories", i+1, end, len(categories))
-		
+
 		// Procesar sub-lote con manejo de errores
 		if err := bp.processSubBatch(subBatch); err != nil {
 			log.Printf("⚠️ Sub-batch %d-%d failed: %v", i+1, end, err)
-			
+
 			// Decidir si continuar o fallar completamente según configuración
 			if bp.RollbackOnError {
 				return fmt.Errorf("sub-batch processing failed, rolling back: %v", err)
@@ -117,7 +117,7 @@ func (bp *CategoriesBatchProcessor) processInSubBatches(categories []OfflineCate
 			// Continuar con el siguiente sub-lote si no se requiere rollback
 		}
 	}
-	
+
 	return nil
 }
 
@@ -134,7 +134,7 @@ func (bp *CategoriesBatchProcessor) processSubBatch(categories []OfflineCategory
 	// Procesar cada categoría individual
 	for _, category := range categories {
 		result := bp.processSingleCategory(category, existingCategories)
-		
+
 		// Agregar resultado a las listas apropiadas
 		switch result.Status {
 		case "success":
@@ -147,7 +147,7 @@ func (bp *CategoriesBatchProcessor) processSubBatch(categories []OfflineCategory
 			bp.ConflictItems = append(bp.ConflictItems, conflict)
 		}
 	}
-	
+
 	return nil
 }
 
@@ -164,7 +164,7 @@ func (bp *CategoriesBatchProcessor) processSingleCategory(category OfflineCatego
 	}
 
 	// Log de procesamiento individual
-	log.Printf("Processing category %s: action=%s, name=%s", 
+	log.Printf("Processing category %s: action=%s, name=%s",
 		category.LocalID, category.Action, category.Name)
 
 	// Validar consistencia avanzada
@@ -192,7 +192,7 @@ func (bp *CategoriesBatchProcessor) processSingleCategory(category OfflineCatego
 		} else {
 			result.ServerID = serverID
 		}
-		
+
 	case "update":
 		if err := bp.processCategoryUpdateAdvanced(category); err != nil {
 			result.Status = "error"
@@ -200,13 +200,13 @@ func (bp *CategoriesBatchProcessor) processSingleCategory(category OfflineCatego
 		} else {
 			result.ServerID = category.ServerID
 		}
-		
+
 	case "delete":
 		if err := bp.processCategoryDeleteAdvanced(category); err != nil {
 			result.Status = "error"
 			result.Error = err.Error()
 		}
-		
+
 	default:
 		result.Status = "error"
 		result.Error = fmt.Sprintf("unknown action: %s", category.Action)
@@ -256,4 +256,3 @@ func (bp *CategoriesBatchProcessor) processCategoryUpdateAdvanced(category Offli
 
 	return nil
 }
-

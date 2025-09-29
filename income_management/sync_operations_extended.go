@@ -32,7 +32,7 @@ func syncQuarterlyBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND date BETWEEN ? AND ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, quarterStartStr, quarterEndStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {
@@ -101,7 +101,7 @@ func syncSemiannualBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND date BETWEEN ? AND ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, semesterStartStr, semesterEndStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {
@@ -154,7 +154,7 @@ func syncAnnualBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND substr(date, 1, 4) = ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, yearStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {

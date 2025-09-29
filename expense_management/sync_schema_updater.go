@@ -10,25 +10,25 @@ import (
 // Uses the schema defined in sync_operations_schema.sql
 func initializeSyncOperationsSchema() error {
 	log.Println("🔧 Initializing sync operations schema...")
-	
+
 	// Read the schema file
 	schemaPath := filepath.Join(".", "sync_operations_schema.sql")
 	schemaSQL, err := ioutil.ReadFile(schemaPath)
 	if err != nil {
 		log.Printf("Warning: Could not read sync operations schema file: %v", err)
 		log.Println("Creating schema directly...")
-		
+
 		// Fallback: create the schema directly if file is not found
 		return createSyncOperationsSchemaDirectly()
 	}
-	
+
 	// Execute the schema SQL
 	_, err = db.Exec(string(schemaSQL))
 	if err != nil {
 		log.Printf("Error executing sync operations schema: %v", err)
 		return err
 	}
-	
+
 	log.Println("✅ Sync operations schema initialized successfully")
 	return nil
 }
@@ -64,13 +64,13 @@ func createSyncOperationsSchemaDirectly() error {
 		CREATE INDEX IF NOT EXISTS idx_sync_operations_user_entity 
 			ON sync_operations(user_id, entity_type, entity_id);
 	`
-	
+
 	_, err := db.Exec(schemaSQL)
 	if err != nil {
 		log.Printf("Error creating sync operations schema directly: %v", err)
 		return err
 	}
-	
+
 	log.Println("✅ Sync operations schema created directly")
 	return nil
 }

@@ -7,7 +7,7 @@ package main
 //
 // Previous DDL operations that were removed:
 // - CREATE TABLE incomes
-// - CREATE TABLE cash_bank  
+// - CREATE TABLE cash_bank
 // - CREATE TABLE cash_bank_transactions
 // - createBalanceTables() call
 //

@@ -8,9 +8,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
-	"github.com/joho/godotenv"
 	"github.com/herobudget/backend/common"
+	"github.com/joho/godotenv"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -78,6 +79,14 @@ func init() {
 }
 
 func main() {
+	// Run database migration on service startup
+	// Ejecuta migración de base de datos al iniciar el servicio
+	log.Printf("🔄 Starting database migration for Income Management service...")
+	if err := runDatabaseMigration(); err != nil {
+		log.Fatalf("❌ Database migration failed: %v", err)
+	}
+	log.Printf("✅ Database migration completed successfully")
+
 	// Set up CORS middleware and routes for income management
 	http.HandleFunc("/incomes/add", corsMiddleware(handleAddIncome))
 	http.HandleFunc("/incomes/list", corsMiddleware(handleListIncomes))
@@ -103,6 +112,87 @@ func main() {
 	port := 8093 // Puerto para el servicio de income management
 	log.Printf("Income Management service started on :%d", port)
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
+}
+
+// runDatabaseMigration executes database migrations on service startup
+// Applies schema changes for Income Management service compatibility
+// Returns error if migration fails, allowing service to fail fast on startup
+func runDatabaseMigration() error {
+	log.Printf("🔄 Income Management - Running database migration...")
+
+	// Get database path using the same approach as other services
+	dbPath := "../budget_data.db"
+
+	log.Printf("📂 Using database path: %s", dbPath)
+
+	// Open database connection
+	db, err := sql.Open("sqlite3", dbPath)
+	if err != nil {
+		return fmt.Errorf("failed to open database: %v", err)
+	}
+	defer db.Close()
+
+	// Test database connection
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("failed to ping database: %v", err)
+	}
+
+	log.Printf("✅ Database connection established")
+
+	// Execute migration SQL statements for income management
+	migrationStatements := []string{
+		// Add category_id column to incomes table
+		`ALTER TABLE incomes ADD COLUMN category_id INTEGER;`,
+
+		// Create index for new column
+		`CREATE INDEX IF NOT EXISTS idx_incomes_category_id ON incomes(category_id);`,
+
+		// Populate category_id for existing income records
+		`UPDATE incomes
+		 SET category_id = (
+			 SELECT c.id
+			 FROM categories c
+			 WHERE c.name = incomes.category
+			 AND c.user_id = incomes.user_id
+			 AND c.type = 'income'
+			 LIMIT 1
+		 )
+		 WHERE category_id IS NULL AND category IS NOT NULL;`,
+	}
+
+	// Execute each migration statement
+	for i, statement := range migrationStatements {
+		log.Printf("🔄 Executing migration statement %d/%d...", i+1, len(migrationStatements))
+
+		_, err := db.Exec(statement)
+		if err != nil {
+			// Check if error is about column already existing (not a real error)
+			if strings.Contains(err.Error(), "duplicate column name") ||
+				strings.Contains(err.Error(), "already exists") {
+				log.Printf("💡 Migration statement %d already applied, skipping: %s", i+1, err.Error())
+				continue
+			}
+
+			log.Printf("❌ Migration statement %d failed: %s", i+1, statement)
+			return fmt.Errorf("migration statement %d failed: %v", i+1, err)
+		}
+
+		log.Printf("✅ Migration statement %d completed successfully", i+1)
+	}
+
+	// Verify migration success with statistics
+	var incomesTotal, incomesWithCategoryId int
+
+	db.QueryRow("SELECT COUNT(*) FROM incomes").Scan(&incomesTotal)
+	db.QueryRow("SELECT COUNT(*) FROM incomes WHERE category_id IS NOT NULL").Scan(&incomesWithCategoryId)
+
+	log.Printf("📊 Income Management Migration Statistics:")
+	log.Printf("  - Incomes: %d total, %d with category_id (%.1f%%)",
+		incomesTotal, incomesWithCategoryId,
+		float64(incomesWithCategoryId)/float64(incomesTotal)*100)
+
+	log.Printf("🎉 Income Management - Database migration completed successfully!")
+	return nil
 }
 
 // getEnvOrDefault returns the value of an environment variable or a default value

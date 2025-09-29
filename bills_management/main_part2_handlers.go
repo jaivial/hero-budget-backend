@@ -18,13 +18,13 @@ func invalidateBillsCache(userID string) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate bills cache for user %s: %v", userID, err)
 		}
-		
+
 		// Also invalidate dashboard cache since bills affect dashboard calculations
 		err = cacheManager.InvalidateDashboardCache(userID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", userID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (bills and dashboard)", userID)
 	} else {
 		log.Printf("⚠️ Cache manager not available for user: %s", userID)
@@ -40,11 +40,11 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "User ID is required", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Verificar si se solicita un periodo específico
 	period := r.URL.Query().Get("period")
 	date := r.URL.Query().Get("date")
-	
+
 	if period != "" && date != "" {
 		// Try cache first for period-specific bills
 		cacheKey := fmt.Sprintf("period_%s_%s", period, date)
@@ -58,7 +58,7 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 			}
 			log.Printf("🔍 Cache MISS: bills for user %s period %s date %s", userID, period, date)
 		}
-		
+
 		// Obtener facturas para un periodo específico
 		billsWithStatus, err := fetchBillsForPeriod(userID, period, date)
 		if err != nil {
@@ -70,7 +70,7 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		for _, billWithStatus := range billsWithStatus {
 			bills = append(bills, convertBillWithPeriodStatusToBill(billWithStatus))
 		}
-		
+
 		// Cache the result for future requests
 		if cacheManager != nil {
 			err = cacheManager.CacheBillsData(userID, cacheKey, bills)
@@ -78,11 +78,11 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Warning: Failed to cache bills data for user %s: %v", userID, err)
 			}
 		}
-		
+
 		sendSuccessResponse(w, "Bills fetched successfully", bills)
 		return
 	}
-	
+
 	// Try cache first for all bills
 	if cacheManager != nil {
 		var cachedBills []Bill
@@ -94,14 +94,14 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 		}
 		log.Printf("🔍 Cache MISS: all bills for user %s", userID)
 	}
-	
+
 	// Obtener todas las facturas del usuario
 	bills, err := fetchBills(userID)
 	if err != nil {
 		sendErrorResponse(w, "Error fetching bills", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cache the result for future requests
 	if cacheManager != nil {
 		err = cacheManager.CacheBillsData(userID, "all", bills)
@@ -109,7 +109,7 @@ func handleFetchBills(w http.ResponseWriter, r *http.Request) {
 			log.Printf("Warning: Failed to cache bills data for user %s: %v", userID, err)
 		}
 	}
-	
+
 	sendSuccessResponse(w, "Bills fetched successfully", bills)
 }
 
@@ -120,37 +120,37 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	
+
 	// Parse the request body for bill data
 	var addRequest AddBillRequest
 	if err := json.NewDecoder(r.Body).Decode(&addRequest); err != nil {
 		sendErrorResponse(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Validate the request parameters
 	if addRequest.UserID == "" || addRequest.Name == "" || addRequest.Amount <= 0 {
 		sendErrorResponse(w, "Missing required fields: user_id, name, amount", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Insertar factura en la base de datos
 	var result sql.Result
 	var err error
 	var billID int64
-	
+
 	if addRequest.BillID > 0 {
 		// Use client-provided bill ID for sync consistency
-		result, err = db.Exec("INSERT INTO bills (id, user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.BillID, addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		result, err = db.Exec("INSERT INTO bills (id, user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.BillID, addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.CategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 		billID = int64(addRequest.BillID)
 	} else {
 		// Auto-generate bill ID (legacy behavior)
-		result, err = db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
+		result, err = db.Exec("INSERT INTO bills (user_id, name, amount, due_date, paid, overdue, overdue_days, recurring, category, category_id, icon, start_date, payment_day, duration_months, regularity, payment_method) VALUES (?, ?, ?, ?, 0, 0, 0, 1, ?, ?, ?, ?, ?, ?, ?, ?)", addRequest.UserID, addRequest.Name, addRequest.Amount, addRequest.DueDate, addRequest.Category, addRequest.CategoryID, addRequest.Icon, addRequest.StartDate, addRequest.PaymentDay, addRequest.DurationMonths, addRequest.Regularity, addRequest.PaymentMethod)
 		if err == nil {
 			billID, _ = result.LastInsertId()
 		}
 	}
-	
+
 	if err != nil {
 		sendErrorResponse(w, "Error adding bill", http.StatusInternalServerError)
 		return
@@ -158,7 +158,7 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 
 	// Always record sync operation with auto-generated operation_id
 	log.Printf("Recording sync operation for bill creation with auto-generated operation_id")
-	
+
 	// Create sync operation data matching the bill structure
 	syncData := map[string]interface{}{
 		"id":              int(billID),
@@ -176,7 +176,7 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		"created_at":      time.Now().Format("2006-01-02 15:04:05"),
 		"updated_at":      time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with device_id and timestamp from request
 	err = addSyncOperation(
 		addRequest.UserID,
@@ -188,14 +188,14 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		addRequest.DeviceID,  // Use device_id from request
 		addRequest.Timestamp, // Use timestamp from request
 	)
-	
+
 	if err != nil {
 		log.Printf("Warning: Failed to record sync operation: %v", err)
 		// Don't fail the bill creation for sync errors, just log warning
 	} else {
 		log.Printf("Successfully recorded sync operation for bill ID: %d", billID)
 	}
-	
+
 	// CORREGIDO: Aplicar la factura usando lógica acumulativa
 	err = addBillToCashBankBalanceCumulative(db, addRequest.UserID, addRequest.Amount, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
 	if err != nil {
@@ -203,13 +203,13 @@ func handleAddBill(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, fmt.Sprintf("Error adding bill to cash bank balance: %v", err), http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Crear registros de pago para la factura
 	createBillPaymentRecords(db, int(billID), addRequest.UserID, addRequest.StartDate, addRequest.DurationMonths, addRequest.PaymentMethod)
-	
+
 	// Invalidate bills cache for this user since a new bill was added
 	invalidateBillsCache(addRequest.UserID)
-	
+
 	sendSuccessResponse(w, "Bill added successfully", map[string]interface{}{
 		"id": billID, "user_id": addRequest.UserID, "name": addRequest.Name, "amount": addRequest.Amount,
 	})
@@ -231,9 +231,9 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		PaymentDate   string `json:"payment_date"`
 		PaymentMethod string `json:"payment_method"`
 		// Sync operation parameters for incremental synchronization
-		OperationID   string `json:"operation_id,omitempty"`   // Unique ID for sync operation
-		DeviceID      string `json:"device_id,omitempty"`      // Device identifier for sync
-		Timestamp     int64  `json:"timestamp,omitempty"`      // Client-side timestamp
+		OperationID string `json:"operation_id,omitempty"` // Unique ID for sync operation
+		DeviceID    string `json:"device_id,omitempty"`    // Device identifier for sync
+		Timestamp   int64  `json:"timestamp,omitempty"`    // Client-side timestamp
 	}
 
 	// Decodificar solicitud
@@ -258,7 +258,7 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 
 	// Always record sync operation with auto-generated operation_id (like add/update handlers)
 	log.Printf("Recording sync operation for bill payment with auto-generated operation_id")
-	
+
 	// Create sync operation data for bill payment
 	syncData := map[string]interface{}{
 		"user_id":        req.UserID,
@@ -269,10 +269,10 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		"payment_status": "paid",
 		"processed_at":   time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
-	log.Printf("🔄 Calling addSyncOperation with auto-generation: user=%s, action=pay, table=bills, record=%d", 
+
+	log.Printf("🔄 Calling addSyncOperation with auto-generation: user=%s, action=pay, table=bills, record=%d",
 		req.UserID, req.BillID)
-	
+
 	// Add sync operation record to database with device_id from request
 	err = addSyncOperation(
 		req.UserID,
@@ -282,12 +282,12 @@ func handlePayBill(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(req.BillID),
 		syncData,
 		req.DeviceID, // Use device_id from request
-		0, // Timestamp will be auto-generated
+		0,            // Timestamp will be auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for bill payment: %v", err)
-		log.Printf("❌ ERROR: Sync operation details - user_id=%s, bill_id=%d, device_id=%s", 
+		log.Printf("❌ ERROR: Sync operation details - user_id=%s, bill_id=%d, device_id=%s",
 			req.UserID, req.BillID, req.DeviceID)
 		// Don't fail the bill payment for sync errors, just log warning
 	} else {

@@ -87,16 +87,16 @@ func init() {
 // addSyncOperation registra una operación de sincronización en la tabla sync_operations
 // Implements timestamp adjustment and device_ids JSON array for multi-device sync
 func addSyncOperation(userID, operationID, action, tableName, recordID string, data interface{}, deviceID string, clientTimestamp int64) error {
-	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s", 
+	log.Printf("Adding sync operation: user=%s, operation=%s, action=%s, table=%s, record=%s, device=%s",
 		userID, operationID, action, tableName, recordID, deviceID)
-	
+
 	// Serialize operation data to JSON for storage
 	dataJSON, err := json.Marshal(data)
 	if err != nil {
 		log.Printf("Error marshaling sync operation data: %v", err)
 		return err
 	}
-	
+
 	// Prepare device_ids JSON array
 	var deviceIDs []string
 	if deviceID != "" {
@@ -104,14 +104,14 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 	} else {
 		deviceIDs = []string{} // Empty array if no device ID provided
 	}
-	
+
 	// Marshal device IDs to JSON
 	deviceIDsJSON, err := json.Marshal(deviceIDs)
 	if err != nil {
 		log.Printf("Error marshaling device_ids: %v", err)
 		return err
 	}
-	
+
 	// Timestamp adjustment: check if client timestamp is older than latest timestamp
 	var latestTimestamp int64
 	err = db.QueryRow("SELECT MAX(created_at) FROM sync_operations WHERE user_id = ?", userID).Scan(&latestTimestamp)
@@ -119,18 +119,18 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		log.Printf("Error checking latest timestamp: %v", err)
 		return err
 	}
-	
+
 	// Adjust timestamp if necessary to maintain chronological ordering
 	adjustedTimestamp := clientTimestamp
 	if clientTimestamp <= latestTimestamp {
 		adjustedTimestamp = latestTimestamp + 1
-		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)", 
+		log.Printf("Adjusted client timestamp from %d to %d (latest was %d)",
 			clientTimestamp, adjustedTimestamp, latestTimestamp)
 	}
-	
+
 	// Use current server timestamp
 	serverTimestamp := time.Now().Unix()
-	
+
 	// Insert sync operation record with device_ids JSON array
 	// Use adjusted timestamp for created_at to maintain proper synchronization ordering
 	insertQuery := `
@@ -139,7 +139,7 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 			device_ids, client_timestamp, server_timestamp, created_at
 		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
-	
+
 	result, err := db.Exec(
 		insertQuery,
 		userID,
@@ -153,17 +153,17 @@ func addSyncOperation(userID, operationID, action, tableName, recordID string, d
 		serverTimestamp,
 		adjustedTimestamp, // Use adjusted timestamp for created_at
 	)
-	
+
 	if err != nil {
 		log.Printf("Error inserting sync operation: %v", err)
 		return err
 	}
-	
+
 	// Log successful operation insertion for debugging
 	syncOpID, _ := result.LastInsertId()
-	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d", 
+	log.Printf("Successfully added sync operation with ID: %d, device_ids: %v, adjusted timestamp: %d",
 		syncOpID, deviceIDs, adjustedTimestamp)
-	
+
 	return nil
 }
 
@@ -300,7 +300,7 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation - CONSISTENT PATTERN: always record with auto-generated operation_id
 	log.Printf("Recording sync operation for transaction delete with auto-generated operation_id")
-	
+
 	// Create sync operation data for transaction delete
 	syncData := map[string]interface{}{
 		"user_id":          deleteRequest.UserID,
@@ -308,7 +308,7 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 		"transaction_type": deleteRequest.TransactionType,
 		"action":           "delete",
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperationEnhanced(
 		deleteRequest.UserID,
@@ -318,9 +318,9 @@ func handleDeleteTransaction(w http.ResponseWriter, r *http.Request) {
 		fmt.Sprintf("%d", deleteRequest.TransactionID),
 		syncData,
 		deleteRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for transaction delete: %v", err)
 		// Don't fail the main operation for sync errors, just log warning

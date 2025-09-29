@@ -22,7 +22,7 @@ func syncDailyBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND date = ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, dateStr).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {
@@ -69,7 +69,7 @@ func syncWeeklyBalance(userID, dateStr string) error {
 	if dayOfWeek == 0 {
 		dayOfWeek = 7
 	}
-	startOfWeek := date.AddDate(0, 0, -(dayOfWeek-1))
+	startOfWeek := date.AddDate(0, 0, -(dayOfWeek - 1))
 	endOfWeek := startOfWeek.AddDate(0, 0, 6)
 
 	weekStart := startOfWeek.Format("2006-01-02")
@@ -84,7 +84,7 @@ func syncWeeklyBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND date BETWEEN ? AND ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, weekStart, weekEnd).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {
@@ -136,7 +136,7 @@ func syncMonthlyBalance(userID, dateStr string) error {
 		FROM incomes 
 		WHERE user_id = ? AND substr(date, 1, 7) = ?
 	`
-	
+
 	var cashIncome, bankIncome, totalIncome float64
 	err = db.QueryRow(query, userID, month).Scan(&cashIncome, &bankIncome, &totalIncome)
 	if err != nil {

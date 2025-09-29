@@ -99,7 +99,7 @@ func (di *DatabaseInitializer) VerifyTables() error {
 		"users",
 		"categories",
 		"incomes",
-		"expenses", 
+		"expenses",
 		"bills",
 		"bill_payments",
 		"cash_bank",
@@ -123,14 +123,14 @@ func (di *DatabaseInitializer) VerifyTables() error {
 	}
 
 	log.Println("🔍 Verificando existencia de tablas críticas...")
-	
+
 	for _, table := range criticalTables {
 		var name string
 		err := di.db.QueryRow(`
 			SELECT name FROM sqlite_master 
 			WHERE type='table' AND name=?
 		`, table).Scan(&name)
-		
+
 		if err == sql.ErrNoRows {
 			return fmt.Errorf("tabla crítica faltante: %s", table)
 		} else if err != nil {
@@ -317,6 +317,6 @@ func main() {
 	log.Printf("  POST /database/init   - Initialize database schema")
 	log.Printf("  GET  /database/status - Get database status")
 	log.Printf("  GET  /health          - Health check")
-	
+
 	log.Fatal(http.ListenAndServe(fmt.Sprintf(":%d", port), nil))
 }

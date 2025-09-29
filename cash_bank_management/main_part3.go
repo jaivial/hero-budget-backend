@@ -48,7 +48,7 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 	// Extract year-month from transfer date for monthly tracking
 	// Extraer año-mes de la fecha de transferencia para seguimiento mensual
 	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
-	
+
 	// Get distribution for the specific month to check cash availability
 	// Obtiene distribución del mes específico para verificar disponibilidad de efectivo
 	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
@@ -70,7 +70,7 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 	// Calcular deltas para actualizaciones en cascada
 	cashDelta := -transferRequest.Amount // Cash decreases
 	bankDelta := +transferRequest.Amount // Bank increases
-	
+
 	// Update amounts atomically - subtract from cash, add to bank
 	// Actualiza cantidades atomicamente - resta de efectivo, suma a banco
 	distribution.CashAmount -= transferRequest.Amount
@@ -91,13 +91,13 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
 		WHERE user_id = ? AND year_month = ?
 	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
-	
+
 	if err != nil {
 		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months
 	// Aplicar los cambios en cascada a todos los meses futuros
 	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
@@ -117,9 +117,9 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation if sync parameters are provided
 	if transferRequest.OperationID != "" && transferRequest.DeviceID != "" && transferRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for cash-to-bank transfer: operation_id=%s, device_id=%s, timestamp=%d", 
+		log.Printf("Recording sync operation for cash-to-bank transfer: operation_id=%s, device_id=%s, timestamp=%d",
 			transferRequest.OperationID, transferRequest.DeviceID, transferRequest.Timestamp)
-		
+
 		// Create sync operation data for cash-to-bank transfer
 		syncData := map[string]interface{}{
 			"user_id":       transferRequest.UserID,
@@ -130,7 +130,7 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 			"to_amount":     distribution.BankAmount,                          // New bank amount
 			"processed_at":  transferYearMonth,
 		}
-		
+
 		// Add sync operation record to database
 		err = addSyncOperation(
 			transferRequest.UserID,
@@ -142,12 +142,12 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 			transferRequest.DeviceID,
 			transferRequest.Timestamp,
 		)
-		
+
 		if err != nil {
 			log.Printf("Warning: Failed to record sync operation for cash-to-bank transfer: %v", err)
 			// Don't fail the transfer for sync errors, just log warning
 		} else {
-			log.Printf("Successfully recorded sync operation for cash-to-bank transfer: user=%s, amount=%.2f", 
+			log.Printf("Successfully recorded sync operation for cash-to-bank transfer: user=%s, amount=%.2f",
 				transferRequest.UserID, transferRequest.Amount)
 		}
 	} else {
@@ -161,14 +161,14 @@ func handleCashToBankTransfer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		// Also invalidate dashboard cache
 		// También invalida cache del dashboard
 		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
 	}
 
@@ -212,7 +212,7 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 	// Extract year-month from transfer date for monthly tracking
 	// Extraer año-mes de la fecha de transferencia para seguimiento mensual
 	transferYearMonth := transferRequest.Date[:7] // "2025-05-01" -> "2025-05"
-	
+
 	// Get distribution for the specific month to check bank balance
 	// Obtiene distribución del mes específico para verificar saldo bancario
 	distribution, err := fetchCashBankDistribution(transferRequest.UserID, transferYearMonth)
@@ -233,7 +233,7 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 	// Calcular deltas para actualizaciones en cascada
 	cashDelta := +transferRequest.Amount // Cash increases
 	bankDelta := -transferRequest.Amount // Bank decreases
-	
+
 	// Update amounts - subtract from bank, add to cash
 	// Actualiza cantidades - resta de banco, suma a efectivo
 	distribution.BankAmount -= transferRequest.Amount
@@ -253,13 +253,13 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 		SET balance_cash_amount = ?, balance_bank_amount = ?, total_balance = ?, updated_at = datetime('now')
 		WHERE user_id = ? AND year_month = ?
 	`, distribution.CashAmount, distribution.BankAmount, distribution.MonthlyTotal, transferRequest.UserID, transferYearMonth)
-	
+
 	if err != nil {
 		log.Printf("Error updating month %s balance: %v", transferYearMonth, err)
 		sendErrorResponse(w, "Error processing transfer", http.StatusInternalServerError)
 		return
 	}
-	
+
 	// Cascade the changes to all future months
 	// Aplicar los cambios en cascada a todos los meses futuros
 	err = cascadeUpdateFutureMonths(transferRequest.UserID, transferYearMonth, cashDelta, bankDelta)
@@ -278,9 +278,9 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 
 	// Record sync operation if sync parameters are provided
 	if transferRequest.OperationID != "" && transferRequest.DeviceID != "" && transferRequest.Timestamp > 0 {
-		log.Printf("Recording sync operation for bank-to-cash transfer: operation_id=%s, device_id=%s, timestamp=%d", 
+		log.Printf("Recording sync operation for bank-to-cash transfer: operation_id=%s, device_id=%s, timestamp=%d",
 			transferRequest.OperationID, transferRequest.DeviceID, transferRequest.Timestamp)
-		
+
 		// Create sync operation data for bank-to-cash transfer
 		syncData := map[string]interface{}{
 			"user_id":       transferRequest.UserID,
@@ -291,7 +291,7 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 			"to_amount":     distribution.CashAmount,                          // New cash amount
 			"processed_at":  transferYearMonth,
 		}
-		
+
 		// Add sync operation record to database
 		err = addSyncOperation(
 			transferRequest.UserID,
@@ -303,12 +303,12 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 			transferRequest.DeviceID,
 			transferRequest.Timestamp,
 		)
-		
+
 		if err != nil {
 			log.Printf("Warning: Failed to record sync operation for bank-to-cash transfer: %v", err)
 			// Don't fail the transfer for sync errors, just log warning
 		} else {
-			log.Printf("Successfully recorded sync operation for bank-to-cash transfer: user=%s, amount=%.2f", 
+			log.Printf("Successfully recorded sync operation for bank-to-cash transfer: user=%s, amount=%.2f",
 				transferRequest.UserID, transferRequest.Amount)
 		}
 	} else {
@@ -322,12 +322,12 @@ func handleBankToCashTransfer(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate cash bank cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		err = cacheManager.InvalidateDashboardCache(transferRequest.UserID, "monthly")
 		if err != nil {
 			log.Printf("Warning: Failed to invalidate dashboard cache for user %s: %v", transferRequest.UserID, err)
 		}
-		
+
 		log.Printf("✅ Cache invalidated for user: %s (cash/bank and dashboard)", transferRequest.UserID)
 	}
 
@@ -346,7 +346,7 @@ func sendSuccessResponse(w http.ResponseWriter, message string, data interface{}
 	// Establece tipo de contenido apropiado para respuesta JSON
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-	
+
 	// Encode response using standard ApiResponse structure
 	// Codifica respuesta usando estructura ApiResponse estándar
 	json.NewEncoder(w).Encode(ApiResponse{
@@ -363,7 +363,7 @@ func sendErrorResponse(w http.ResponseWriter, message string, statusCode int) {
 	// Establece tipo de contenido JSON para respuestas de error
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
-	
+
 	// Send structured error response without data field
 	// Envía respuesta de error estructurada sin campo de datos
 	json.NewEncoder(w).Encode(ApiResponse{

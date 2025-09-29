@@ -54,6 +54,9 @@ func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
 	if updateRequest.Category != "" {
 		updatedIncome.Category = updateRequest.Category
 	}
+	if updateRequest.CategoryID != nil {
+		updatedIncome.CategoryID = updateRequest.CategoryID
+	}
 	if updateRequest.PaymentMethod != "" {
 		if updateRequest.PaymentMethod != "cash" && updateRequest.PaymentMethod != "bank" {
 			sendErrorResponse(w, "Valid payment method (cash or bank) is required", http.StatusBadRequest)
@@ -76,7 +79,7 @@ func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id (following consistent pattern)
 	// Critical: ALL handlers must follow the same pattern for sync operations
 	log.Printf("Recording sync operation for income update with auto-generated operation_id")
-	
+
 	// Create sync operation data matching the updated income structure
 	syncData := map[string]interface{}{
 		"id":             updatedIncome.ID,
@@ -88,7 +91,7 @@ func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
 		"description":    updatedIncome.Description,
 		"updated_at":     time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		updatedIncome.UserID,
@@ -98,9 +101,9 @@ func handleUpdateIncome(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(updatedIncome.ID),
 		syncData,
 		updateRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for income update: %v", err)
 		// Don't fail the income update for sync errors, just log warning
@@ -189,7 +192,7 @@ func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
 	// Record sync operation with auto-generated operation_id (following consistent pattern)
 	// Critical: ALL handlers must follow the same pattern for sync operations
 	log.Printf("Recording sync operation for income deletion with auto-generated operation_id")
-	
+
 	// Create sync operation data matching the deleted income structure
 	syncData := map[string]interface{}{
 		"id":             incomeToDelete.ID,
@@ -201,7 +204,7 @@ func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
 		"description":    incomeToDelete.Description,
 		"deleted_at":     time.Now().Format("2006-01-02 15:04:05"),
 	}
-	
+
 	// Add sync operation record to database with auto-generated operation_id
 	err = addSyncOperation(
 		incomeToDelete.UserID,
@@ -211,9 +214,9 @@ func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
 		strconv.Itoa(incomeToDelete.ID),
 		syncData,
 		deleteRequest.DeviceID, // Use device_id from request
-		0, // Timestamp auto-generated
+		0,                      // Timestamp auto-generated
 	)
-	
+
 	if err != nil {
 		log.Printf("❌ ERROR: Failed to record sync operation for income deletion: %v", err)
 		// Don't fail the income deletion for sync errors, just log warning
@@ -249,6 +252,6 @@ func handleDeleteIncome(w http.ResponseWriter, r *http.Request) {
 	// Return success response
 	sendSuccessResponse(w, "Income deleted successfully", map[string]interface{}{
 		"deleted_income_id": deleteRequest.IncomeID,
-		"user_id":          deleteRequest.UserID,
+		"user_id":           deleteRequest.UserID,
 	})
 }

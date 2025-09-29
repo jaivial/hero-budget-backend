@@ -7,7 +7,7 @@ package main
 //
 // Previous DDL operations that were removed:
 // - ensureRequiredColumns() function
-// - ensureCashBankTable() function 
+// - ensureCashBankTable() function
 // - ensureCashBankTransactionsTable() function
 // - alterTableSafely() function
 // - tableExists() function

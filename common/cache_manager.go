@@ -14,12 +14,12 @@ type CacheManager struct {
 
 // CacheConfig configuración de TTL por tipo de datos
 type CacheConfig struct {
-	UserDataTTL     time.Duration // TTL para datos de usuario
-	IncomeDataTTL   time.Duration // TTL para datos de ingresos
-	ExpenseDataTTL  time.Duration // TTL para datos de gastos
-	BillsDataTTL    time.Duration // TTL para datos de facturas
-	DashboardTTL    time.Duration // TTL para datos del dashboard
-	SavingsDataTTL  time.Duration // TTL para datos de ahorros
+	UserDataTTL    time.Duration // TTL para datos de usuario
+	IncomeDataTTL  time.Duration // TTL para datos de ingresos
+	ExpenseDataTTL time.Duration // TTL para datos de gastos
+	BillsDataTTL   time.Duration // TTL para datos de facturas
+	DashboardTTL   time.Duration // TTL para datos del dashboard
+	SavingsDataTTL time.Duration // TTL para datos de ahorros
 }
 
 // TTL por defecto para diferentes tipos de datos
@@ -51,7 +51,7 @@ func (cm *CacheManager) CacheUserData(userID string, data interface{}) error {
 	if err != nil {
 		return fmt.Errorf("error serializando datos de usuario: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.UserDataTTL)
 }
 
@@ -62,7 +62,7 @@ func (cm *CacheManager) GetUserData(userID string, result interface{}) error {
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -73,7 +73,7 @@ func (cm *CacheManager) CacheIncomeData(userID, period string, data interface{})
 	if err != nil {
 		return fmt.Errorf("error serializando datos de ingresos: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.IncomeDataTTL)
 }
 
@@ -84,7 +84,7 @@ func (cm *CacheManager) GetIncomeData(userID, period string, result interface{})
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -95,7 +95,7 @@ func (cm *CacheManager) CacheDashboardData(userID, period string, data interface
 	if err != nil {
 		return fmt.Errorf("error serializando datos del dashboard: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.DashboardTTL)
 }
 
@@ -106,7 +106,7 @@ func (cm *CacheManager) GetDashboardData(userID, period string, result interface
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -118,7 +118,7 @@ func (cm *CacheManager) CacheExpenseData(userID, period string, data interface{}
 	if err != nil {
 		return fmt.Errorf("error serializando datos de gastos: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.ExpenseDataTTL)
 }
 
@@ -130,7 +130,7 @@ func (cm *CacheManager) GetExpenseData(userID, period string, result interface{}
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -142,7 +142,7 @@ func (cm *CacheManager) CacheBillsData(userID, period string, data interface{}) 
 	if err != nil {
 		return fmt.Errorf("error serializando datos de facturas: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.BillsDataTTL)
 }
 
@@ -154,7 +154,7 @@ func (cm *CacheManager) GetBillsData(userID, period string, result interface{}) 
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -166,7 +166,7 @@ func (cm *CacheManager) CacheSavingsData(userID string, data interface{}) error 
 	if err != nil {
 		return fmt.Errorf("error serializando datos de ahorros: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.SavingsDataTTL)
 }
 
@@ -178,7 +178,7 @@ func (cm *CacheManager) GetSavingsData(userID string, result interface{}) error 
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -190,7 +190,7 @@ func (cm *CacheManager) CacheCashBankData(userID string, data interface{}) error
 	if err != nil {
 		return fmt.Errorf("error serializando datos de cash/bank: %v", err)
 	}
-	
+
 	return cm.redis.Set(key, jsonData, defaultCacheConfig.UserDataTTL)
 }
 
@@ -202,7 +202,7 @@ func (cm *CacheManager) GetCashBankData(userID string, result interface{}) error
 	if err != nil {
 		return err
 	}
-	
+
 	return json.Unmarshal([]byte(data), result)
 }
 
@@ -210,7 +210,7 @@ func (cm *CacheManager) GetCashBankData(userID string, result interface{}) error
 // Proporciona métricas de rendimiento del cache para monitoreo
 func (cm *CacheManager) GetCacheStats() (*CacheStats, error) {
 	stats := cm.redis.Stats()
-	
+
 	return &CacheStats{
 		Hits:       stats.Hits,
 		Misses:     stats.Misses,

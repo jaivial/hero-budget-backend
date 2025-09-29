@@ -121,7 +121,7 @@ func cascadeBalanceUpdates(userID string, fromYearMonth string, cashDelta, bankD
 		WHERE user_id = ? AND year_month > ?
 		ORDER BY year_month ASC
 	`
-	
+
 	rows, err := db.Query(query, userID, fromYearMonth)
 	if err != nil {
 		return fmt.Errorf("error querying future months: %v", err)
@@ -149,8 +149,8 @@ func cascadeBalanceUpdates(userID string, fromYearMonth string, cashDelta, bankD
 			totalPrevBalance float64
 			totalBalance     float64
 		}
-		
-		err := rows.Scan(&monthData.month, &monthData.prevCash, &monthData.prevBank, 
+
+		err := rows.Scan(&monthData.month, &monthData.prevCash, &monthData.prevBank,
 			&monthData.currentCash, &monthData.currentBank, &monthData.totalPrevBalance, &monthData.totalBalance)
 		if err != nil {
 			return fmt.Errorf("error scanning row: %v", err)
@@ -188,18 +188,18 @@ func cascadeBalanceUpdates(userID string, fromYearMonth string, cashDelta, bankD
 				updated_at = CURRENT_TIMESTAMP
 			WHERE user_id = ? AND year_month = ?
 		`
-		
-		_, err = db.Exec(updateQuery, 
+
+		_, err = db.Exec(updateQuery,
 			newPrevCash, newPrevBank,
 			newCurrentCash, newCurrentBank,
-			newCurrentCash, newCurrentBank,  // balance amounts equal current amounts
+			newCurrentCash, newCurrentBank, // balance amounts equal current amounts
 			newTotalPrevBalance, newTotalBalance,
 			userID, monthData.month)
 		if err != nil {
 			return fmt.Errorf("error updating cascaded balance for month %s: %v", monthData.month, err)
 		}
 
-		log.Printf("Cascaded balance update for user %s, month %s - cash delta: %v, bank delta: %v", 
+		log.Printf("Cascaded balance update for user %s, month %s - cash delta: %v, bank delta: %v",
 			userID, monthData.month, cashDelta, bankDelta)
 	}
 
@@ -216,7 +216,7 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 	totalPrevBalance float64
 	totalBalance     float64
 }, cashDelta, bankDelta float64) error {
-	
+
 	// Parse fromYearMonth to start iteration
 	fromDate, err := time.Parse("2006-01", fromYearMonth)
 	if err != nil {
@@ -237,7 +237,7 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 	baseTotalBalance += cashDelta + bankDelta
 
 	currentMonth := fromDate.AddDate(0, 1, 0) // Start from next month after fromYearMonth
-	
+
 	for _, existingMonth := range existingMonths {
 		existingDate, err := time.Parse("2006-01", existingMonth.month)
 		if err != nil {
@@ -247,12 +247,12 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 		// Fill gaps between currentMonth and existingMonth
 		for currentMonth.Before(existingDate) {
 			currentMonthStr := currentMonth.Format("2006-01")
-			
+
 			// Check if this month already exists
 			var exists bool
 			checkQuery := `SELECT 1 FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
 			err := db.QueryRow(checkQuery, userID, currentMonthStr).Scan(&exists)
-			
+
 			if err == sql.ErrNoRows {
 				// Create gap month record
 				insertQuery := `
@@ -268,14 +268,14 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 						created_at, updated_at
 					) VALUES (?, ?, 0, 0, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 				`
-				
+
 				// For gap months, previous amounts are from the previous month
 				prevMonth := currentMonth.AddDate(0, -1, 0)
 				var prevCash, prevBank, prevTotalBalance float64
-				
+
 				if prevMonth.Format("2006-01") == fromYearMonth {
 					// Previous month is the fromYearMonth
-					prevCash = baseCash - cashDelta  // Remove delta to get original amount
+					prevCash = baseCash - cashDelta // Remove delta to get original amount
 					prevBank = baseBank - bankDelta
 					prevTotalBalance = baseTotalBalance - cashDelta - bankDelta
 				} else {
@@ -287,24 +287,24 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 					}
 				}
 
-				_, err = db.Exec(insertQuery, 
+				_, err = db.Exec(insertQuery,
 					userID, currentMonthStr,
-					baseCash, baseCash,      // current amounts (propagated from base)
-					prevCash, prevBank,      // previous month amounts
-					baseCash, baseBank,      // balance amounts
-					prevTotalBalance, baseTotalBalance)  // total balances
-				
+					baseCash, baseCash, // current amounts (propagated from base)
+					prevCash, prevBank, // previous month amounts
+					baseCash, baseBank, // balance amounts
+					prevTotalBalance, baseTotalBalance) // total balances
+
 				if err != nil {
 					return fmt.Errorf("error inserting gap month %s: %v", currentMonthStr, err)
 				}
 
-				log.Printf("Created gap month record for user %s, month %s - cash: %v, bank: %v", 
+				log.Printf("Created gap month record for user %s, month %s - cash: %v, bank: %v",
 					userID, currentMonthStr, baseCash, baseBank)
 			}
-			
+
 			currentMonth = currentMonth.AddDate(0, 1, 0)
 		}
-		
+
 		// Move currentMonth to after this existing month
 		currentMonth = existingDate.AddDate(0, 1, 0)
 	}
@@ -315,18 +315,18 @@ func fillGapMonths(userID string, fromYearMonth string, existingMonths []struct 
 // updateMonthlyCashBankBalance actualiza la tabla monthly_cash_bank_balance con efecto cascada
 func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankAmount float64, date time.Time) error {
 	yearMonth := date.Format("2006-01")
-	
+
 	// Get previous month's balance to calculate cumulative values
 	prevMonth := date.AddDate(0, -1, 0).Format("2006-01")
 	var prevCashTotal, prevBankTotal, prevTotalBalance float64
-	
+
 	prevQuery := `SELECT cash_amount, bank_amount, total_balance FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
 	err := db.QueryRow(prevQuery, userID, prevMonth).Scan(&prevCashTotal, &prevBankTotal, &prevTotalBalance)
 	if err != nil && err != sql.ErrNoRows {
 		return fmt.Errorf("error getting previous month balance: %v", err)
 	}
 	// If no previous month, prevTotals remain 0
-	
+
 	// Check if record exists for this user and month
 	var exists bool
 	checkQuery := `SELECT 1 FROM monthly_cash_bank_balance WHERE user_id = ? AND year_month = ?`
@@ -340,7 +340,7 @@ func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankA
 		newCashTotal := prevCashTotal + cashAmount
 		newBankTotal := prevBankTotal + bankAmount
 		newTotalBalance := prevTotalBalance + cashAmount + bankAmount
-		
+
 		insertQuery := `
 			INSERT INTO monthly_cash_bank_balance (
 				user_id, year_month, 
@@ -354,13 +354,13 @@ func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankA
 				created_at, updated_at
 			) VALUES (?, ?, ?, ?, 0, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 		`
-		_, err = db.Exec(insertQuery, 
+		_, err = db.Exec(insertQuery,
 			userID, yearMonth,
-			bankAmount, cashAmount,   // income amounts for this month
-			newBankTotal, newCashTotal,  // cumulative totals
-			prevBankTotal, prevCashTotal,  // previous month totals
-			newCashTotal, newBankTotal,   // balance amounts  
-			prevTotalBalance, newTotalBalance)  // total balances
+			bankAmount, cashAmount, // income amounts for this month
+			newBankTotal, newCashTotal, // cumulative totals
+			prevBankTotal, prevCashTotal, // previous month totals
+			newCashTotal, newBankTotal, // balance amounts
+			prevTotalBalance, newTotalBalance) // total balances
 		if err != nil {
 			return fmt.Errorf("error inserting monthly balance: %v", err)
 		}
@@ -380,10 +380,10 @@ func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankA
 		`
 		totalIncomeAmount := cashAmount + bankAmount
 		_, err = db.Exec(updateQuery,
-			bankAmount, cashAmount,  // add to income amounts
-			bankAmount, cashAmount,  // add to current totals
-			bankAmount, cashAmount,  // add to balance amounts
-			totalIncomeAmount,       // add to total balance
+			bankAmount, cashAmount, // add to income amounts
+			bankAmount, cashAmount, // add to current totals
+			bankAmount, cashAmount, // add to balance amounts
+			totalIncomeAmount, // add to total balance
 			userID, yearMonth)
 		if err != nil {
 			return fmt.Errorf("error updating monthly balance: %v", err)
@@ -397,9 +397,9 @@ func updateMonthlyCashBankBalance(userID string, incomeAmount, cashAmount, bankA
 		return err
 	}
 
-	log.Printf("Updated monthly_cash_bank_balance for user %s, month %s - cash: %v, bank: %v (with cascade)", 
+	log.Printf("Updated monthly_cash_bank_balance for user %s, month %s - cash: %v, bank: %v (with cascade)",
 		userID, yearMonth, cashAmount, bankAmount)
-	
+
 	return nil
 }
 

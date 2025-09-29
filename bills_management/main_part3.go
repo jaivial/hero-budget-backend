@@ -23,13 +23,13 @@ func fetchBills(userID string) ([]Bill, error) {
 	FROM bills 
 	WHERE user_id = ? 
 	ORDER BY id ASC`
-	
+
 	rows, err := db.Query(query, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	
+
 	// Procesar resultados
 	var bills []Bill
 	for rows.Next() {
@@ -63,7 +63,7 @@ func getBillOldData(db *sql.DB, billID int, userID string) (*Bill, error) {
 		COALESCE(updated_at, '') 
 	FROM bills 
 	WHERE id = ? AND user_id = ?`
-	
+
 	var bill Bill
 	err := db.QueryRow(query, billID, userID).Scan(
 		&bill.ID, &bill.UserID, &bill.Name, &bill.Amount,
@@ -84,7 +84,7 @@ func updateBillInDatabase(db *sql.DB, updateRequest UpdateBillRequest) error {
 	// Construir consulta dinámicamente
 	setParts := []string{}
 	args := []interface{}{}
-	
+
 	// Añadir campos no vacíos a la actualización
 	if updateRequest.Name != "" {
 		setParts = append(setParts, "name = ?")
@@ -122,24 +122,23 @@ func updateBillInDatabase(db *sql.DB, updateRequest UpdateBillRequest) error {
 		setParts = append(setParts, "payment_method = ?")
 		args = append(args, updateRequest.PaymentMethod)
 	}
-	
+
 	// Verificar que hay campos para actualizar
 	if len(setParts) == 0 {
 		return fmt.Errorf("no fields to update")
 	}
-	
+
 	// Añadir timestamp de actualización
 	setParts = append(setParts, "updated_at = CURRENT_TIMESTAMP")
 	setClause := strings.Join(setParts, ", ")
-	
+
 	// Construir y ejecutar consulta
 	query := fmt.Sprintf("UPDATE bills SET %s WHERE id = ? AND user_id = ?", setClause)
 	args = append(args, updateRequest.BillID, updateRequest.UserID)
-	
+
 	_, err := db.Exec(query, args...)
 	return err
 }
-
 
 // deleteBillAndRevertEffects elimina una factura y revierte todos sus efectos
 // Utiliza el helper delete_bill_helper.go para el proceso completo
@@ -148,4 +147,3 @@ func deleteBillAndRevertEffects(db *sql.DB, billData *Bill) error {
 	// Esta función actuaría como wrapper si fuera necesario
 	return fmt.Errorf("delete bill functionality pending implementation")
 }
-
