@@ -335,8 +335,8 @@ func main() {
 func runDatabaseMigration() error {
 	log.Printf("🔄 Categories Management - Running database migration...")
 
-	// Get database path - use production database path
-	dbPath := "../database/hero_budget.db"
+	// Get database path - use absolute production database path
+	dbPath := "/opt/hero_budget/database/hero_budget.db"
 
 	log.Printf("📂 Using database path: %s", dbPath)
 
