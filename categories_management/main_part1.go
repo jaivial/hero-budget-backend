@@ -292,6 +292,10 @@ func main() {
 	http.HandleFunc("/categories/delete", corsMiddleware(handleDeleteCategory))
 	http.HandleFunc("/categories/fix-emojis", corsMiddleware(handleFixEmojis))
 
+	// Category type change endpoints
+	http.HandleFunc("/categories/check-transactions", corsMiddleware(handleCheckCategoryTransactions))
+	http.HandleFunc("/categories/update-with-type-change", corsMiddleware(handleUpdateCategoryWithTypeChange))
+
 	// Rutas de sincronización offline - Integración del sistema de sync
 	// Endpoints para sincronización bidireccional con clientes offline
 	// Permite operaciones por lotes y resolución de conflictos específicos para categorías
@@ -319,6 +323,8 @@ func main() {
 	log.Printf("  - POST /categories/update")
 	log.Printf("  - POST /categories/delete")
 	log.Printf("  - GET  /categories/fix-emojis")
+	log.Printf("  - GET  /categories/check-transactions")
+	log.Printf("  - POST /categories/update-with-type-change")
 	log.Printf("  - POST /sync/categories/batch")
 	log.Printf("  - GET  /sync/categories/changes")
 	log.Printf("  - GET  /sync/categories/stats")
