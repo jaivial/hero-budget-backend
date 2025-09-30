@@ -47,7 +47,7 @@ MAGENTA='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_URL="http://localhost:8090"
+BASE_URL="https://herobudget.jaimedigitalstudio.com"
 AUTH_TOKEN="${1:-}"
 USER_ID="${2:-}"
 
@@ -182,7 +182,7 @@ echo ""
 
 echo -e "${BLUE}📝 Step 2.1: Device A changes category type (${INITIAL_TYPE} → ${NEW_TYPE})...${NC}"
 
-UPDATE_RESPONSE=$(curl -s -X PUT "${BASE_URL}/categories/update-with-type-change" \
+UPDATE_RESPONSE=$(curl -s -X POST "${BASE_URL}/categories/update-with-type-change" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -d "{

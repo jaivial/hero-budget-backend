@@ -39,7 +39,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-BASE_URL="http://localhost:8090"
+BASE_URL="https://herobudget.jaimedigitalstudio.com"
 AUTH_TOKEN="${1:-}"
 USER_ID="${2:-}"
 
@@ -182,7 +182,7 @@ echo ""
 ###############################################################################
 echo -e "${BLUE}📝 Step 4: Changing category type (income → expense)...${NC}"
 
-UPDATE_CATEGORY_RESPONSE=$(curl -s -X PUT "${BASE_URL}/categories/update-with-type-change" \
+UPDATE_CATEGORY_RESPONSE=$(curl -s -X POST "${BASE_URL}/categories/update-with-type-change" \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer ${AUTH_TOKEN}" \
   -d "{
