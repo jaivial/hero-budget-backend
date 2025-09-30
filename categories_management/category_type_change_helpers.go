@@ -811,8 +811,9 @@ type UpdateCategoryWithTypeChangeResponse struct {
 // 3. Calculate monthly amounts
 // 4. Update income/expense columns
 // 5. Recalculate cumulative balances
-// 6. Update category type
-// 7. Record sync operation
+// 6. Move transactions between tables (incomes ↔ expenses)
+// 7. Update category type
+// 8. Record sync operation
 //
 // This function wraps all operations in a database transaction for atomicity
 // If any step fails, all changes are rolled back
@@ -826,6 +827,7 @@ type UpdateCategoryWithTypeChangeResponse struct {
 //    b. Calculate monthly transaction amounts
 //    c. Apply type change to monthly balance columns
 //    d. Trigger cumulative recalculation
+//    e. Move transactions between incomes/expenses tables
 // 5. Update category type and other fields
 // 6. Commit transaction
 // 7. Record sync operation (outside transaction)
@@ -1029,8 +1031,20 @@ func updateCategoryWithTypeChange(request UpdateCategoryWithTypeChangeRequest) A
 			}
 		}
 		log.Printf("✅ Cumulative balances recalculated")
+
+		// Step 8.5: Move transactions between tables (incomes ↔ expenses)
+		log.Printf("📝 Step 8.5: Moving transactions between tables...")
+		migrationResult, err := moveTransactionsBetweenTables(tx, request.CategoryID, existingType, request.NewType, request.UserID)
+		if err != nil {
+			log.Printf("❌ Error migrating transactions: %v", err)
+			return ApiResponse{
+				Success: false,
+				Message: fmt.Sprintf("Error migrating transactions: %v", err),
+			}
+		}
+		log.Printf("✅ Transactions migrated successfully: %d moved, %d deleted", migrationResult.MovedCount, migrationResult.DeletedCount)
 	} else {
-		log.Printf("ℹ️ No transactions found, skipping cascade calculations")
+		log.Printf("ℹ️ No transactions found, skipping cascade calculations and migration")
 	}
 
 	// Step 9: Update category type in database
