@@ -223,14 +223,14 @@ type CategoryTransaction struct {
 // 6. Return sorted transaction array
 //
 // Parameters:
-//   - db: Database connection (or transaction)
+//   - tx: Database transaction (must be active transaction for atomicity)
 //   - categoryID: ID of category to fetch transactions for
 //   - userID: User ID for permission validation
 //
 // Returns:
 //   - []CategoryTransaction: Array of transactions sorted by date
 //   - error if database query fails
-func getTransactionsForCategory(db *sql.DB, categoryID int, userID string) ([]CategoryTransaction, error) {
+func getTransactionsForCategory(tx *sql.Tx, categoryID int, userID string) ([]CategoryTransaction, error) {
 	operationID := fmt.Sprintf("get-category-tx-%d-%s", categoryID, userID)
 	startTime := time.Now()
 
@@ -246,7 +246,7 @@ func getTransactionsForCategory(db *sql.DB, categoryID int, userID string) ([]Ca
 		ORDER BY date ASC
 	`
 
-	expenseRows, err := db.Query(expenseQuery, categoryID, userID)
+	expenseRows, err := tx.Query(expenseQuery, categoryID, userID)
 	if err != nil {
 		log.Printf("❌ Error querying expense transactions: %v", err)
 		return nil, fmt.Errorf("failed to query expense transactions: %v", err)
@@ -286,7 +286,7 @@ func getTransactionsForCategory(db *sql.DB, categoryID int, userID string) ([]Ca
 		ORDER BY date ASC
 	`
 
-	incomeRows, err := db.Query(incomeQuery, categoryID, userID)
+	incomeRows, err := tx.Query(incomeQuery, categoryID, userID)
 	if err != nil {
 		log.Printf("❌ Error querying income transactions: %v", err)
 		return nil, fmt.Errorf("failed to query income transactions: %v", err)
@@ -498,7 +498,7 @@ func sortMonthlyAmountsByYearMonth(amounts []MonthlyTransactionAmount) {
 // 2. Return list of affected months for cumulative recalculation
 //
 // Parameters:
-//   - db: Database connection (or transaction)
+//   - tx: Database transaction (must be active transaction for atomicity)
 //   - userID: User ID for permission validation
 //   - monthlyAmounts: Monthly transaction amounts to move between columns
 //   - oldType: Original category type ("income" or "expense")
@@ -507,7 +507,7 @@ func sortMonthlyAmountsByYearMonth(amounts []MonthlyTransactionAmount) {
 // Returns:
 //   - firstAffectedMonth: First month that needs recalculation (for cascade)
 //   - error if database update fails
-func applyTypeChangeToMonthlyBalance(db *sql.DB, userID string, monthlyAmounts []MonthlyTransactionAmount, oldType, newType string) (string, error) {
+func applyTypeChangeToMonthlyBalance(tx *sql.Tx, userID string, monthlyAmounts []MonthlyTransactionAmount, oldType, newType string) (string, error) {
 	operationID := fmt.Sprintf("apply-type-change-%s", time.Now().Format("20060102-150405"))
 	startTime := time.Now()
 
@@ -528,7 +528,7 @@ func applyTypeChangeToMonthlyBalance(db *sql.DB, userID string, monthlyAmounts [
 			i+1, len(monthlyAmounts), amount.YearMonth, amount.CashAmount, amount.BankAmount)
 
 		// Step 1: Ensure month record exists
-		_, err := db.Exec(`
+		_, err := tx.Exec(`
 			INSERT OR IGNORE INTO monthly_cash_bank_balance (user_id, year_month)
 			VALUES (?, ?)
 		`, userID, amount.YearMonth)
@@ -589,7 +589,7 @@ func applyTypeChangeToMonthlyBalance(db *sql.DB, userID string, monthlyAmounts [
 		}
 
 		// Execute update
-		result, err := db.Exec(updateQuery, queryParams...)
+		result, err := tx.Exec(updateQuery, queryParams...)
 		if err != nil {
 			log.Printf("❌ Error updating monthly balance for %s: %v", amount.YearMonth, err)
 			return "", fmt.Errorf("failed to update monthly balance for %s: %v", amount.YearMonth, err)
@@ -639,20 +639,20 @@ func applyTypeChangeToMonthlyBalance(db *sql.DB, userID string, monthlyAmounts [
 // 3. Continue until all months processed
 //
 // Parameters:
-//   - db: Database connection (or transaction)
+//   - tx: Database transaction (must be active transaction for atomicity)
 //   - userID: User ID for permission validation
 //   - startMonth: First month to recalculate (YYYY-MM format)
 //
 // Returns:
 //   - error if database operation fails
-func recalculateAllCumulativeBalances(db *sql.DB, userID, startMonth string) error {
+func recalculateAllCumulativeBalances(tx *sql.Tx, userID, startMonth string) error {
 	operationID := fmt.Sprintf("recalc-cumulative-%s-%s", userID, startMonth)
 	startTime := time.Now()
 
 	log.Printf("🔄 Recalculating cumulative balances from %s for user %s (Operation: %s)", startMonth, userID, operationID)
 
 	// Step 1: Get all months from startMonth forward, ordered chronologically
-	rows, err := db.Query(`
+	rows, err := tx.Query(`
 		SELECT year_month
 		FROM monthly_cash_bank_balance
 		WHERE user_id = ? AND year_month >= ?
@@ -685,7 +685,7 @@ func recalculateAllCumulativeBalances(db *sql.DB, userID, startMonth string) err
 
 		// Step 2a: Get income/expense/bill amounts for current month
 		var incomeBank, incomeCash, expenseBank, expenseCash, billBank, billCash float64
-		err := db.QueryRow(`
+		err := tx.QueryRow(`
 			SELECT
 				COALESCE(income_bank_amount, 0), COALESCE(income_cash_amount, 0),
 				COALESCE(expense_bank_amount, 0), COALESCE(expense_cash_amount, 0),
@@ -704,7 +704,7 @@ func recalculateAllCumulativeBalances(db *sql.DB, userID, startMonth string) err
 		if i > 0 {
 			// Get final balance from previous month
 			previousMonth := months[i-1]
-			err := db.QueryRow(`
+			err := tx.QueryRow(`
 				SELECT COALESCE(cash_amount, 0), COALESCE(bank_amount, 0)
 				FROM monthly_cash_bank_balance
 				WHERE user_id = ? AND year_month = ?
@@ -741,7 +741,7 @@ func recalculateAllCumulativeBalances(db *sql.DB, userID, startMonth string) err
 		totalBalance := newCashAmount + newBankAmount
 
 		// Step 2d: Update all calculated balance columns
-		_, err = db.Exec(`
+		_, err = tx.Exec(`
 			UPDATE monthly_cash_bank_balance
 			SET
 				previous_cash_amount = ?,
@@ -989,7 +989,7 @@ func updateCategoryWithTypeChange(request UpdateCategoryWithTypeChangeRequest) A
 
 	// Step 5: Get all transactions for category
 	log.Printf("📝 Step 5: Fetching transactions for category...")
-	transactions, err := getTransactionsForCategory(db, request.CategoryID, request.UserID)
+	transactions, err := getTransactionsForCategory(tx, request.CategoryID, request.UserID)
 	if err != nil {
 		log.Printf("❌ Error fetching transactions: %v", err)
 		return ApiResponse{
@@ -1010,7 +1010,7 @@ func updateCategoryWithTypeChange(request UpdateCategoryWithTypeChangeRequest) A
 
 		// Step 7: Apply type change to monthly balance
 		log.Printf("📝 Step 7: Applying type change to monthly balance...")
-		firstMonth, err := applyTypeChangeToMonthlyBalance(db, request.UserID, monthlyAmounts, existingType, request.NewType)
+		firstMonth, err := applyTypeChangeToMonthlyBalance(tx, request.UserID, monthlyAmounts, existingType, request.NewType)
 		if err != nil {
 			log.Printf("❌ Error applying type change: %v", err)
 			return ApiResponse{
@@ -1022,7 +1022,7 @@ func updateCategoryWithTypeChange(request UpdateCategoryWithTypeChangeRequest) A
 
 		// Step 8: Recalculate cumulative balances
 		log.Printf("📝 Step 8: Recalculating cumulative balances from %s...", firstMonth)
-		err = recalculateAllCumulativeBalances(db, request.UserID, firstMonth)
+		err = recalculateAllCumulativeBalances(tx, request.UserID, firstMonth)
 		if err != nil {
 			log.Printf("❌ Error recalculating balances: %v", err)
 			return ApiResponse{

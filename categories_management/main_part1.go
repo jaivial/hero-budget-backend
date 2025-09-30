@@ -281,11 +281,16 @@ func generateNextOperationId(userID string) (string, error) {
 func main() {
 	// Run database migration on service startup
 	// Ejecuta migración de base de datos al iniciar el servicio
-	log.Printf("🔄 Starting database migration for Categories Management service...")
-	if err := runDatabaseMigration(); err != nil {
-		log.Fatalf("❌ Database migration failed: %v", err)
+	// Skip migration if DB_DEV_PATH environment variable is set (local testing)
+	if os.Getenv("DB_DEV_PATH") == "" {
+		log.Printf("🔄 Starting database migration for Categories Management service...")
+		if err := runDatabaseMigration(); err != nil {
+			log.Fatalf("❌ Database migration failed: %v", err)
+		}
+		log.Printf("✅ Database migration completed successfully")
+	} else {
+		log.Printf("⏭️  Skipping database migration (local testing mode)")
 	}
-	log.Printf("✅ Database migration completed successfully")
 
 	// Set up CORS middleware and routes para endpoints principales de categorías
 	// Configura middleware CORS y define todas las rutas HTTP disponibles
