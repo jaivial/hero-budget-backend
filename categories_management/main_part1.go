@@ -145,8 +145,8 @@ func init() {
 	// Open the database connection with SQLite driver with busy timeout
 	// Establece conexión con la base de datos usando el driver SQLite3
 	// Adding _busy_timeout=10000 (10 seconds) to handle concurrent writes
-	dbPath = dbPath + "?_busy_timeout=10000"
-	db, err = sql.Open("sqlite3", dbPath)
+	dbConnectionString := dbPath + "?_busy_timeout=10000&_journal_mode=WAL"
+	db, err = sql.Open("sqlite3", dbConnectionString)
 	if err != nil {
 		log.Fatalf("Failed to open database at %s: %v", dbPath, err)
 	}
@@ -353,8 +353,8 @@ func runDatabaseMigration() error {
 	log.Printf("📂 Using database path: %s", dbPath)
 
 	// Open database connection with busy timeout
-	dbPath = dbPath + "?_busy_timeout=10000"
-	db, err := sql.Open("sqlite3", dbPath)
+	dbConnectionString := dbPath + "?_busy_timeout=10000&_journal_mode=WAL"
+	db, err := sql.Open("sqlite3", dbConnectionString)
 	if err != nil {
 		return fmt.Errorf("failed to open database: %v", err)
 	}
