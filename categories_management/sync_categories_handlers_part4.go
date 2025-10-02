@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 )
 
 // Handlers HTTP para sincronización offline de Categories Management - Parte 4 (Processing Functions)
