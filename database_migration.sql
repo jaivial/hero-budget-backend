@@ -83,4 +83,47 @@ SELECT
     COUNT(*) as total_records,
     COUNT(category_id) as records_with_category_id,
     COUNT(*) - COUNT(category_id) as records_without_category_id
-FROM expenses; 
+FROM expenses;
+
+-- =====================================================================
+-- Migración: Permitir IDs explícitos en tabla categories (Optimistic UI)
+-- Fecha: 2025-10-02
+-- Propósito: Remover AUTOINCREMENT para permitir client-generated IDs
+-- =====================================================================
+-- IMPORTANTE: SQLite con AUTOINCREMENT no permite INSERT con ID explícito.
+-- Necesitamos recrear la tabla SIN AUTOINCREMENT para soportar:
+-- 1. Auto-increment cuando no se proporciona ID (comportamiento actual)
+-- 2. IDs explícitos del cliente para optimistic UI (nuevo requisito)
+-- =====================================================================
+
+-- Paso 1: Crear nueva tabla categories sin AUTOINCREMENT
+CREATE TABLE IF NOT EXISTS categories_new (
+    id INTEGER PRIMARY KEY,  -- Sin AUTOINCREMENT: permite tanto auto-increment como IDs explícitos
+    user_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
+    emoji TEXT DEFAULT '📁',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE(user_id, name, type)
+);
+
+-- Paso 2: Copiar todos los datos de la tabla antigua a la nueva
+INSERT INTO categories_new (id, user_id, name, type, emoji, created_at, updated_at)
+SELECT id, user_id, name, type, emoji, created_at, updated_at
+FROM categories;
+
+-- Paso 3: Eliminar la tabla antigua
+DROP TABLE categories;
+
+-- Paso 4: Renombrar la nueva tabla
+ALTER TABLE categories_new RENAME TO categories;
+
+-- Paso 5: Recrear índices
+CREATE INDEX IF NOT EXISTS idx_categories_user_id ON categories(user_id);
+CREATE INDEX IF NOT EXISTS idx_categories_type ON categories(type);
+CREATE INDEX IF NOT EXISTS idx_categories_user_type ON categories(user_id, type);
+
+-- Verificar la migración
+SELECT 'categories' as table_name, COUNT(*) as total_records FROM categories;

@@ -54,14 +54,14 @@ CREATE INDEX IF NOT EXISTS idx_users_created_at ON users(created_at);
 -- =====================================================================
 
 CREATE TABLE IF NOT EXISTS categories (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    id INTEGER PRIMARY KEY,  -- Sin AUTOINCREMENT: permite tanto auto-increment como IDs explícitos (optimistic UI)
     user_id TEXT NOT NULL,
     name TEXT NOT NULL,
     type TEXT NOT NULL CHECK (type IN ('income', 'expense')),
     emoji TEXT DEFAULT '📁',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    
+
     UNIQUE(user_id, name, type)
 );
 
