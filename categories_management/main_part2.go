@@ -120,8 +120,14 @@ func handleAddCategory(w http.ResponseWriter, r *http.Request) {
 		Emoji:  addRequest.Emoji,
 	}
 
-	// Add category to database con manejo de errores
-	categoryID, err := addCategory(category)
+	// Log client-provided ID if present for optimistic UI support
+	if addRequest.CategoryID != nil {
+		log.Printf("🆔 Client provided category ID: %d (optimistic UI)", *addRequest.CategoryID)
+	}
+
+	// Add category to database - pass client ID for optimistic UI support
+	// If CategoryID is nil, addCategory will use auto-increment
+	categoryID, err := addCategory(category, addRequest.CategoryID)
 	if err != nil {
 		log.Printf("Error adding category: %v", err)
 		sendErrorResponse(w, "Error adding category", http.StatusInternalServerError)

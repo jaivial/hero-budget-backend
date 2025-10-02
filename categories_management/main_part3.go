@@ -174,24 +174,50 @@ func fetchCategoryByID(categoryID int, userID string) (*Category, error) {
 // addCategory inserta una nueva categoría en la base de datos
 // Incluye codificación automática de emoji y retorna ID generado
 // Valida integridad de datos antes de la inserción
-func addCategory(category Category) (int, error) {
+// addCategory inserts a new category into the database
+// Supports both auto-increment IDs and client-generated IDs for optimistic UI
+// Parameters:
+//   - category: Category data to insert
+//   - clientID: Optional client-generated ID (nil for auto-increment)
+// Returns: category ID (either client-provided or database-generated)
+func addCategory(category Category, clientID *int) (int, error) {
 	// Codificar el emoji antes de guardarlo para preservar UTF-8
 	encodedEmoji := encodeEmoji(category.Emoji)
 
-	// Insertar nueva categoría con emoji codificado
+	// Use different SQL based on whether client provided an ID
+	if clientID != nil && *clientID > 0 {
+		// Client-generated ID: INSERT with explicit ID
+		log.Printf("🆔 Inserting category with client-generated ID: %d", *clientID)
+		_, err := db.Exec(
+			`INSERT INTO categories (id, user_id, name, type, emoji) VALUES (?, ?, ?, ?, ?)`,
+			*clientID, category.UserID, category.Name, category.Type, encodedEmoji,
+		)
+		if err != nil {
+			log.Printf("❌ Error inserting category with client ID %d: %v", *clientID, err)
+			return 0, err
+		}
+		log.Printf("✅ Category inserted successfully with client ID: %d", *clientID)
+		return *clientID, nil
+	}
+
+	// Auto-increment ID: INSERT without ID (traditional behavior)
+	log.Printf("🔢 Inserting category with auto-increment ID")
 	result, err := db.Exec(
 		`INSERT INTO categories (user_id, name, type, emoji) VALUES (?, ?, ?, ?)`,
 		category.UserID, category.Name, category.Type, encodedEmoji,
 	)
 	if err != nil {
+		log.Printf("❌ Error inserting category with auto-increment: %v", err)
 		return 0, err
 	}
 
 	// Obtener ID generado por la base de datos
 	id, err := result.LastInsertId()
 	if err != nil {
+		log.Printf("❌ Error getting last insert ID: %v", err)
 		return 0, err
 	}
 
+	log.Printf("✅ Category inserted successfully with auto-increment ID: %d", int(id))
 	return int(id), nil
 }

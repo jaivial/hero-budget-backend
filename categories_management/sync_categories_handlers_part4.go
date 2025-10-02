@@ -25,8 +25,20 @@ func processCategoryAdd(category OfflineCategory) (string, error) {
 		Emoji:  category.Emoji,
 	}
 
-	// Usar función existente para agregar categoría
-	categoryID, err := addCategory(newCategory)
+	// Check if category has a client-generated ID for optimistic UI support
+	// The ID field may contain a numeric client-generated ID from the mobile app
+	var clientGeneratedID *int = nil
+	if category.ID != "" {
+		// Try to parse the ID as an integer (client-generated IDs are numeric)
+		if parsedID, err := strconv.Atoi(category.ID); err == nil && parsedID > 0 {
+			clientGeneratedID = &parsedID
+			log.Printf("🆔 Client-generated ID detected: %d (optimistic UI support)", parsedID)
+		}
+	}
+
+	// Usar función existente para agregar categoría - pass client ID if available
+	// If clientGeneratedID is nil, addCategory will use auto-increment
+	categoryID, err := addCategory(newCategory, clientGeneratedID)
 	if err != nil {
 		return "", fmt.Errorf("failed to add category: %v", err)
 	}
@@ -35,7 +47,11 @@ func processCategoryAdd(category OfflineCategory) (string, error) {
 	serverID := fmt.Sprintf("%d", categoryID)
 
 	// Log de adición exitosa
-	log.Printf("✅ Category added successfully: %s -> server ID %s", category.LocalID, serverID)
+	if clientGeneratedID != nil {
+		log.Printf("✅ Category added with client ID: %s -> server confirmed ID %s", category.LocalID, serverID)
+	} else {
+		log.Printf("✅ Category added with auto-increment: %s -> server ID %s", category.LocalID, serverID)
+	}
 
 	return serverID, nil
 }

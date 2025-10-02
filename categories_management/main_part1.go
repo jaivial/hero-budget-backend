@@ -40,10 +40,11 @@ type Category struct {
 // Utilizada en el endpoint de adición de categorías para validar y procesar datos
 // Incluye todos los campos requeridos para la creación exitosa
 type AddCategoryRequest struct {
-	UserID string `json:"user_id"` // ID del usuario que crea la categoría (requerido)
-	Name   string `json:"name"`    // Nombre de la categoría (requerido, único por tipo)
-	Type   string `json:"type"`    // Tipo de categoría: "income" o "expense" (requerido)
-	Emoji  string `json:"emoji"`   // Emoji representativo (opcional, se asigna predeterminado)
+	CategoryID *int   `json:"category_id,omitempty"` // Client-generated ID for optimistic UI (optional)
+	UserID     string `json:"user_id"`                // ID del usuario que crea la categoría (requerido)
+	Name       string `json:"name"`                   // Nombre de la categoría (requerido, único por tipo)
+	Type       string `json:"type"`                   // Tipo de categoría: "income" o "expense" (requerido)
+	Emoji      string `json:"emoji"`                  // Emoji representativo (opcional, se asigna predeterminado)
 
 	// Sync operation parameters for incremental synchronization tracking
 	OperationID string `json:"operation_id,omitempty"` // Unique operation identifier for sync
