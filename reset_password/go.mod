@@ -3,6 +3,7 @@ module backend/reset_password
 go 1.21
 
 require (
+	github.com/joho/godotenv v1.5.1
 	github.com/mattn/go-sqlite3 v1.14.27
 	gopkg.in/gomail.v2 v2.0.0-20160411212932-81ebce5c23df
 )
