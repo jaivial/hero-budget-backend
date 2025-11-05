@@ -3,11 +3,11 @@
         "host": "smtp.gmail.com",
         "port": 587,
         "username": "jaimebillanueba99@gmail.com",
-        "password": "ywpb wigk gvlz efuk",
+        "password": "jcns zdkg wedn pmbm",
         "from_email": "jaimebillanueba99@gmail.com"
     },
     "app": {
-        "base_url": "http://localhost:3000",
+        "base_url": "https://herobudget.jaimedigitalstudio.com",
         "reset_page": "/reset-password"
     }
 }
